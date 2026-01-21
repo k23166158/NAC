@@ -1,8 +1,153 @@
 {% extends 'base.html' %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Tickets{% endblock %}
 
 {% block content %}
-    <h1>Ticketing Software!</h1>
-    <p>Welcome to the best supporting software.</p>
+<div class="tickets-wrap">
+  <div class="tickets-header">
+    <div>
+      <h1 class="tickets-title">Tickets</h1>
+      <p class="tickets-subtitle">Click a tab to view tickets.</p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" role="tablist" aria-label="Ticket tabs">
+    <button class="tab-btn is-active" type="button" role="tab" aria-selected="true" aria-controls="panel-active" data-tab="active">
+      <span class="tab-dot dot-active"></span>
+      Active
+      <span class="tab-count">{{ active_tickets|length }}</span>
+    </button>
+
+    <button class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="panel-overdue" data-tab="overdue">
+      <span class="tab-dot dot-overdue"></span>
+      Overdue
+      <span class="tab-count">{{ overdue_tickets|length }}</span>
+    </button>
+
+    <button class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="panel-completed" data-tab="completed">
+      <span class="tab-dot dot-completed"></span>
+      Completed
+      <span class="tab-count">{{ completed_tickets|length }}</span>
+    </button>
+  </div>
+
+  <!-- Panels -->
+  <section id="panel-active" class="tab-panel is-open" role="tabpanel">
+    {% if active_tickets %}
+      <div class="ticket-list">
+        {% for t in active_tickets %}
+          <a class="ticket-link" href="{% url 'ticket_detail' t.id %}">
+            <article class="ticket-card">
+              <div class="ticket-top">
+                <h3 class="ticket-title">{{ t.title }}</h3>
+                <span class="pill status status-active">ACTIVE</span>
+              </div>
+              <div class="ticket-meta">
+                {% if t.user %}
+                  <span class="pill">👤 {{ t.user.firstname }} {{ t.user.lastname }}</span>
+                {% endif %}
+                {% if t.updated_at %}
+                  <span class="pill">⏱ Updated {{ t.updated_at|date:"M j, Y" }}</span>
+                {% endif %}
+                {% if t.date_posted %}
+                  <span class="pill">🗓 Opened {{ t.date_posted|date:"M j, Y" }}</span>
+                {% endif %}
+              </div>
+            </article>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">No active tickets right now.</div>
+    {% endif %}
+  </section>
+
+  <section id="panel-overdue" class="tab-panel" role="tabpanel" hidden>
+    {% if overdue_tickets %}
+      <div class="ticket-list">
+        {% for t in overdue_tickets %}
+          <a class="ticket-link" href="{% url 'ticket_detail' t.id %}">
+            <article class="ticket-card">
+              <div class="ticket-top">
+                <h3 class="ticket-title">{{ t.title }}</h3>
+                <span class="pill status status-overdue">OVERDUE</span>
+              </div>
+              <div class="ticket-meta">
+                {% if t.user %}
+                  <span class="pill">👤 {{ t.user.firstname }} {{ t.user.lastname }}</span>
+                {% endif %}
+                {% if t.updated_at %}
+                  <span class="pill">⏱ Updated {{ t.updated_at|date:"M j, Y" }}</span>
+                {% endif %}
+                {% if t.date_posted %}
+                  <span class="pill">🗓 Opened {{ t.date_posted|date:"M j, Y" }}</span>
+                {% endif %}
+              </div>
+            </article>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">Nothing overdue 🎉</div>
+    {% endif %}
+  </section>
+
+  <section id="panel-completed" class="tab-panel" role="tabpanel" hidden>
+    {% if completed_tickets %}
+      <div class="ticket-list">
+        {% for t in completed_tickets %}
+          <a class="ticket-link" href="{% url 'ticket_detail' t.id %}">
+            <article class="ticket-card">
+              <div class="ticket-top">
+                <h3 class="ticket-title">{{ t.title }}</h3>
+                <span class="pill status status-completed">DONE</span>
+              </div>
+              <div class="ticket-meta">
+                {% if t.updated_at %}
+                  <span class="pill">✅ Completed {{ t.updated_at|date:"M j, Y" }}</span>
+                {% endif %}
+                {% if t.date_posted %}
+                  <span class="pill">🗓 Opened {{ t.date_posted|date:"M j, Y" }}</span>
+                {% endif %}
+              </div>
+            </article>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">No completed tickets yet.</div>
+    {% endif %}
+  </section>
+</div>
+
+<script>
+  (function () {
+    const buttons = document.querySelectorAll(".tab-btn");
+    const panels = {
+      active: document.getElementById("panel-active"),
+      overdue: document.getElementById("panel-overdue"),
+      completed: document.getElementById("panel-completed"),
+    };
+
+    function openTab(name) {
+      buttons.forEach(btn => {
+        const isSelected = btn.dataset.tab === name;
+        btn.classList.toggle("is-active", isSelected);
+        btn.setAttribute("aria-selected", isSelected ? "true" : "false");
+      });
+
+      Object.entries(panels).forEach(([key, el]) => {
+        const isOpen = key === name;
+        el.classList.toggle("is-open", isOpen);
+        if (isOpen) el.removeAttribute("hidden");
+        else el.setAttribute("hidden", "hidden");
+      });
+    }
+
+    buttons.forEach(btn => {
+      btn.addEventListener("click", () => openTab(btn.dataset.tab));
+    });
+  })();
+</script>
 {% endblock %}
