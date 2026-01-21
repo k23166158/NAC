@@ -1,17 +1,50 @@
+/* =============== Base layout (your existing styles, lightly refined) =============== */
+:root {
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --text: #24292f;
+    --muted: #57606a;
+    --border: #d0d7de;
+
+
+    --blue: #0969da;
+    /* active */
+    --red: #d1242f;
+    /* overdue */
+    --green: #1a7f37;
+    /* completed */
+
+
+    --shadow: 0 1px 0 rgba(27, 31, 36, .04);
+    --radius: 12px;
+}
+
+
+* {
+    box-sizing: border-box;
+}
+
+
 body {
-    font-family: sans-serif;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
 }
 
+
 header {
-    background-color: #333;
+    background-color: #0d1117;
+    /* more GitHub-like */
     color: white;
     padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
 }
+
 
 header nav ul {
     list-style: none;
@@ -19,27 +52,359 @@ header nav ul {
     padding: 0;
 }
 
+
 header nav ul li {
     display: inline;
     margin-right: 20px;
 }
 
+
 header nav ul li a {
     color: white;
     text-decoration: none;
+    opacity: 0.92;
 }
+
+
+header nav ul li a:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
 
 main {
     flex: 1;
-    padding: 2rem;
-    max-width: 800px;
+    padding: 1.25rem;
+    max-width: 1200px;
+    /* wider to fit 3 columns cleanly */
     margin: 0 auto;
-    text-align: center;
+    text-align: left;
+    /* board UI reads better left-aligned */
+    width: 100%;
 }
 
+
 footer {
-    background-color: #eee;
+    background-color: #ffffff;
     text-align: center;
     padding: 1rem;
     margin-top: auto;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+}
+
+
+/* =============== Tickets board UI =============== */
+
+
+.tickets-wrap {
+    width: 100%;
+    margin: 0 auto;
+    padding: 8px 0 22px;
+}
+
+
+.tickets-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+
+.tickets-title {
+    font-size: 22px;
+    font-weight: 750;
+    margin: 0;
+    letter-spacing: -0.2px;
+}
+
+
+.tickets-subtitle {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    align-items: start;
+}
+
+
+@media (max-width: 980px) {
+    .board {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+.col {
+    background: rgba(255, 255, 255, .45);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+
+.col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 12px;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+}
+
+
+.col-head-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+}
+
+
+.dot.active {
+    background: var(--blue);
+}
+
+
+.dot.overdue {
+    background: var(--red);
+}
+
+
+.dot.completed {
+    background: var(--green);
+}
+
+
+.col-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+
+.count {
+    font-size: 12px;
+    color: var(--muted);
+    background: #f3f4f6;
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+}
+
+
+.col-body {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 220px;
+}
+
+
+.ticket-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+
+.ticket-link:focus {
+    outline: 2px solid rgba(9, 105, 218, .35);
+    outline-offset: 2px;
+    border-radius: 10px;
+}
+
+
+.ticket-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: var(--shadow);
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+
+.ticket-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 18px rgba(140, 149, 159, .18);
+    border-color: #afb8c1;
+}
+
+
+.ticket-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+
+.ticket-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 750;
+    line-height: 1.25;
+    letter-spacing: -0.1px;
+}
+
+
+.ticket-meta {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #f6f8fa;
+    white-space: nowrap;
+}
+
+
+.status {
+    border: 1px solid transparent;
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: .25px;
+}
+
+
+.status-active {
+    background: var(--blue);
+}
+
+
+.status-overdue {
+    background: var(--red);
+}
+
+
+.status-completed {
+    background: var(--green);
+}
+
+
+.empty {
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    color: var(--muted);
+    background: rgba(255, 255, 255, .7);
+    font-size: 13px;
+}
+
+
+.tabs {
+    display: inline-flex;
+    gap: 6px;
+    padding: 6px;
+    background: rgba(255, 255, 255, .6);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+    margin: 10px 0 16px;
+}
+
+
+.tab-btn {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    padding: 8px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 750;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, .9);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+
+.tab-btn.is-active {
+    background: #fff;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+
+.tab-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+}
+
+
+.tab-count {
+    font-size: 12px;
+    color: var(--muted);
+    background: #f3f4f6;
+    border: 1px solid var(--border);
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+
+.tab-panel {
+    animation: fadeIn .12s ease;
+}
+
+
+.ticket-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(2px);
+    }
+
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
