@@ -160,10 +160,10 @@ def scan_directory(root, files):
 def check_coverage():
     """Verify that test coverage is 100% using subprocess.run."""
     cmd = [sys.executable, '-m', 'coverage', 'report', '--fail-under=100']
-    result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     
     if result.returncode != 0:
-        return ["Coverage Error: Test coverage is below 100%."]
+        return [result.stderr]
     return []
 
 def print_errors(errors):
