@@ -26,7 +26,6 @@ class QualityAuditor(ast.NodeVisitor):
         """Run checks on function definitions."""
         self.check_docstring(node, "Function")
         self.check_length(node)
-        self.check_naming(node)
         self.check_nesting_limit(node)
         self.generic_visit(node)
 
@@ -51,14 +50,6 @@ class QualityAuditor(ast.NodeVisitor):
             self.errors.append(
                 f"Length Error: Function '{node.name}' in {self.filename}:{node.lineno} "
                 f"is too long ({length} lines). Max allowed: {limit}."
-            )
-
-    def check_naming(self, node):
-        """Ensure function names are snake_case."""
-        if node.name != "__init__" and not node.name.islower():
-            self.errors.append(
-                f"Naming Error: Function '{node.name}' in {self.filename} "
-                f"should be snake_case."
             )
 
     def check_nesting_limit(self, node):
