@@ -6,6 +6,7 @@ User = get_user_model()
 
 
 class UserModelTests(TestCase):
+    """Tests for the custom User model."""
     def setUp(self):
         """Create a valid user for reuse in tests."""
         self.user = User.objects.create_user(
