@@ -3,7 +3,10 @@ from django.conf import settings
 
 
 class Ticket(models.Model):
+    """Represents a support ticket in the system."""
+
     class Status(models.TextChoices):
+        """Represents the status of a support ticket."""
         OPEN = 'open', 'Open'
         PENDING = 'pending', 'Pending'
         CLOSED = 'closed', 'Closed'
@@ -25,4 +28,5 @@ class Ticket(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
+        """Returns a string representation of the ticket."""
         return f"#{self.id} - {self.title}"

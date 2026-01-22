@@ -1,7 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-
 class User(AbstractUser):
     """Model used for user authentication."""
 
@@ -15,6 +14,7 @@ class User(AbstractUser):
     bio = models.CharField(max_length=500, blank=True)
 
     class Meta:
+        """Meta class for User model."""
         ordering = ["last_name", "first_name"]
 
     def full_name(self):
