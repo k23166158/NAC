@@ -31,6 +31,10 @@ jobs:
         python manage.py makemigrations
         python manage.py migrate
 
+    - name: Run tests with coverage
+      run: |
+        coverage run manage.py test
+
     - name: Run Code Quality Checks
       run: |
         python code_quality.py
