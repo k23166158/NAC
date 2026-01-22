@@ -13,6 +13,16 @@
         <nav>
             <ul>
                 <li><a href="/">Home</a></li>
+                {% if user.is_authenticated %}
+                    <li>
+                        <form action="/logout/" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" style="background:none;border:none;padding:0;color:inherit;cursor:pointer;">Logout</button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li><a href="/login/">Login</a></li>
+                {% endif %}
             </ul>
         </nav>
     </header>
