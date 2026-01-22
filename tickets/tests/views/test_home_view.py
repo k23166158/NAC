@@ -8,6 +8,7 @@ class HomeViewTests(TestCase):
     """Tests for the Home view."""
 
     def setUp(self):
+        """Set up the test client and user."""
         self.client = Client()
         self.url = reverse('home')
         self.user = User.objects.create_user(username='homeuser', password='password123')

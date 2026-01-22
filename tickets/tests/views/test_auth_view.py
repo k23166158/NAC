@@ -8,6 +8,7 @@ class AuthViewTests(TestCase):
     """Tests for authentication views."""
 
     def setUp(self):
+        """Set up the test client and user."""
         self.client = Client()
         self.login_url = reverse('login')
         self.user = User.objects.create_user(username='authuser', password='password123')

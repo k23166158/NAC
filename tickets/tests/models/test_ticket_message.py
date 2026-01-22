@@ -8,6 +8,7 @@ class TicketMessageModelTests(TestCase):
     """Tests for the TicketMessage model."""
     
     def setUp(self):
+        """Set up a user and a ticket for testing."""
         self.user = User.objects.create_user(
             username='msguser', 
             password='password123',
