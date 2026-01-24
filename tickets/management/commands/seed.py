@@ -15,6 +15,10 @@ DEFAULT_DEPARTMENTS = [
     "Classics",
 ]
 
+def _seed_user_defaults():
+    """Default fields used when creating the seed user."""
+    return {"email": SEED_EMAIL, "first_name": "Seed", "last_name": "Admin"}
+
 def _get_or_create_seed_user():
     """
     Creates (or returns) a seed user to attach ownership fields to.
@@ -22,12 +26,7 @@ def _get_or_create_seed_user():
     """
     User = get_user_model()
     user, created = User.objects.get_or_create(
-        username=SEED_USERNAME,
-        defaults={
-            "email": SEED_EMAIL,
-            "first_name": "Seed",
-            "last_name": "Admin",
-        },
+        username=SEED_USERNAME, defaults=_seed_user_defaults()
     )
     if created:
         user.set_password(SEED_PASSWORD)
@@ -35,6 +34,10 @@ def _get_or_create_seed_user():
     return user
 
 def _get_or_create_department(name, seed_user):
+    """
+    Get or create a Department with the given name.
+    Uses get_or_create so repeated seed runs do not create duplicates.
+    """
     return Department.objects.get_or_create(
         name=name,
         defaults={"created_by": seed_user},
