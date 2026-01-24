@@ -1,7 +1,19 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
-
 from tickets.models import Department
+
+SEED_USERNAME = "seed_admin"
+SEED_EMAIL = "seed_admin@example.com"
+SEED_PASSWORD = "seedpass123"
+
+DEFAULT_DEPARTMENTS = [
+    "NMES",
+    "Finance",
+    "HR",
+    "Support",
+    "Art and Humanities",
+    "Classics",
+]
 
 def _get_or_create_seed_user():
     """
@@ -9,25 +21,24 @@ def _get_or_create_seed_user():
     This user is only for seeding purposes and should not be used in production.
     """
     User = get_user_model()
-
-    username = "seed_admin"
-    email = "seed_admin@example.com"
-
     user, created = User.objects.get_or_create(
-        username=username,
+        username=SEED_USERNAME,
         defaults={
-            "email": email,
+            "email": SEED_EMAIL,
             "first_name": "Seed",
             "last_name": "Admin",
         },
     )
-
     if created:
-        user.set_password("seedpass123") 
+        user.set_password(SEED_PASSWORD)
         user.save()
-
     return user
 
+def _get_or_create_department(name, seed_user):
+    return Department.objects.get_or_create(
+        name=name,
+        defaults={"created_by": seed_user},
+    )
 
 def seed_departments():
     """
@@ -35,42 +46,27 @@ def seed_departments():
     Uses get_or_create so it won't duplicate departments on repeated runs.
     """
     seed_user = _get_or_create_seed_user()
-
-    default_departments = [
-        "NMES",
-        "Finance",
-        "HR",
-        "Support",
-        "Art and Humanities",
-        "Classics",
-    ]
-
     created_count = 0
-    for name in default_departments:
-        _, created = Department.objects.get_or_create(
-            name=name,
-            defaults={"created_by": seed_user},
-        )
+    for name in DEFAULT_DEPARTMENTS:
+        _, created = _get_or_create_department(name, seed_user)
         created_count += int(created)
-
-    return {
-        "departments_created": created_count,
-        "departments_total": Department.objects.count(),
-    }
+    return {"departments_created": created_count, "departments_total": Department.objects.count()}
 
 
-# Add new seed functions above this 
+# Add new seed functions above this
+
 
 # Add any new seed functions here, e.g. seed_tickets, seed_categories, etc.
 SEED_FUNCTIONS = [
     seed_departments,
 ]
 
+
 @transaction.atomic
 def run_seeds():
     """
     Run all seed functions inside a single DB transaction.
-    If anything fails, nothing is partially inserted.
+    If anything fails nothing is partially inserted.
     """
     results = []
     for seed in SEED_FUNCTIONS:
