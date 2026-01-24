@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from tickets.models import Department
+from django.core.management.base import BaseCommand
 
 SEED_USERNAME = "seed_admin"
 SEED_EMAIL = "seed_admin@example.com"
@@ -14,6 +15,13 @@ DEFAULT_DEPARTMENTS = [
     "Art and Humanities",
     "Classics",
 ]
+
+class Command(BaseCommand):
+    help = "Seed the database with initial data."
+
+    def handle(self, *args, **options):
+        results = run_seeds()
+        self.stdout.write(self.style.SUCCESS(f"Seeding complete: {results}"))
 
 def _seed_user_defaults():
     """Default fields used when creating the seed user."""
