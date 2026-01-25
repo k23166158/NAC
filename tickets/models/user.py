@@ -4,12 +4,13 @@ from django.db import models
 class User(AbstractUser):
     """Model used for user authentication."""
 
-    # changed default unique=False to True, default blank=True to False
     email = models.EmailField(unique=True, blank=False)
-    # changed default blank=True to False
-    first_name = models.CharField(max_length=50, blank=False)
-    # changed default blank=True to False
+    
+    first_name = models.CharField(max_length=50, blank=False)    
+
     last_name = models.CharField(max_length=50, blank=False)
+
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
 
     bio = models.CharField(max_length=500, blank=True)
 
