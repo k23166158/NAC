@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class UserModelTests(TestCase):
-
+    "Test suite for the custom User model."
     def setUp(self):
         """Set up a base user for testing."""
         self.user = User.objects.create_user(
