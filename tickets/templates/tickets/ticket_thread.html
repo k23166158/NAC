@@ -1,0 +1,59 @@
+{% extends ‘base.html’ %}
+
+{% block title %}Ticket #{{ ticket.id }}{% endblock %}
+
+{% block content %}
+<div class=“mb-4”>
+    <a href=“{% url ‘ticket_list’ %}” class=“btn btn-outline-secondary”>&larr; Back to Tickets</a>
+</div>
+
+<div class=“card mb-4”>
+    <div class=“card-header bg-light d-flex justify-content-between align-items-center”>
+        <h3 class=“mb-0”>{{ ticket.title }}</h3>
+        <span class=“badge {% if ticket.status == ‘open’ %}bg-success{% elif ticket.status == ‘pending’ %}bg-warning{% else %}bg-secondary{% endif %} fs-6”>
+            {{ ticket.get_status_display }}
+        </span>
+    </div>
+    <div class=“card-body”>
+        <div class=“row mb-3”>
+            <div class=“col-md-6”>
+                <strong>Created By:</strong> {{ ticket.created_by.username }}<br>
+                <strong>Date:</strong> {{ ticket.created_at|date:”M d, Y H:i” }}
+            </div>
+            <div class=“col-md-6 text-md-end”>
+                <strong>Last Updated:</strong> {{ ticket.updated_at|date:”M d, Y H:i” }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4 class=“mb-3”>Discussion</h4>
+
+<div class=“list-group mb-4”>
+    {% for message in messages %}
+    <div class=“list-group-item list-group-item-action flex-column align-items-start {% if message.sender == user %}bg-light{% endif %}”>
+        <div class=“d-flex w-100 justify-content-between”>
+            <h5 class=“mb-1”>{{ message.sender.username }}</h5>
+            <small class=“text-muted”>{{ message.timestamp|date:”M d, Y H:i” }}</small>
+        </div>
+        <p class=“mb-1”>{{ message.body }}</p>
+    </div>
+    {% empty %}
+    <div class=“list-group-item”>
+        <p class=“mb-0 text-muted”>No messages yet.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<div class=“card”>
+    <div class=“card-body”>
+        <h5 class=“card-title”>Reply</h5>
+        <form>
+            <div class=“mb-3”>
+                <textarea class=“form-control” rows=“3” placeholder=“Type your message here...”></textarea>
+            </div>
+            <button type=“button” class=“btn btn-primary”>Send Reply</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
