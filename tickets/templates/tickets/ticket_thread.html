@@ -1,59 +1,128 @@
-{% extends ‘base.html’ %}
+{% extends 'base.html' %}
 
 {% block title %}Ticket #{{ ticket.id }}{% endblock %}
 
 {% block content %}
-<div class=“mb-4”>
-    <a href=“{% url ‘ticket_list’ %}” class=“btn btn-outline-secondary”>&larr; Back to Tickets</a>
-</div>
 
-<div class=“card mb-4”>
-    <div class=“card-header bg-light d-flex justify-content-between align-items-center”>
-        <h3 class=“mb-0”>{{ ticket.title }}</h3>
-        <span class=“badge {% if ticket.status == ‘open’ %}bg-success{% elif ticket.status == ‘pending’ %}bg-warning{% else %}bg-secondary{% endif %} fs-6”>
-            {{ ticket.get_status_display }}
-        </span>
+<div class="tickets-wrap">
+
+    <!-- Back link -->
+    <div style="margin-bottom: 14px;">
+        <a href="{% url 'home' %}" class="ticket-link" style="font-size: 13px; color: var(--blue); font-weight: 700;">
+            ← Back to tickets
+        </a>
     </div>
-    <div class=“card-body”>
-        <div class=“row mb-3”>
-            <div class=“col-md-6”>
-                <strong>Created By:</strong> {{ ticket.created_by.username }}<br>
-                <strong>Date:</strong> {{ ticket.created_at|date:”M d, Y H:i” }}
+
+    <!-- Ticket header -->
+    <div class="col" style="margin-bottom: 18px;">
+        <div class="col-head">
+            <div class="col-head-left">
+                <span class="dot 
+                    {% if ticket.status == 'active' %}active
+                    {% elif ticket.status == 'overdue' %}overdue
+                    {% else %}completed{% endif %}">
+                </span>
+                <h1 class="tickets-title">{{ ticket.title }}</h1>
             </div>
-            <div class=“col-md-6 text-md-end”>
-                <strong>Last Updated:</strong> {{ ticket.updated_at|date:”M d, Y H:i” }}
+
+            <span class="pill status
+                {% if ticket.status == 'active' %}status-active
+                {% elif ticket.status == 'overdue' %}status-overdue
+                {% else %}status-completed{% endif %}">
+                {{ ticket.get_status_display }}
+            </span>
+        </div>
+
+        <div class="col-body">
+            <div class="ticket-meta">
+                <span class="pill">
+                    Created by <strong>{{ ticket.created_by.username }}</strong>
+                </span>
+                <span class="pill">
+                    Created {{ ticket.created_at|date:"M d, Y H:i" }}
+                </span>
+                <span class="pill">
+                    Updated {{ ticket.updated_at|date:"M d, Y H:i" }}
+                </span>
             </div>
         </div>
     </div>
-</div>
 
-<h4 class=“mb-3”>Discussion</h4>
+    <!-- Discussion -->
+    <h2 class="tickets-title" style="font-size: 16px; margin-bottom: 10px;">
+        Discussion
+    </h2>
 
-<div class=“list-group mb-4”>
-    {% for message in messages %}
-    <div class=“list-group-item list-group-item-action flex-column align-items-start {% if message.sender == user %}bg-light{% endif %}”>
-        <div class=“d-flex w-100 justify-content-between”>
-            <h5 class=“mb-1”>{{ message.sender.username }}</h5>
-            <small class=“text-muted”>{{ message.timestamp|date:”M d, Y H:i” }}</small>
-        </div>
-        <p class=“mb-1”>{{ message.body }}</p>
-    </div>
-    {% empty %}
-    <div class=“list-group-item”>
-        <p class=“mb-0 text-muted”>No messages yet.</p>
-    </div>
-    {% endfor %}
-</div>
+    <div class="ticket-list" style="margin-bottom: 18px;">
+        {% for message in messages %}
+            <div class="ticket-card"
+                 style="{% if message.sender == user %}border-left: 4px solid var(--blue);{% endif %}">
+                
+                <div class="ticket-top">
+                    <strong style="font-size: 13px;">
+                        {{ message.sender.username }}
+                    </strong>
+                    <span style="font-size: 12px; color: var(--muted);">
+                        {{ message.timestamp|date:"M d, Y H:i" }}
+                    </span>
+                </div>
 
-<div class=“card”>
-    <div class=“card-body”>
-        <h5 class=“card-title”>Reply</h5>
-        <form>
-            <div class=“mb-3”>
-                <textarea class=“form-control” rows=“3” placeholder=“Type your message here...”></textarea>
+                <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.45;">
+                    {{ message.body }}
+                </p>
             </div>
-            <button type=“button” class=“btn btn-primary”>Send Reply</button>
-        </form>
+        {% empty %}
+            <div class="empty">
+                No messages yet. Start the conversation 👇
+            </div>
+        {% endfor %}
     </div>
+
+    <!-- Reply box -->
+    <div class="col">
+        <div class="col-head">
+            <h3 class="col-title">Reply</h3>
+        </div>
+
+        <div class="col-body">
+            <form method="post">
+                {% csrf_token %}
+                <textarea
+                    name="body"
+                    rows="4"
+                    placeholder="Write your reply…"
+                    style="
+                        width: 100%;
+                        padding: 10px;
+                        border-radius: 10px;
+                        border: 1px solid var(--border);
+                        font-family: inherit;
+                        font-size: 14px;
+                        resize: vertical;
+                    "
+                    required
+                ></textarea>
+
+                <div style="margin-top: 10px; text-align: right;">
+                    <button
+                        type="submit"
+                        style="
+                            background: var(--blue);
+                            color: #fff;
+                            border: none;
+                            padding: 8px 14px;
+                            border-radius: 8px;
+                            font-weight: 800;
+                            cursor: pointer;
+                        "
+                    >
+                        Send reply
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
+
 {% endblock %}
