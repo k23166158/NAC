@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Ticket #{{ ticket.id }}{% endblock %}
+
+{% block content %}
+
+<div class="tickets-wrap">
+
+    <!-- Back link -->
+    <div style="margin-bottom: 14px;">
+        <a href="{% url 'home' %}" class="ticket-link" style="font-size: 13px; color: var(--blue); font-weight: 700;">
+            ← Back to tickets
+        </a>
+    </div>
+
+    <!-- Ticket header -->
+    <div class="col" style="margin-bottom: 18px;">
+        <div class="col-head">
+            <div class="col-head-left">
+                <span class="dot 
+                    {% if ticket.status == 'active' %}active
+                    {% elif ticket.status == 'overdue' %}overdue
+                    {% else %}completed{% endif %}">
+                </span>
+                <h1 class="tickets-title">{{ ticket.title }}</h1>
+            </div>
+
+            <span class="pill status
+                {% if ticket.status == 'active' %}status-active
+                {% elif ticket.status == 'overdue' %}status-overdue
+                {% else %}status-completed{% endif %}">
+                {{ ticket.get_status_display }}
+            </span>
+        </div>
+
+        <div class="col-body">
+            <div class="ticket-meta">
+                <span class="pill">
+                    Created by <strong>{{ ticket.created_by.username }}</strong>
+                </span>
+                <span class="pill">
+                    Created {{ ticket.created_at|date:"M d, Y H:i" }}
+                </span>
+                <span class="pill">
+                    Updated {{ ticket.updated_at|date:"M d, Y H:i" }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Discussion -->
+    <h2 class="tickets-title" style="font-size: 16px; margin-bottom: 10px;">
+        Discussion
+    </h2>
+
+    <div class="ticket-list" style="margin-bottom: 18px;">
+        {% for message in messages %}
+            <div class="ticket-card"
+                 style="{% if message.sender == user %}border-left: 4px solid var(--blue);{% endif %}">
+                
+                <div class="ticket-top">
+                    <strong style="font-size: 13px;">
+                        {{ message.sender.username }}
+                    </strong>
+                    <span style="font-size: 12px; color: var(--muted);">
+                        {{ message.timestamp|date:"M d, Y H:i" }}
+                    </span>
+                </div>
+
+                <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.45;">
+                    {{ message.body }}
+                </p>
+            </div>
+        {% empty %}
+            <div class="empty">
+                No messages yet. Start the conversation 👇
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Reply box -->
+    <div class="col">
+        <div class="col-head">
+            <h3 class="col-title">Reply</h3>
+        </div>
+
+        <div class="col-body">
+            <form method="post">
+                {% csrf_token %}
+                <textarea
+                    name="body"
+                    rows="4"
+                    placeholder="Write your reply…"
+                    style="
+                        width: 100%;
+                        padding: 10px;
+                        border-radius: 10px;
+                        border: 1px solid var(--border);
+                        font-family: inherit;
+                        font-size: 14px;
+                        resize: vertical;
+                    "
+                    required
+                ></textarea>
+
+                <div style="margin-top: 10px; text-align: right;">
+                    <button
+                        type="submit"
+                        style="
+                            background: var(--blue);
+                            color: #fff;
+                            border: none;
+                            padding: 8px 14px;
+                            border-radius: 8px;
+                            font-weight: 800;
+                            cursor: pointer;
+                        "
+                    >
+                        Send reply
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

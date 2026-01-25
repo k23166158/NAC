@@ -41,7 +41,7 @@
             {% if active_tickets %}
                 <div class="ticket-list">
                     {% for t in active_tickets %}
-                        <a class="ticket-link" href="{% url 'ticket_detail' t.id %}">
+                        <a class="ticket-link" href="{% url 'ticket_thread' t.id %}">
                             <article class="ticket-card">
                                 <div class="ticket-top">
                                     <h3 class="ticket-title">{{ t.title }}</h3>
@@ -71,7 +71,7 @@
             {% if overdue_tickets %}
                 <div class="ticket-list">
                     {% for t in overdue_tickets %}
-                        <a class="ticket-link" href="{% url 'ticket_detail' t.id %}">
+                        <a class="ticket-link" href="{% url 'ticket_thread' t.id %}">
                             <article class="ticket-card">
                                 <div class="ticket-top">
                                     <h3 class="ticket-title">{{ t.title }}</h3>
@@ -101,7 +101,7 @@
             {% if completed_tickets %}
                 <div class="ticket-list">
                     {% for t in completed_tickets %}
-                        <a class="ticket-link" href="{% url 'ticket_detail' t.id %}">
+                        <a class="ticket-link" href="{% url 'ticket_thread' t.id %}">
                             <article class="ticket-card">
                                 <div class="ticket-top">
                                     <h3 class="ticket-title">{{ t.title }}</h3>
