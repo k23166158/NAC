@@ -10,7 +10,7 @@ class User(AbstractUser):
 
     last_name = models.CharField(max_length=50, blank=False)
 
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True, help_text='User profile picture')
 
     bio = models.CharField(max_length=500, blank=True)
 
@@ -21,3 +21,4 @@ class User(AbstractUser):
     def full_name(self):
         """Return a string containing the user’s full name."""
         return f"{self.first_name} {self.last_name}"
+    
