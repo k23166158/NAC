@@ -1,5 +1,6 @@
 import ast
 import os
+import re
 import sys
 import subprocess
 
@@ -9,6 +10,7 @@ MAX_NESTING_SOURCE = 1
 MAX_LINES_TEST = 25
 MAX_NESTING_TEST = 2
 MAX_FILE_LINE_LENGTH = 400
+STYLE_TAG_REGEX = re.compile(r'<\s*style\b', re.IGNORECASE)
 
 class QualityAuditor(ast.NodeVisitor):
     """
@@ -108,6 +110,17 @@ def check_file_width(filepath):
         return [f"Read Error: Could not check width for {filepath}"]
     return find_width_errors(filepath, lines)
 
+def check_html_style_tags(filepath):
+    """Ensure HTML files do not contain <style> tags."""
+    lines = get_file_content(filepath)
+    if lines is None:
+        return []
+    
+    content = ''.join(lines)
+    if STYLE_TAG_REGEX.search(content):
+        return [f"HTML Error: Inline <style> tag found in {filepath}. Use external CSS only."]
+    return []
+
 def parse_ast(filepath):
     """Internal helper to parse AST inside a with block."""
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -130,6 +143,10 @@ def analyze_python_content(filepath, is_test):
     auditor.visit(tree)
     return auditor.errors
 
+def analyze_html_content(filepath):
+    """Analyze HTML content for style tag violations."""
+    return check_html_style_tags(filepath)
+
 def process_file(filepath, root):
     """Dispatch file to appropriate checkers based on extension."""
     errors = check_file_width(filepath)
@@ -137,6 +154,9 @@ def process_file(filepath, root):
     if filepath.endswith('.py'):
         is_test = 'test' in filepath or 'tests' in root
         errors.extend(analyze_python_content(filepath, is_test))
+
+    if filepath.endswith('.html'):
+        errors.extend(analyze_html_content(filepath))
         
     return errors
 
@@ -159,11 +179,19 @@ def scan_directory(root, files):
 
 def check_coverage():
     """Verify that test coverage is 100% using subprocess.run."""
-    cmd = [sys.executable, '-m', 'coverage', 'report', '--fail-under=100']
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+
+    test_cmd = [sys.executable, '-m', 'coverage', 'run', 'manage.py', 'test']
+    test_result = subprocess.run(test_cmd, check=False)
     
+    if test_result.returncode != 0:
+        return ["Test Execution Failed: Unit tests failed to pass."]
+
+    cmd = [sys.executable, '-m', 'coverage', 'report', '--fail-under=100']
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
     if result.returncode != 0:
-        return [result.stderr]
+        report_output = result.stdout if result.stdout else result.stderr        
+        return [f'Coverage Error: Test coverage is below 100%.\n{report_output}']
+    
     return []
 
 def print_errors(errors):
