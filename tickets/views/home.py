@@ -10,46 +10,53 @@ from ..models import Ticket, TicketMessage
 
 class HomeView(View):
     def get(self, request):
-        """Render the home page with categorized tickets for the authenticated user."""
         if not request.user.is_authenticated:
             return render(request, "landing.html")
 
-        cutoff = timezone.now() - timedelta(days=7)
+        qs = self._annotated_tickets(request.user)
+        overdue = self._overdue_tickets(qs)
+        context = {
+            "completed_tickets": self._completed_tickets(qs),
+            "overdue_tickets": overdue,
+            "active_tickets": self._active_tickets(qs, overdue),
+        }
+        return render(request, "home.html", context)
 
-        base = Ticket.objects.filter(created_by=request.user)
-
-        # Subquery: latest message for each ticket (by timestamp desc)
+    def _annotated_tickets(self, user):
         last_msg = TicketMessage.objects.filter(
             ticket_id=OuterRef("pk")
         ).order_by("-timestamp")
 
-        qs = base.annotate(
-            last_message_at=Subquery(last_msg.values("timestamp")[:1]),
-            last_message_body=Subquery(last_msg.values("body")[:1]),
-            last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
-            last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
-            last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
-            last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
+        return (
+            Ticket.objects
+            .filter(created_by=user)
+            .annotate(
+                last_message_at=Subquery(last_msg.values("timestamp")[:1]),
+                last_message_body=Subquery(last_msg.values("body")[:1]),
+                last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
+                last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
+                last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
+                last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
+            )
         )
 
-        completed_tickets = qs.filter(status=Ticket.Status.CLOSED).order_by("-updated_at")
+    def _completed_tickets(self, qs):
+        return qs.filter(
+            status=Ticket.Status.CLOSED
+        ).order_by("-updated_at")
 
-        # Overdue = last message exists AND it's older than 7 days AND last message was from user (not staff)
-        overdue_tickets = qs.filter(
+    def _overdue_tickets(self, qs):
+        cutoff = timezone.now() - timedelta(days=7)
+        return qs.filter(
             status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING],
             last_message_at__isnull=False,
             last_message_at__lt=cutoff,
             last_sender_is_staff=False,
         ).order_by("-last_message_at")
 
-        active_tickets = qs.filter(
+    def _active_tickets(self, qs, overdue):
+        return qs.filter(
             status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING],
         ).exclude(
-            id__in=overdue_tickets.values_list("id", flat=True)
+            id__in=overdue.values_list("id", flat=True)
         ).order_by("-updated_at")
-
-        return render(request, "home.html", {
-            "active_tickets": active_tickets,
-            "overdue_tickets": overdue_tickets,
-            "completed_tickets": completed_tickets,
-        })
