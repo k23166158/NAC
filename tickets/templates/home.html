@@ -7,7 +7,7 @@
   <div class="tickets-header tickets-header-centered">
     <div>
       <h1 class="tickets-title">Tickets</h1>
-      <p class="tickets-subtitle">Click a tab to view tickets. Click a ticket to expand the thread.</p>
+      <p class="tickets-subtitle">Click a tab to view tickets. Click a ticket to expand the latest message.</p>
     </div>
   </div>
 
@@ -30,8 +30,6 @@
       Completed <span class="tab-count">{{ completed_tickets|length }}</span>
     </button>
   </div>
-
-  {% comment %} ===== Helper: ticket list renderer (repeat per tab) ===== {% endcomment %}
 
   <!-- ACTIVE -->
   <section id="panel-active" class="tab-panel" role="tabpanel">
@@ -62,30 +60,35 @@
                 <span class="pill">⏱ {{ t.updated_at|date:"M j, Y" }}</span>
               </div>
 
-              <div class="thread">
-                {% with msgs=t.ticketmessage_set.all %}
-                  {% if msgs %}
-                    {% for m in msgs %}
-                      <div class="msg {% if m.sender.is_staff %}msg-staff{% else %}msg-user{% endif %}">
-                        <div class="msg-top">
-                          <span class="msg-sender">
-                            {% if m.sender_id == request.user.id %}
-                              You
-                            {% else %}
-                              {{ m.sender.first_name }} {{ m.sender.last_name }}
-                            {% endif %}
-                            {% if m.sender.is_staff %}<span class="msg-tag">STAFF</span>{% endif %}
-                          </span>
-                          <span class="msg-time">{{ m.timestamp|date:"M j • H:i" }}</span>
-                        </div>
-                        <div class="msg-body">{{ m.body }}</div>
-                      </div>
-                    {% endfor %}
-                  {% else %}
-                    <div class="empty">No messages yet.</div>
-                  {% endif %}
-                {% endwith %}
-              </div>
+              {% if t.last_message_at %}
+  <div class="latest">
+    <div class="latest-top">
+      <span class="latest-label">Latest update</span>
+      <span class="latest-time">{{ t.last_message_at|date:"M j • H:i" }}</span>
+    </div>
+
+    <div class="latest-line">
+      <span class="latest-from">
+        From:
+        <strong>
+          {% if t.last_message_sender_id == request.user.id %}
+            You
+          {% else %}
+            {{ t.last_sender_first }} {{ t.last_sender_last }}
+          {% endif %}
+        </strong>
+        {% if t.last_sender_is_staff %}<span class="latest-tag">STAFF</span>{% endif %}
+      </span>
+    </div>
+
+    <div class="latest-body">
+      {{ t.last_message_body }}
+    </div>
+  </div>
+{% else %}
+  <div class="empty">No messages yet.</div>
+{% endif %}
+
 
               <div class="ticket-actions">
                 <a class="ticket-open-btn" href="#">Open full ticket</a>
@@ -116,7 +119,9 @@
 
                 <div class="ticket-bar-right">
                   <span class="pill status status-overdue">OVERDUE</span>
-                  <span class="ticket-date">Updated {{ t.updated_at|date:"M j, Y" }}</span>
+                  <span class="ticket-date">
+                    Last message {{ t.last_message_at|date:"M j, Y" }}
+                  </span>
                 </div>
               </div>
             </summary>
@@ -128,26 +133,26 @@
                 <span class="pill">⏱ {{ t.updated_at|date:"M j, Y" }}</span>
               </div>
 
-              <div class="thread">
-                {% with msgs=t.ticketmessage_set.all %}
-                  {% if msgs %}
-                    {% for m in msgs %}
-                      <div class="msg {% if m.sender.is_staff %}msg-staff{% else %}msg-user{% endif %}">
-                        <div class="msg-top">
-                          <span class="msg-sender">
-                            {% if m.sender_id == request.user.id %}You{% else %}{{ m.sender.first_name }} {{ m.sender.last_name }}{% endif %}
-                            {% if m.sender.is_staff %}<span class="msg-tag">STAFF</span>{% endif %}
-                          </span>
-                          <span class="msg-time">{{ m.timestamp|date:"M j • H:i" }}</span>
-                        </div>
-                        <div class="msg-body">{{ m.body }}</div>
-                      </div>
-                    {% endfor %}
-                  {% else %}
-                    <div class="empty">No messages yet.</div>
-                  {% endif %}
-                {% endwith %}
-              </div>
+              {% if t.last_message_at %}
+                <div class="thread">
+                  <div class="msg {% if t.last_sender_is_staff %}msg-staff{% else %}msg-user{% endif %}">
+                    <div class="msg-top">
+                      <span class="msg-sender">
+                        {% if t.last_message_sender_id == request.user.id %}
+                          You
+                        {% else %}
+                          {{ t.last_sender_first }} {{ t.last_sender_last }}
+                        {% endif %}
+                        {% if t.last_sender_is_staff %}<span class="msg-tag">STAFF</span>{% endif %}
+                      </span>
+                      <span class="msg-time">{{ t.last_message_at|date:"M j • H:i" }}</span>
+                    </div>
+                    <div class="msg-body">{{ t.last_message_body }}</div>
+                  </div>
+                </div>
+              {% else %}
+                <div class="empty">No messages yet.</div>
+              {% endif %}
 
               <div class="ticket-actions">
                 <a class="ticket-open-btn" href="#">Open full ticket</a>
@@ -190,26 +195,26 @@
                 <span class="pill">⏱ {{ t.updated_at|date:"M j, Y" }}</span>
               </div>
 
-              <div class="thread">
-                {% with msgs=t.ticketmessage_set.all %}
-                  {% if msgs %}
-                    {% for m in msgs %}
-                      <div class="msg {% if m.sender.is_staff %}msg-staff{% else %}msg-user{% endif %}">
-                        <div class="msg-top">
-                          <span class="msg-sender">
-                            {% if m.sender_id == request.user.id %}You{% else %}{{ m.sender.first_name }} {{ m.sender.last_name }}{% endif %}
-                            {% if m.sender.is_staff %}<span class="msg-tag">STAFF</span>{% endif %}
-                          </span>
-                          <span class="msg-time">{{ m.timestamp|date:"M j • H:i" }}</span>
-                        </div>
-                        <div class="msg-body">{{ m.body }}</div>
-                      </div>
-                    {% endfor %}
-                  {% else %}
-                    <div class="empty">No messages yet.</div>
-                  {% endif %}
-                {% endwith %}
-              </div>
+              {% if t.last_message_at %}
+                <div class="thread">
+                  <div class="msg {% if t.last_sender_is_staff %}msg-staff{% else %}msg-user{% endif %}">
+                    <div class="msg-top">
+                      <span class="msg-sender">
+                        {% if t.last_message_sender_id == request.user.id %}
+                          You
+                        {% else %}
+                          {{ t.last_sender_first }} {{ t.last_sender_last }}
+                        {% endif %}
+                        {% if t.last_sender_is_staff %}<span class="msg-tag">STAFF</span>{% endif %}
+                      </span>
+                      <span class="msg-time">{{ t.last_message_at|date:"M j • H:i" }}</span>
+                    </div>
+                    <div class="msg-body">{{ t.last_message_body }}</div>
+                  </div>
+                </div>
+              {% else %}
+                <div class="empty">No messages yet.</div>
+              {% endif %}
 
               <div class="ticket-actions">
                 <a class="ticket-open-btn" href="#">Open full ticket</a>
@@ -241,8 +246,7 @@
       });
 
       Object.entries(panels).forEach(([key, el]) => {
-        const isOpen = key === name;
-        if (isOpen) el.removeAttribute("hidden");
+        if (key === name) el.removeAttribute("hidden");
         else el.setAttribute("hidden", "hidden");
       });
     }
