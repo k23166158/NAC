@@ -1,0 +1,136 @@
+/* Layout Wrappers */
+.tickets-wrap {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.back-link-container {
+    margin-bottom: 14px;
+}
+
+.ticket-link {
+    font-size: 13px;
+    color: var(--blue);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+/* Header & Cards */
+.ticket-header-card, .reply-container {
+    margin-bottom: 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.col-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.col-head-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Meta & Pills */
+.ticket-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pill {
+    font-size: 12px;
+    padding: 4px 8px;
+    background: #f0f2f5;
+    border-radius: 6px;
+}
+
+/* Discussion Messages */
+.section-title {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.ticket-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.my-message {
+    border-left: 4px solid var(--blue);
+}
+
+.sender-name {
+    font-size: 13px;
+}
+
+.timestamp {
+    font-size: 12px;
+    color: var(--muted);
+    float: right;
+}
+
+.message-body {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+/* Forms & Inputs */
+.reply-textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.reply-actions {
+    margin-top: 10px;
+    text-align: right;
+}
+
+/* Buttons */
+.btn-submit {
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.ticket-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+.btn-close-ticket {
+    background: #dc3545; /* Red */
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-close-ticket:hover {
+    background: #b02a37;
+}
