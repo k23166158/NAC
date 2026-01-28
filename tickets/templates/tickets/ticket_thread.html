@@ -44,16 +44,25 @@
         </div>
     </div>
 
-    <h2 class="section-title">Discussion</h2>
-
     <div class="ticket-list">
         {% for message in messages %}
-            <div class="ticket-card {% if message.sender == user %}my-message{% endif %}">
-                <div class="ticket-top">
-                    <strong class="sender-name">{{ message.sender.username }}</strong>
-                    <span class="timestamp">{{ message.timestamp|date:"M d, Y H:i" }}</span>
+            <div class="reply">
+                <div class="ticket-card {% if message.sender == user %}my-message{% endif %}">
+                    <div class="ticket-top">
+                        <strong class="sender-name">{{ message.sender.username }}</strong>
+                        <div class="meta-right">
+                            <span class="timestamp">{{ message.timestamp|date:"M d, Y H:i" }}</span>
+                            
+                            {% if forloop.last and message.sender == user %}
+                                <div class="message-actions">
+                                    <a href="#" class="btn-tiny edit-btn">Edit</a>
+                                    <a href="#" class="btn-tiny delete-btn">Delete</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <p class="message-body">{{ message.body }}</p>
                 </div>
-                <p class="message-body">{{ message.body }}</p>
             </div>
         {% empty %}
             <div class="empty">No messages yet. Start the conversation 👇</div>
@@ -66,7 +75,7 @@
         </div>
         
         <div class="col-body">
-            <form method="post">
+            <form method="post" action="">
                 {% csrf_token %}
                 <textarea name="body" rows="4" placeholder="Write your reply…" class="reply-textarea" required></textarea>
                 <div class="reply-actions">
@@ -87,4 +96,4 @@
 
 </div>
 {% endblock %}
-{% comment %} {% url 'close_ticket' ticket.id %} {% endcomment %}
+{% comment %} {% url 'close_ticket' ticket.id %} {% endcomment %}a

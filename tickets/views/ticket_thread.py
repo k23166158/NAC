@@ -12,6 +12,18 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         """Add ticket messages to the context."""
         context = super().get_context_data(**kwargs)
-        context['messages'] = TicketMessage.objects.filter(ticket=self.object)
+        context['messages'] = TicketMessage.objects.filter(ticket=self.object).order_by('timestamp')
         return context
+    
+    def post(self, request, *args, **kwargs):
+        """Post request handler to add a new message to the ticket thread."""
+        self.object = self.get_object()
+        body = request.POST.get('body')
+        if body:
+            TicketMessage.objects.create(
+                ticket=self.object,
+                sender=request.user,
+                body=body
+            )
+        return self.get(request, *args, **kwargs)
     
