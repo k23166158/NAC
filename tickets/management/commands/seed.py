@@ -17,9 +17,11 @@ DEFAULT_DEPARTMENTS = [
 ]
 
 class Command(BaseCommand):
+    """Django management command to seed the database with initial data."""
     help = "Seed the database with initial data."
 
     def handle(self, *args, **options):
+        """Handle the command execution."""
         results = run_seeds()
         self.stdout.write(self.style.SUCCESS(f"Seeding complete: {results}"))
 
