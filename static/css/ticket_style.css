@@ -89,7 +89,7 @@
     border-right-color: transparent;
     border-top-color: transparent;
     border-radius: 0 0 0 10px;
-    width: 15px;
+    width: 15px; 
     position: absolute;
     top: anchor(bottom --ticket-header-card);
     left: anchor(left --ticket-header-card);
@@ -181,6 +181,15 @@
     display: flex;
     gap: 5px;
 }
+
+.edit-btn::before {
+    content: "✏️";
+}
+
+.delete-btn::before {
+    content: "🗑";
+}
+
 .btn-tiny {
     font-size: 0.7rem;
     text-decoration: none;
