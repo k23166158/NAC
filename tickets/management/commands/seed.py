@@ -1,16 +1,65 @@
 """
 Management command to seed the database with demo data.
 
-Existing records are left untouched, if a create fails (e.g., due to duplicates), generation continues.
+Existing records are left untouched—if a create fails (e.g., due
+to duplicates) generation continues.
 """
 
-from faker import Faker
 from random import choice, randint
+from faker import Faker
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 
 from tickets.models import Department, Ticket, TicketMessage, TicketAssigned
 
+
+USER_FIXTURES = [
+    {
+        "username": "admin_kcl",
+        "email": "admin.kcl@example.org",
+        "first_name": "Amina",
+        "last_name": "Khan",
+        "password": "AdminPass123!",
+        "superuser": True,
+    },
+    {
+        "username": "staff_support",
+        "email": "support.staff@example.org",
+        "first_name": "James",
+        "last_name": "Owen",
+        "password": "StaffPass123!",
+        "staff": True,
+    },
+    {
+        "username": "staff_finance",
+        "email": "finance.staff@example.org",
+        "first_name": "Sarah",
+        "last_name": "Patel",
+        "password": "StaffPass456!",
+        "staff": True,
+    },
+    {
+        "username": "student_ali",
+        "email": "ali.student@example.org",
+        "first_name": "Ali",
+        "last_name": "Hassan",
+        "password": "StudentPass123!",
+    },
+    {
+        "username": "student_maya",
+        "email": "maya.student@example.org",
+        "first_name": "Maya",
+        "last_name": "Singh",
+        "password": "StudentPass456!",
+    },
+    {
+        "username": "student_zoe",
+        "email": "zoe.student@example.org",
+        "first_name": "Zoe",
+        "last_name": "Williams",
+        "password": "StudentPass789!",
+    },
+]
 
 DEPARTMENT_FIXTURES = [
     "NMES",
@@ -23,17 +72,10 @@ DEPARTMENT_FIXTURES = [
 
 
 class Command(BaseCommand):
-    """
-    Seed the tickets app with sample data.
+    """Build automation command to seed the database with data."""
 
-    Creates demo users and then seeds departments, tickets, messages, and
-    assignments to departments.
-    """
-
-    USER_COUNT = 30
-    TICKET_COUNT = 60
+    TICKET_COUNT = 40
     MAX_MESSAGES_PER_TICKET = 4
-    DEFAULT_PASSWORD = "Password123"
     help = "Seeds the database with sample data"
 
     def __init__(self, *args, **kwargs):
@@ -55,21 +97,9 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Seeding complete."))
 
     def create_users(self):
-        """Generate demo users up to USER_COUNT."""
-        while self.User.objects.count() < self.USER_COUNT:
-            self.try_create_user(self.generate_user_data())
-
-    def generate_user_data(self):
-        """Generate a single user's fields using Faker."""
-        first = self.faker.first_name()
-        last = self.faker.last_name()
-        return {
-            "username": self.create_username(first, last),
-            "email": self.create_email(first, last),
-            "first_name": first,
-            "last_name": last,
-            "bio": self.faker.sentence(nb_words=10),
-        }
+        """Attempt to create each predefined fixture user."""
+        for data in USER_FIXTURES:
+            self.try_create_user(data)
 
     def try_create_user(self, data):
         """Attempt to create a user; ignore errors (e.g., duplicates)."""
@@ -79,21 +109,32 @@ class Command(BaseCommand):
             pass
 
     def create_user(self, data):
-        """Create a user with DEFAULT_PASSWORD."""
-        self.User.objects.create_user(
+        """Create a user with the supplied password and access level."""
+        if data.get("superuser"):
+            self.User.objects.create_superuser(
+                username=data["username"],
+                email=data["email"],
+                password=data["password"],
+                first_name=data["first_name"],
+                last_name=data["last_name"],
+            )
+            return
+        user = self.User.objects.create_user(
             username=data["username"],
             email=data["email"],
-            password=self.DEFAULT_PASSWORD,
+            password=data["password"],
             first_name=data["first_name"],
             last_name=data["last_name"],
-            bio=data["bio"],
         )
+        if data.get("staff"):
+            user.is_staff = True
+            user.save()
 
     def create_departments(self):
-        """Create standard departments."""
-        if not self.User.objects.exists():
+        """Create standard departments (created_by picked from existing users)."""
+        creator = self.get_first_user()
+        if not creator:
             return
-        creator = self.User.objects.first()
         for name in DEPARTMENT_FIXTURES:
             self.try_create_department(name, creator)
 
@@ -106,7 +147,9 @@ class Command(BaseCommand):
 
     def create_tickets(self):
         """Create random tickets up to TICKET_COUNT."""
-        while Ticket.objects.count() < self.TICKET_COUNT and self.User.objects.exists():
+        if not self.users:
+            return
+        while Ticket.objects.count() < self.TICKET_COUNT:
             self.try_create_ticket(self.generate_ticket_data())
 
     def generate_ticket_data(self):
@@ -125,16 +168,15 @@ class Command(BaseCommand):
             pass
 
     def create_messages(self):
-        """Create at least one message (and sometimes more) for each ticket."""
-        if not self.tickets:
+        """Create between 1 and MAX_MESSAGES_PER_TICKET messages per ticket."""
+        if not Ticket.objects.exists() or not self.users:
             return
-        for ticket in self.tickets:
+        for ticket in Ticket.objects.all():
             self.create_messages_for_ticket(ticket)
 
     def create_messages_for_ticket(self, ticket):
-        """Create between 1 and MAX_MESSAGES_PER_TICKET messages for a ticket."""
-        message_count = randint(1, self.MAX_MESSAGES_PER_TICKET)
-        for _ in range(message_count):
+        """Create messages for a ticket."""
+        for _ in range(randint(1, self.MAX_MESSAGES_PER_TICKET)):
             self.try_create_message(ticket, choice(self.users))
 
     def try_create_message(self, ticket, sender):
@@ -150,9 +192,9 @@ class Command(BaseCommand):
 
     def create_assignments(self):
         """Assign each ticket to a random department (one assignment per ticket)."""
-        if not self.tickets or not self.departments:
+        if not self.departments:
             return
-        for ticket in self.tickets:
+        for ticket in Ticket.objects.all():
             self.try_assign_ticket(ticket, choice(self.departments))
 
     def try_assign_ticket(self, ticket, department):
@@ -162,11 +204,6 @@ class Command(BaseCommand):
         except Exception:
             pass
 
-    def create_username(self, first_name, last_name):
-        """Construct a simple username from first and last names."""
-        base = (first_name[0] + last_name).lower()
-        return base[:30]
-
-    def create_email(self, first_name, last_name):
-        """Construct a simple example email address."""
-        return f"{first_name}.{last_name}{randint(1, 9999)}@example.org".lower()
+    def get_first_user(self):
+        """Return the first available user, or None if no users exist."""
+        return self.User.objects.first()
