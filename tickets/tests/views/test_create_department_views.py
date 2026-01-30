@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from unittest.mock import patch
 
-from tickets.models import Department
+from tickets.models import Department, UserDepartments
 from tickets.forms import CreateDepartmentForm
 
 User = get_user_model()
@@ -158,4 +158,32 @@ class CreateDepartmentViewTests(TestCase):
             
             department = Department.objects.get(name='HR Department')
             self.assertEqual(department.created_by, self.staff_user)
+
+    def test_creator_automatically_added_to_user_departments(self):
+        """Test that department creator is automatically added to UserDepartments."""
+        self.client.force_login(self.staff_user)
+        form_data = {
+            'name': 'Finance Department',
+            'description': 'Finance and Accounting'
+        }
+
+        with patch('tickets.views.create_department_views.redirect') as mock_redirect:
+            from django.http import HttpResponseRedirect
+            mock_redirect.return_value = HttpResponseRedirect('/department/finance-department/')
+            
+            self.client.post(self.url, data=form_data)
+            
+            department = Department.objects.get(name='Finance Department')
+            self.assertTrue(
+                UserDepartments.objects.filter(
+                    user=self.staff_user,
+                    department=department
+                ).exists()
+            )
+            user_department = UserDepartments.objects.get(
+                user=self.staff_user,
+                department=department
+            )
+            self.assertEqual(user_department.user, self.staff_user)
+            self.assertEqual(user_department.department, department)
 
