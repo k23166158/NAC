@@ -18,9 +18,8 @@ class Department(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        """Override save to generate a slug from the name if one doesn't exist."""
-        if not self.slug:
-            self.slug = slugify(self.name)
+        """Override save to generate a slug from the name."""
+        self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
