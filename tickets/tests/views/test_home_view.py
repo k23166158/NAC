@@ -14,35 +14,19 @@ class HomeViewTests(TestCase):
     """Tests for the Home view."""
 
     def setUp(self):
+        """Set up test users and client."""
         self.client = Client()
         self.url = reverse("home")
-
-        self.user = User.objects.create_user(
-            username="homeuser",
-            password="password123",
-            email="homeuser@example.com",
-            first_name="Home",
-            last_name="User",
-            is_staff=False,
-        )
-
-        self.staff1 = User.objects.create_user(
-            username="staff1",
-            password="password123",
-            email="staff1@example.com",
-            first_name="Staff",
-            last_name="One",
-            is_staff=True,
-        )
-
-        self.staff2 = User.objects.create_user(
-            username="staff2",
-            password="password123",
-            email="staff2@example.com",
-            first_name="Staff",
-            last_name="Two",
-            is_staff=True,
-        )
+        mapping = [
+            ("user", "homeuser", "Home", "User", False),
+            ("staff1", "staff1", "Staff", "One", True),
+            ("staff2", "staff2", "Staff", "Two", True),
+        ]
+        for attr, username, fname, lname, is_staff in mapping:
+            u = User.objects.create_user(username=username, password="password123",
+                                         email=f"{username}@example.com",
+                                         first_name=fname, last_name=lname, is_staff=is_staff)
+            setattr(self, attr, u)
 
     # ------------------------
     # Basic access

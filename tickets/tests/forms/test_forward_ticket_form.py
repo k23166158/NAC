@@ -10,6 +10,7 @@ class ForwardTicketFormTests(TestCase):
     """Tests for ForwardTicketForm validation + helper methods."""
 
     def setUp(self):
+        """Set up test users."""
         # A valid staff user
         self.staff = User.objects.create_user(
             username="teacher1",

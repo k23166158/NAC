@@ -32,5 +32,5 @@ urlpatterns = [
     path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
     path('signup/', SignUpView, name='signup'),
     path('departments/create/', CreateDepartmentView.as_view(), name='create_department'),
-    path("tickets/<int:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
+    path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
 ]

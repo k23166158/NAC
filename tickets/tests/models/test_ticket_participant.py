@@ -13,36 +13,17 @@ class TicketParticipantModelTests(TestCase):
 
     def setUp(self):
         """Set up users + a ticket for testing."""
-        self.creator = User.objects.create_user(
-            username="creator",
-            password="password123",
-            email="creator@example.com",
-            first_name="Ticket",
-            last_name="Owner",
-        )
-
-        self.staff1 = User.objects.create_user(
-            username="teacher1",
-            password="password123",
-            email="teacher1@example.com",
-            first_name="Teacher",
-            last_name="One",
-            is_staff=True,
-        )
-
-        self.staff2 = User.objects.create_user(
-            username="teacher2",
-            password="password123",
-            email="teacher2@example.com",
-            first_name="Teacher",
-            last_name="Two",
-            is_staff=True,
-        )
-
-        self.ticket = Ticket.objects.create(
-            title="Test Ticket",
-            created_by=self.creator,
-        )
+        mapping = [
+            ("creator", "creator", "Ticket", "Owner", False),
+            ("staff1", "teacher1", "Teacher", "One", True),
+            ("staff2", "teacher2", "Teacher", "Two", True),
+        ]
+        for attr, username, fname, lname, is_staff in mapping:
+            u = User.objects.create_user(username=username, password="password123",
+                                         email=f"{username}@example.com",
+                                         first_name=fname, last_name=lname, is_staff=is_staff)
+            setattr(self, attr, u)
+        self.ticket = Ticket.objects.create(title="Test Ticket", created_by=self.creator)
 
     def test_participant_creation_and_str(self):
         """Test creation of a participant and its string representation."""

@@ -11,6 +11,7 @@ from ..models.ticket_participant import TicketParticipant
 class HomeView(View):
     """View for the home page/dashboard."""
     def get(self, request):
+        """Handle GET request for home page."""
         if not request.user.is_authenticated:
             return render(request, "landing.html")
 
@@ -40,6 +41,7 @@ class HomeView(View):
         ).distinct()
 
     def _annotated_tickets(self, user):
+        """Tickets with last message info annotated."""
         last_msg = TicketMessage.objects.filter(ticket_id=OuterRef("pk")).order_by("-timestamp")
         return (
             self._base_tickets(user)
@@ -54,9 +56,11 @@ class HomeView(View):
         )
 
     def _completed_tickets(self, qs):
+        """Tickets that are completed/closed."""
         return qs.filter(status=Ticket.Status.CLOSED).order_by("-updated_at")
 
     def _overdue_tickets(self, qs):
+        """Tickets that are overdue for a response."""
         cutoff = timezone.now() - timedelta(days=7)
         return qs.filter(
             status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING],
@@ -66,6 +70,7 @@ class HomeView(View):
         ).order_by("-last_message_at")
 
     def _active_tickets(self, qs, overdue):
+        """Tickets that are active and not overdue."""
         return qs.filter(
             status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING],
         ).exclude(
