@@ -3,6 +3,7 @@ from django.shortcuts import redirect
 from django.views import View
 
 from ..forms import CreateDepartmentForm
+from ..models import UserDepartments
 
 
 class CreateDepartmentView(LoginRequiredMixin, UserPassesTestMixin, View):
@@ -26,7 +27,8 @@ class CreateDepartmentView(LoginRequiredMixin, UserPassesTestMixin, View):
             department = form.save(commit=False)
             department.created_by = request.user
             department.save()
-            return redirect('department_view', slug=department.slug)
+            UserDepartments.objects.get_or_create(user=request.user, department=department)
+            return redirect('department', department_slug=department.slug)
         return self._render_form(request, form)
 
     def _render_form(self, request, form):
