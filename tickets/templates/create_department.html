@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Department{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/department.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tickets-wrap tickets-centered">
+  <div class="tickets-header tickets-header-centered">
+    <div>
+      <h1 class="tickets-title">Create New Department</h1>
+      <p class="tickets-subtitle">Fill in the details below to create a new department.</p>
+    </div>
+  </div>
+
+  <div class="department-form-container">
+    {% if form.errors %}
+      <div class="department-form-errors">
+        <strong>Please correct the following errors:</strong>
+        <ul>
+          {% for field in form %}
+            {% for error in field.errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form method="post" class="department-form-card">
+      {% csrf_token %}
+      
+      <div class="department-form-group">
+        <label for="{{ form.name.id_for_label }}" class="department-form-label">
+          {{ form.name.label }}
+          <span class="required">*</span>
+        </label>
+        {{ form.name }}
+        {% if form.name.help_text %}
+          <small class="department-form-help">
+            {{ form.name.help_text }}
+          </small>
+        {% endif %}
+      </div>
+
+      <div class="department-form-group">
+        <label for="{{ form.description.id_for_label }}" class="department-form-label">
+          {{ form.description.label }}
+        </label>
+        {{ form.description }}
+        {% if form.description.help_text %}
+          <small class="department-form-help">
+            {{ form.description.help_text }}
+          </small>
+        {% endif %}
+      </div>
+
+      <div class="department-form-actions">
+        <a href="{% url 'home' %}" class="department-form-cancel">
+          Cancel
+        </a>
+        <button type="submit" class="department-form-submit">
+          Create Department
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
