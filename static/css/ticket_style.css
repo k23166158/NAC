@@ -61,7 +61,7 @@
     background: #fff;
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 12px;
+    padding: 8px 12px 12px 12px; /* Top, Right, Bottom, Left */
     margin-bottom: 10px;
     margin-left: 20px;
 }
@@ -164,7 +164,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 4px; 
 }
 
 .meta-right {
@@ -175,6 +175,7 @@
 .timestamp {
     font-size: 0.85rem;
     color: #888;
+    float: none; /* Remove float as you are using flexbox in meta-right */
 }
 
 .message-actions {
@@ -182,18 +183,18 @@
     gap: 5px;
 }
 
-.edit-btn::before {
+/* .edit-btn::before {
     content: "✏️";
 }
 
 .delete-btn::before {
     content: "🗑";
-}
-
+} */
+ 
 .btn-tiny {
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     text-decoration: none;
-    padding: 2px 6px;
+    padding: 3px 6px;
     border-radius: 4px;
     border: 1px solid #ccc;
     background-color: #f9f9f9;
