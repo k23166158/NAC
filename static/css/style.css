@@ -653,7 +653,7 @@ footer {
     background: #ffffff;
     border-radius: 10px;
     padding: 28px 32px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     border: 1px solid #e5e7eb;
 }
 
@@ -775,6 +775,7 @@ footer {
 input[type="file"] {
     padding: 6px;
 }
+
 /*=========================
    LOGIN PAGE
    ========================= */
@@ -791,4 +792,41 @@ input[type="file"] {
 
 .small-link a:hover {
     text-decoration: underline;
+}
+
+.forward-form {
+    margin-top: 12px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.forward-input {
+    width: min(320px, 100%);
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 13px;
+    outline: none;
+}
+
+.forward-input:focus {
+    border-color: rgba(9, 105, 218, .45);
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, .12);
+}
+
+.forward-btn {
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.forward-btn:hover {
+    background: rgba(246, 248, 250, .9);
 }

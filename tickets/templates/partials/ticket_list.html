@@ -31,6 +31,13 @@
           <span class="pill">👤 {{ t.created_by.first_name }} {{ t.created_by.last_name }}</span>
           <span class="pill">🗓 {{ t.created_at|date:"M j, Y" }}</span>
           <span class="pill">⏱ {{ t.updated_at|date:"M j, Y" }}</span>
+          {% if user.is_staff %}
+            <form class="forward-form" method="post" action="{% url 'ticket_forward' t.id %}">
+              {% csrf_token %}
+              <input class="forward-input" type="email" name="email" placeholder="Forward to staff email…" required>
+              <button class="forward-btn" type="submit">Forward</button>
+            </form>
+          {% endif %}
         </div>
 
         {% if t.last_message_at %}

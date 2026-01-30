@@ -22,6 +22,8 @@ from tickets.views import SignUpView
 from django.conf import settings
 from django.conf.urls.static import static
 
+from tickets.views.forward_ticket import ForwardTicketView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', HomeView.as_view(), name='home'),
@@ -30,4 +32,5 @@ urlpatterns = [
     path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
     path('signup/', SignUpView, name='signup'),
     path('departments/create/', CreateDepartmentView.as_view(), name='create_department'),
+    path("tickets/<int:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
 ]
