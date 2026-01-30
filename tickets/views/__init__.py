@@ -1,3 +1,3 @@
 from .home import HomeView
 from .auth import CustomLoginView
-from .department import DepartmentView
+from .department_view import DepartmentView
