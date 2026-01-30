@@ -39,7 +39,8 @@ class CreateDepartmentForm(forms.ModelForm):
         if not name:
             return name
         slug = slugify(name)
-        if Department.objects.filter(slug=slug).exists():
+        existing = Department.objects.filter(slug=slug).first()
+        if existing and existing != self.instance:
             raise ValidationError(
                 'A department with this name already exists. Please choose a different name.'
             )
