@@ -3,12 +3,19 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
 class ForwardTicketForm(forms.Form):
-    email = forms.EmailField(label="Staff email", widget=forms.EmailInput(attrs={
-        "placeholder": "teacher@school.edu"
-    }))
+    """Form to forward a ticket to another staff member."""
+    email = forms.EmailField(
+        label="Staff email",
+        widget=forms.EmailInput(attrs={
+            "placeholder": "teacher@school.edu",
+            "autocomplete": "email",
+        })
+    )
 
     def clean_email(self):
+        """Validate that the email belongs to a staff member."""
         email = self.cleaned_data["email"].strip().lower()
         try:
             user = User.objects.get(email__iexact=email)
@@ -20,5 +27,6 @@ class ForwardTicketForm(forms.Form):
         return email
 
     def get_user(self):
+        """Retrieve the user instance based on the provided email."""
         email = self.cleaned_data["email"].strip().lower()
         return User.objects.get(email__iexact=email)

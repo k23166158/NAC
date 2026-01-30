@@ -1,6 +1,10 @@
 <div class="ticket-list">
   {% for t in tickets %}
-    <details class="ticket-row">
+    <details
+      class="ticket-row"
+      id="ticket-{{ t.id }}"
+      {% if request.GET.open == t.id|stringformat:"s" %}open{% endif %}
+    >
       <summary class="ticket-bar {% if t.status == 'pending' %}ticket-bar-overdue{% endif %}">
         <span class="chev" aria-hidden="true"></span>
 
@@ -12,11 +16,11 @@
 
           <div class="ticket-bar-right">
             {% if t.status == 'closed' %}
-              <span class="status-chip status-chip--done">Closed</span>
+                <span class="pill status status-completed">CLOSED</span>
             {% elif t.status == 'pending' %}
-              <span class="status-chip status-chip--overdue">Pending</span>
+                <span class="pill status status-overdue">PENDING</span>
             {% else %}
-              <span class="status-chip status-chip--open">Open</span>
+                <span class="pill status status-active">OPEN</span>
             {% endif %}
 
             <span class="ticket-date">
@@ -31,57 +35,50 @@
       </summary>
 
       <div class="ticket-expanded">
-<<<<<<< HEAD
         <div class="ticket-expanded-meta">
           <span class="pill">👤 {{ t.created_by.first_name }} {{ t.created_by.last_name }}</span>
           <span class="pill">🗓 {{ t.created_at|date:"M j, Y" }}</span>
           <span class="pill">⏱ {{ t.updated_at|date:"M j, Y" }}</span>
+
           {% if user.is_staff %}
             <form class="forward-form" method="post" action="{% url 'ticket_forward' t.id %}">
               {% csrf_token %}
-              <input class="forward-input" type="email" name="email" placeholder="Forward to staff email…" required>
+
+              <!-- preserve which tab user was on -->
+              <input type="hidden" name="return_tab" class="return-tab" value="active">
+
+              <div class="forward-control">
+                <span class="forward-ico" aria-hidden="true">↪</span>
+                <input
+                  class="forward-input"
+                  type="email"
+                  name="email"
+                  placeholder="Forward to staff email…"
+                  required
+                  autocomplete="email"
+                >
+              </div>
               <button class="forward-btn" type="submit">Forward</button>
             </form>
           {% endif %}
-=======
-        <div class="meta-row">
-          <span class="meta-item">
-            <span class="meta-ico">👤</span>
-            <span class="meta-txt">{{ t.created_by.first_name }} {{ t.created_by.last_name }}</span>
-          </span>
-          <span class="meta-dot">•</span>
-          <span class="meta-item">
-            <span class="meta-ico">🗓</span>
-            <span class="meta-txt">{{ t.created_at|date:"M j, Y" }}</span>
-          </span>
-          <span class="meta-dot">•</span>
-          <span class="meta-item">
-            <span class="meta-ico">⏱</span>
-            <span class="meta-txt">{{ t.updated_at|date:"M j, Y" }}</span>
-          </span>
->>>>>>> main
         </div>
 
         {% if t.last_message_at %}
-          <div class="latest">
-            <div class="latest-head">
-              <span class="latest-time">{{ t.last_message_at|date:"M j • H:i" }}</span>
-              <span class="latest-from">
-                From
-                <strong>
+          <div class="thread">
+            <div class="msg {% if t.last_sender_is_staff %}msg-staff{% else %}msg-user{% endif %}">
+              <div class="msg-top">
+                <span class="msg-sender">
                   {% if t.last_message_sender_id == request.user.id %}
                     You
                   {% else %}
                     {{ t.last_sender_first }} {{ t.last_sender_last }}
                   {% endif %}
-                </strong>
-                {% if t.last_sender_is_staff %}
-                  <span class="mini-tag">STAFF</span>
-                {% endif %}
-              </span>
+                  {% if t.last_sender_is_staff %}<span class="msg-tag">STAFF</span>{% endif %}
+                </span>
+                <span class="msg-time">{{ t.last_message_at|date:"M j • H:i" }}</span>
+              </div>
+              <div class="msg-body">{{ t.last_message_body }}</div>
             </div>
-
-            <div class="latest-body">{{ t.last_message_body }}</div>
           </div>
         {% else %}
           <div class="empty">No messages yet.</div>

@@ -9,7 +9,7 @@
 
 {% block content %}
 <div class="tickets-wrap tickets-centered">
-  {% if user.is_staff %}
+  {% if user.is_superuser %}
   <div class="admin-card">
     <div class="admin-header">
         <h3>Admin Dashboard</h3>
@@ -112,6 +112,19 @@
     }
 
     buttons.forEach(btn => btn.addEventListener("click", () => openTab(btn.dataset.tab)));
+  })();
+</script>
+
+<script>
+  // Inline forward popup: close button + auto-hide
+  (function () {
+    const pops = document.querySelectorAll(".fwd-pop");
+    pops.forEach(pop => {
+      const x = pop.querySelector(".fwd-pop-x");
+      const hide = () => pop.classList.add("is-hidden");
+      if (x) x.addEventListener("click", hide);
+      setTimeout(hide, 3200);
+    });
   })();
 </script>
 {% endblock %}
