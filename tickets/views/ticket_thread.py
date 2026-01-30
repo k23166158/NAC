@@ -1,6 +1,6 @@
 from django.views.generic import DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from ..models import Ticket, TicketMessage
 
 class TicketThreadView(LoginRequiredMixin, DetailView):
@@ -8,6 +8,8 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
     model = Ticket
     template_name = 'tickets/ticket_thread.html'
     context_object_name = 'ticket'
+    slug_url_kwarg = 'uuid'
+    slug_field = 'uuid'
 
     def get_messages_queryset(self):
         """Get the queryset for ticket messages."""

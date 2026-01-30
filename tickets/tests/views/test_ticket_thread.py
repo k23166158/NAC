@@ -1,3 +1,5 @@
+import uuid
+
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -32,9 +34,10 @@ class TicketThreadViewTests(TestCase):
             created_by=self.user,
         )
 
-    def _url(self, pk=None):
-        """Get the URL for the ticket thread view for the given ticket pk."""
-        return reverse("ticket_thread", kwargs={"pk": pk or self.ticket.pk})
+    def _url(self, ticket=None):
+        """Get the URL for the ticket thread view for the given ticket (default: self.ticket)."""
+        t = ticket or self.ticket
+        return reverse("ticket_thread", kwargs={"uuid": t.uuid})
 
     def _csrf_data(self, **extra):
         """Get POST data dict with valid CSRF token (call after client has GET'd the page)."""
@@ -61,7 +64,7 @@ class TicketThreadViewTests(TestCase):
     def test_get_nonexistent_ticket_returns_404(self):
         """Requesting a non-existent ticket returns 404."""
         self.client.force_login(self.user)
-        response = self.client.get(self._url(pk=99999))
+        response = self.client.get(reverse("ticket_thread", kwargs={"uuid": uuid.uuid4()}))
         self.assertEqual(response.status_code, 404)
 
     # --- GET: context (first_message, messages, last_user_message_id) ---
