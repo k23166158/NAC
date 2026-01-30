@@ -23,6 +23,7 @@ class TicketThreadViewTests(TestCase):
     """Tests for TicketThreadView (ticket thread page and post actions)."""
 
     def setUp(self):
+        """Set up test users and a ticket."""
         self.client = Client()
         self.user = make_user("threaduser")
         self.other_user = make_user("otheruser", email="other@example.com")
@@ -32,6 +33,7 @@ class TicketThreadViewTests(TestCase):
         )
 
     def _url(self, pk=None):
+        """Get the URL for the ticket thread view for the given ticket pk."""
         return reverse("ticket_thread", kwargs={"pk": pk or self.ticket.pk})
 
     def _csrf_data(self, **extra):

@@ -94,7 +94,7 @@
 }
 .reply::after {
     content: "";
-    border: 1px solid black;
+    border: 2px solid grey;
     border-right-color: transparent;
     border-top-color: transparent;
     border-radius: 0 0 0 10px;
