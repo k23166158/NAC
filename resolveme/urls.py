@@ -29,5 +29,5 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
     path('signup/', SignUpView, name='signup'),
-    path('departments/create/', CreateDepartmentView.as_view(), name='create_department'),
+    path('department/create/', CreateDepartmentView.as_view(), name='create_department'),
 ]
