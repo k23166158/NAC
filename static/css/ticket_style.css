@@ -18,8 +18,13 @@
     background: #fff;
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 15px;
+    padding: 15px 12px;
     anchor-name: --ticket-header-card;
+}
+
+.ticket-header-card .col-body,
+.reply-container .col-body {
+    min-height: 0;
 }
 .reply-container {
     margin-bottom: 18px;
@@ -32,7 +37,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
 }
 .col-head-left {
     display: flex;
@@ -41,10 +45,15 @@
 }
 
 .ticket-meta {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+    margin-bottom: 4px;
+    gap: 6px;
 }
+
+.tickets-title {
+    margin: 0;
+    font-size: 18px; /* optional, closer to message scale */
+}
+
 .pill {
     font-size: 12px;
     padding: 4px 8px;
@@ -116,6 +125,10 @@
     font-size: 14px;
     line-height: 1.45;
 }
+.ticket-header-card .message-body {
+    margin-top: 3px;
+}
+
 
 .reply-textarea {
     width: 100%;

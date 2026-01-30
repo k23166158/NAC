@@ -34,13 +34,20 @@
                 {{ ticket.get_status_display }}
             </span>
         </div>
-
+        
         <div class="col-body">
             <div class="ticket-meta">
                 <span class="pill">Created by <strong>{{ ticket.created_by.username }}</strong></span>
                 <span class="pill">Created {{ ticket.created_at|date:"M d, Y H:i" }}</span>
                 <span class="pill">Updated {{ ticket.updated_at|date:"M d, Y H:i" }}</span>
             </div>
+            {% if first_message %}
+                <div class="ticket-description">
+                    <p class="message-body">
+                        {{ first_message.body }}
+                    </p>
+                </div>
+            {% endif %}
         </div>
     </div>
 
@@ -54,6 +61,7 @@
                             <span class="timestamp">
                                 {{ message.timestamp|date:"M d, Y H:i" }}
                             </span>
+
                             {% if not message.hidden and message.sender == user %}
                                 <div class="message-actions">
                                     {% if message.id == last_user_message_id %}
@@ -92,9 +100,10 @@
                 </div>
             </div>
         {% empty %}
-            <div class="empty">No messages yet. Start the conversation 👇</div>
+            <div class="empty">No replies yet.</div>
         {% endfor %}
     </div>
+
 
     <div class="reply-container">
         <div class="col-head">
@@ -123,4 +132,4 @@
 
 </div>
 {% endblock %}
-{% comment %} {% url 'close_ticket' ticket.id %} {% endcomment %}a
+{% comment %} {% url 'close_ticket' ticket.id %} {% endcomment %}

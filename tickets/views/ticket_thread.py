@@ -14,9 +14,14 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        messages = TicketMessage.objects.filter(
-            ticket=self.object
-        ).order_by("timestamp")
+        messages = (
+            TicketMessage.objects
+            .filter(ticket=self.object)
+            .order_by("timestamp")
+        )
+
+        first_message = messages.first()
+        reply_messages = messages[1:] if messages.count() > 1 else []
 
         last_user_message = (
             messages
@@ -24,12 +29,14 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
             .last()
         )
 
-        context["messages"] = messages
+        context["first_message"] = first_message
+        context["messages"] = reply_messages
         context["last_user_message_id"] = (
             last_user_message.id if last_user_message else None
         )
 
         return context
+
     
     def post(self, request, *args, **kwargs):
         """Post request handler to add a new message to the ticket thread."""
