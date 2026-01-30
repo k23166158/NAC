@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from tickets.views import HomeView, CustomLoginView
+from tickets.views import HomeView, CustomLoginView, DepartmentView
 from django.contrib.auth.views import LogoutView
 
 urlpatterns = [
@@ -24,4 +24,5 @@ urlpatterns = [
     path('', HomeView.as_view(), name='home'),
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
+    path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
 ]
