@@ -28,10 +28,6 @@ class CreateDepartmentForm(forms.ModelForm):
             'name': 'Department Name',
             'description': 'Description',
         }
-        help_texts = {
-            'name': 'A unique name for the department',
-            'description': 'Optional description of the department',
-        }
 
     def clean_name(self):
         """Validate that the department name is unique."""
