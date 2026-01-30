@@ -6,7 +6,7 @@
                 <li>
                     <form action="/logout/" method="post" style="display:inline;">
                         {% csrf_token %}
-                        <button type="submit" style="background:none;border:none;padding:0;color:inherit;cursor:pointer;">Logout</button>
+                        <button type="submit" class="logout-btn">Logout</button>
                     </form>
                 </li>
             {% else %}
