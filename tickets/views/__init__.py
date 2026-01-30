@@ -1,2 +1,2 @@
 from .home import HomeView
-from .auth import CustomLoginView
+from .auth import CustomLoginView, SignUpView

@@ -18,10 +18,14 @@ from django.contrib import admin
 from django.urls import path
 from tickets.views import HomeView, CustomLoginView
 from django.contrib.auth.views import LogoutView
+from tickets.views import SignUpView
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', HomeView.as_view(), name='home'),
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
+    path('signup/', SignUpView, name='signup'),
 ]

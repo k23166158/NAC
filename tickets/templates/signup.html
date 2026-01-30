@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+
+
+
+<div class="signup-wrapper">
+    <div class="signup-card">
+
+        <a href="{% url 'home' %}" style="display:block;text-align:center;">
+            <img src="{% static 'images/logo.png' %}" alt="Logo" style="max-width:64px;">
+        </a>
+
+        <h1 class="signup-title">Create an account</h1>
+        <div class="signup-subtitle">Student Support System</div>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="profile-upload">
+                <div class="avatar">
+                    <span id="avatarText">No photo</span>
+                    <img id="avatarImg" style="display:none;">
+                </div>
+
+                <div class="profile-upload-right">
+                    <p class="profile-upload-title">Profile picture (optional)</p>
+                    <p class="profile-upload-hint">Choose an image to use as your avatar.</p>
+
+                    {{ form.profile_picture }}
+                    {{ form.profile_picture.errors }}
+                </div>
+            </div>
+
+            <p>
+                {{ form.username.label_tag }}
+                {{ form.username }}
+                {{ form.username.errors }}
+            </p>
+
+            <p>
+                {{ form.first_name.label_tag }}
+                {{ form.first_name }}
+                {{ form.first_name.errors }}
+            </p>
+
+            <p>
+                {{ form.last_name.label_tag }}
+                {{ form.last_name }}
+                {{ form.last_name.errors }}
+            </p>
+
+            <p>
+                {{ form.email.label_tag }}
+                {{ form.email }}
+                {{ form.email.errors }}
+            </p>
+
+            <p>
+                {{ form.bio.label_tag }}
+                {{ form.bio }}
+                {{ form.bio.errors }}
+            </p>
+
+            <p>
+                {{ form.password1.label_tag }}
+                {{ form.password1 }}
+                {{ form.password1.errors }}
+            </p>
+
+            <p>
+                {{ form.password2.label_tag }}
+                {{ form.password2 }}
+                {{ form.password2.errors }}
+            </p>
+
+            <button type="submit">Sign up</button>
+        </form>
+
+        <div class="small-link">
+            Already have an account? <a href="{% url 'login' %}">Log in</a>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const input = document.querySelector('input[type="file"][name="profile_picture"]');
+    const img = document.getElementById("avatarImg");
+    const text = document.getElementById("avatarText");
+
+    if (!input) return;
+
+    input.setAttribute("accept", "image/*");
+
+    input.addEventListener("change", function () {
+        const file = input.files[0];
+        if (!file || !file.type.startsWith("image/")) return;
+
+        const url = URL.createObjectURL(file);
+        img.src = url;
+        img.style.display = "block";
+        text.style.display = "none";
+    });
+});
+</script>
+
+{% endblock %}
