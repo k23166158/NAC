@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.conf import settings
 
@@ -11,6 +13,7 @@ class Ticket(models.Model):
         PENDING = 'pending', 'Pending'
         CLOSED = 'closed', 'Closed'
 
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True)
     title = models.CharField(max_length=200)
     status = models.CharField(
         max_length=20,

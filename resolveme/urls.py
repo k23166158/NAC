@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path
 from tickets.views import HomeView, CustomLoginView, DepartmentView, CreateDepartmentView
 from django.contrib.auth.views import LogoutView
+from tickets.views.ticket_thread import TicketThreadView
 from tickets.views import SignUpView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -27,6 +28,7 @@ urlpatterns = [
     path('', HomeView.as_view(), name='home'),
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
+    path('tickets/<uuid:uuid>/', TicketThreadView.as_view(), name='ticket_thread'),
     path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
     path('signup/', SignUpView, name='signup'),
     path('departments/create/', CreateDepartmentView.as_view(), name='create_department'),
