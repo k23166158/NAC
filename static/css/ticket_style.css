@@ -4,13 +4,24 @@
     padding: 20px;
 }
 .back-link-container {
-    margin-bottom: 14px;
+    margin-bottom: 20px;
 }
+
 .ticket-link {
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--blue);
-    font-weight: 700;
     text-decoration: none;
+    background: rgb(235, 234, 234);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    transition: background 0.2s, color 0.2s;
+}
+
+.ticket-link:hover {
+    background: var(--blue);
+    color: #fff;
 }
 
 .ticket-header-card {
@@ -57,7 +68,6 @@
 .pill {
     font-size: 12px;
     padding: 4px 8px;
-    background: #f0f2f5;
     border-radius: 6px;
 }
 

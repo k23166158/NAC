@@ -20,19 +20,20 @@
         <div class="col-head">
             <div class="col-head-left">
                 <span class="dot 
-                    {% if ticket.status == 'active' %}active
-                    {% elif ticket.status == 'overdue' %}overdue
+                    {% if ticket.status == 'open' %}active
+                    {% elif ticket.status == 'pending' %}overdue
                     {% else %}completed{% endif %}">
                 </span>
                 <h1 class="tickets-title">{{ ticket.title }}</h1>
             </div>
 
-            <span class="pill status
-                {% if ticket.status == 'active' %}status-active
-                {% elif ticket.status == 'overdue' %}status-overdue
-                {% else %}status-completed{% endif %}">
-                {{ ticket.get_status_display }}
-            </span>
+            {% if t.status == 'closed' %}
+                <span class="pill status status-completed">CLOSED</span>
+            {% elif t.status == 'pending' %}
+                <span class="pill status status-overdue">PENDING</span>
+            {% else %}
+                <span class="pill status status-active">OPEN</span>
+            {% endif %}
         </div>
         
         <div class="col-body">
