@@ -111,21 +111,34 @@ class Command(BaseCommand):
     def create_user(self, data):
         """Create a user with the supplied password and access level."""
         if data.get("superuser"):
-            self.User.objects.create_superuser(
-                username=data["username"],
-                email=data["email"],
-                password=data["password"],
-                first_name=data["first_name"],
-                last_name=data["last_name"],
-            )
+            self.create_superuser(data)
             return
-        user = self.User.objects.create_user(
+        user = self.create_regular_user(data)
+        self.apply_staff_flag(user, data)
+
+    def create_superuser(self, data):
+        """Create a superuser from fixture data."""
+        self.User.objects.create_superuser(
             username=data["username"],
             email=data["email"],
             password=data["password"],
             first_name=data["first_name"],
             last_name=data["last_name"],
         )
+
+    def create_regular_user(self, data):
+        """Create a regular user from fixture data."""
+        return self.User.objects.create_user(
+            username=data["username"],
+            email=data["email"],
+            password=data["password"],
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            bio=data.get("bio", ""),
+        )
+
+    def apply_staff_flag(self, user, data):
+        """Apply staff flag if requested in fixture data."""
         if data.get("staff"):
             user.is_staff = True
             user.save()
