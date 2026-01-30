@@ -67,6 +67,14 @@
     line-height: 1.4;
 }
 
+.department-form-error {
+    display: block;
+    margin-top: 6px;
+    color: #991b1b;
+    font-size: 12.5px;
+    line-height: 1.4;
+}
+
 .department-form-actions {
     display: flex;
     gap: 12px;
