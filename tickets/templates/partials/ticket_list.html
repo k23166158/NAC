@@ -63,6 +63,25 @@
           {% endif %}
         </div>
 
+        {# ✅ POPUP GOES EXACTLY HERE (after meta, before thread) #}
+        {% if request.GET.tid == t.id|stringformat:"s" and request.GET.fwd %}
+          <div class="fwd-pop {% if request.GET.fwd == 'ok' %}fwd-pop--ok{% else %}fwd-pop--err{% endif %}">
+            <span class="fwd-pop-ico" aria-hidden="true">
+              {% if request.GET.fwd == 'ok' %}✓{% else %}!{% endif %}
+            </span>
+
+            <div class="fwd-pop-text">
+              {% if request.GET.fwd == 'ok' %}
+                Forwarded to <strong>{{ request.GET.email }}</strong>.
+              {% else %}
+                {{ request.GET.msg|default:"Email failed to forward." }}
+              {% endif %}
+            </div>
+
+            <button type="button" class="fwd-pop-x" aria-label="Close">×</button>
+          </div>
+        {% endif %}
+
         {% if t.last_message_at %}
           <div class="thread">
             <div class="msg {% if t.last_sender_is_staff %}msg-staff{% else %}msg-user{% endif %}">

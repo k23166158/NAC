@@ -13,36 +13,40 @@ class ForwardTicketView(View):
     """View to forward a ticket to another staff member."""
 
     def post(self, request, ticket_id):
-        # Must be logged in + staff
         if not request.user.is_authenticated or not request.user.is_staff:
             return HttpResponseForbidden("You don't have permission to forward tickets.")
 
         ticket = get_object_or_404(Ticket, pk=ticket_id)
         form = ForwardTicketForm(request.POST)
 
-        # Validation failed (email missing / not found / not staff)
+        # preserve UI state
+        return_tab = request.POST.get("return_tab", "active")
+
+        def go_err(message: str):
+            return redirect(
+                f"/?tab={quote(return_tab)}&open={ticket.id}"
+                f"&fwd=err&tid={ticket.id}&msg={quote(message)}"
+            )
+
+        def go_ok(email: str):
+            return redirect(
+                f"/?tab={quote(return_tab)}&open={ticket.id}"
+                f"&fwd=ok&tid={ticket.id}&email={quote(email)}"
+            )
+
         if not form.is_valid():
             msg = form.errors.get("email", ["Email failed to forward."])[0]
-            return redirect(f"/?fwd=err&tid={ticket.id}&msg={quote(str(msg))}")
+            return go_err(str(msg))
 
         staff_user = form.get_user()
 
-        # Prevent forwarding to yourself
         if staff_user.id == request.user.id:
-            return redirect(
-                f"/?fwd=err&tid={ticket.id}&msg={quote('You cannot forward a ticket to yourself.')}"
-            )
+            return go_err("You cannot forward a ticket to yourself.")
 
-        # Add staff user as participant (idempotent)
         TicketParticipant.objects.get_or_create(
             ticket=ticket,
             user=staff_user,
-            defaults={"added_by": request.user} if "added_by" in [
-                f.name for f in TicketParticipant._meta.fields
-            ] else {},
+            defaults={"added_by": request.user} if "added_by" in [f.name for f in TicketParticipant._meta.fields] else {},
         )
 
-        # Success popup
-        return redirect(
-            f"/?fwd=ok&tid={ticket.id}&email={quote(staff_user.email)}"
-        )
+        return go_ok(staff_user.email)
