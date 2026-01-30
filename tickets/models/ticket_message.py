@@ -17,7 +17,7 @@ class TicketMessage(models.Model):
        related_name="ticket_messages",
        db_column="sender",)
    timestamp = models.DateTimeField(auto_now_add=True)
-
+   hidden = models.BooleanField(default=False)
 
    class Meta:
        """Meta information for the TicketMessage model."""
