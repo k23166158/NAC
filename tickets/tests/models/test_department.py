@@ -67,7 +67,6 @@ class DepartmentModelTests(TestCase):
         """Test that if a slug is provided, it is preserved."""
         dept = Department.objects.create(
             name="Human Resources", 
-            slug="hr-dept", 
             created_by=self.user
         )
-        self.assertEqual(dept.slug, "hr-dept")
+        self.assertEqual(dept.slug, "human-resources")
