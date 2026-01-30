@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Department{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/department.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tickets-wrap tickets-centered">
+  <div class="tickets-header tickets-header-centered">
+    <div>
+      <h1 class="tickets-title">Create New Department</h1>
+      <p class="tickets-subtitle">Fill in the details below to create a new department.</p>
+    </div>
+  </div>
+
+  <div class="department-form-container">
+    {% if form.non_field_errors %}
+      <div class="department-form-errors">
+        {% for error in form.non_field_errors %}
+          {{ error }}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" class="department-form-card">
+      {% csrf_token %}
+      
+      <div class="department-form-group">
+        <label for="{{ form.name.id_for_label }}" class="department-form-label">
+          {{ form.name.label }}
+          <span class="required">*</span>
+        </label>
+        {{ form.name }}
+        {% if form.name.errors %}
+          {% for error in form.name.errors %}
+            <small class="department-form-error">
+              {{ error }}
+            </small>
+          {% endfor %}
+        {% endif %}
+        {% if form.name.help_text %}
+          <small class="department-form-help">
+            {{ form.name.help_text }}
+          </small>
+        {% endif %}
+      </div>
+
+      <div class="department-form-group">
+        <label for="{{ form.description.id_for_label }}" class="department-form-label">
+          {{ form.description.label }}
+        </label>
+        {{ form.description }}
+        {% if form.description.errors %}
+          {% for error in form.description.errors %}
+            <small class="department-form-error">
+              {{ error }}
+            </small>
+          {% endfor %}
+        {% endif %}
+        {% if form.description.help_text %}
+          <small class="department-form-help">
+            {{ form.description.help_text }}
+          </small>
+        {% endif %}
+      </div>
+
+      <div class="department-form-actions">
+        <a href="{% url 'home' %}" class="department-form-cancel">
+          Cancel
+        </a>
+        <button type="submit" class="department-form-submit">
+          Create Department
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

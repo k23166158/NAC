@@ -1,3 +1,5 @@
 from .home import HomeView
-from .auth import CustomLoginView
 from .ticket_thread import TicketThreadView
+from .auth import CustomLoginView, SignUpView
+from .department_view import DepartmentView
+from .create_department_views import CreateDepartmentView

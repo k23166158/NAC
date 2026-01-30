@@ -4,7 +4,6 @@ from django.utils import timezone
 
 from tickets.models import Department
 
-
 class DepartmentModelTests(TestCase):
     """Tests for the Department model."""
 
@@ -63,3 +62,11 @@ class DepartmentModelTests(TestCase):
         self.user.delete()
 
         self.assertEqual(Department.objects.count(), 0)
+
+    def test_save_does_not_override_existing_slug(self):
+        """Test that if a slug is provided, it is preserved."""
+        dept = Department.objects.create(
+            name="Human Resources", 
+            created_by=self.user
+        )
+        self.assertEqual(dept.slug, "human-resources")

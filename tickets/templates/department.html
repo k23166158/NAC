@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ department.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/department.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tickets-wrap tickets-centered">
+    
+    <div class="tickets-header tickets-header-centered dept-header">
+        <div class="dept-header-inner">
+            <div>
+                <h1 class="tickets-title dept-title">{{ department.name }}</h1>
+                <p class="tickets-subtitle dept-subtitle">{{ department.description }}</p>
+            </div>
+            
+            <div class="dept-actions">
+                <button class="pill btn-action btn-secondary">Edit</button>
+                <button class="pill btn-action btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-wrapper">
+        <h2 class="section-title">Staff Members</h2>
+
+        <div class="staff-grid">
+            
+            <div class="staff-card">
+                <h3 class="staff-card-header">Assigned</h3>
+                
+                <div class="staff-list">
+                    {% for user in staff %}
+                        <div class="pill staff-row">
+                            <div class="staff-info">
+                                {% if user.profile_picture %}
+                                    <img src="{{ user.profile_picture.url }}" alt="{{ user.first_name }}" class="avatar">
+                                {% else %}
+                                    <div class="avatar-placeholder">
+                                        {{ user.first_name|first }}{{ user.last_name|first }}
+                                    </div>
+                                {% endif %}
+                                <span class="staff-name">{{ user.full_name }}</span>
+                            </div>
+                            
+                            {% if department.created_by != user %}
+                                <form method="POST" style="margin: 0;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="remove">
+                                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                                    <button type="submit" class="btn-icon-remove" title="Remove staff">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        <div class="empty empty-state">No staff assigned yet.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="staff-card">
+                <h3 class="staff-card-header">Add Staff</h3>
+                
+                <div class="search-wrapper">
+                    <input type="text" id="staffSearchInput" class="search-input" autocomplete="off" placeholder="Type to search staff...">
+
+                    <div id="staffList" class="search-dropdown">
+                        {% for user in available_staff %}
+                            <form method="POST" class="staff-item" data-name="{{ user.full_name|lower }}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="add">
+                                <input type="hidden" name="user_id" value="{{ user.id }}">
+                                <button type="submit" class="dropdown-item">
+                                    <div class="avatar-small">+</div>
+                                    <span class="dropdown-name">{{ user.full_name }}</span>
+                                </button>
+                            </form>
+                        {% empty %}
+                            <div class="empty empty-state-small" style="display: block;">No more staff available.</div>
+                        {% endfor %}
+                        <div id="noResultsMsg" class="empty-state-small">No staff found.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tickets-sections">
+        
+        <div>
+            <h2 class="section-title">
+                Active Tickets
+                <span class="pill badge-count badge-blue">{{ active_tickets|length }}</span>
+            </h2>
+            
+            <div class="ticket-scroll-container">
+                {% if active_tickets %}
+                    {% include "partials/ticket_list.html" with tickets=active_tickets %}
+                {% else %}
+                    <div class="empty empty-state">No active tickets found.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="section-dimmed">
+            <h2 class="section-title" style="color: #666;">
+                Closed Tickets
+                <span class="pill badge-count badge-gray">{{ closed_tickets|length }}</span>
+            </h2>
+            
+            <div class="ticket-scroll-container">
+                {% if closed_tickets %}
+                    {% include "partials/ticket_list.html" with tickets=closed_tickets %}
+                {% else %}
+                    <div class="empty empty-state">No closed tickets found.</div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const searchInput = document.getElementById('staffSearchInput');
+    const staffList = document.getElementById('staffList');
+    const items = document.querySelectorAll('.staff-item');
+    const noResultsMsg = document.getElementById('noResultsMsg');
+
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        
+        if (query.length > 0) {
+            staffList.style.display = 'block';
+            let hasVisibleItems = false;
+
+            items.forEach(item => {
+                const name = item.getAttribute('data-name');
+                if (name.includes(query)) {
+                    item.style.display = 'block';
+                    hasVisibleItems = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (!hasVisibleItems) {
+                noResultsMsg.style.display = 'block';
+            } else {
+                noResultsMsg.style.display = 'none';
+            }
+
+        } else {
+            staffList.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !staffList.contains(e.target)) {
+            staffList.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

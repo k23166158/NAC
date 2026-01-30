@@ -1,0 +1,63 @@
+<div class="ticket-list">
+  {% for t in tickets %}
+    <details class="ticket-row">
+      <summary class="ticket-bar {% if t.status == 'pending' %}ticket-bar-overdue{% endif %}">
+        <span class="chev" aria-hidden="true"></span>
+
+        <div class="ticket-bar-main">
+          <div class="ticket-bar-left">
+            <span class="ticket-id">#{{ t.id }}</span>
+            <span class="ticket-title">{{ t.title }}</span>
+          </div>
+
+          <div class="ticket-bar-right">
+            {% if t.status == 'closed' %}
+                <span class="pill status status-completed">CLOSED</span>
+            {% elif t.status == 'pending' %}
+                <span class="pill status status-overdue">PENDING</span>
+            {% else %}
+                <span class="pill status status-active">OPEN</span>
+            {% endif %}
+            
+            <span class="ticket-date">
+              Last message {{ t.last_message_at|date:"M j, Y" }}
+            </span>
+          </div>
+        </div>
+      </summary>
+
+      <div class="ticket-expanded">
+        <div class="ticket-expanded-meta">
+          <span class="pill">👤 {{ t.created_by.first_name }} {{ t.created_by.last_name }}</span>
+          <span class="pill">🗓 {{ t.created_at|date:"M j, Y" }}</span>
+          <span class="pill">⏱ {{ t.updated_at|date:"M j, Y" }}</span>
+        </div>
+
+        {% if t.last_message_at %}
+          <div class="thread">
+            <div class="msg {% if t.last_sender_is_staff %}msg-staff{% else %}msg-user{% endif %}">
+              <div class="msg-top">
+                <span class="msg-sender">
+                  {% if t.last_message_sender_id == request.user.id %}
+                    You
+                  {% else %}
+                    {{ t.last_sender_first }} {{ t.last_sender_last }}
+                  {% endif %}
+                  {% if t.last_sender_is_staff %}<span class="msg-tag">STAFF</span>{% endif %}
+                </span>
+                <span class="msg-time">{{ t.last_message_at|date:"M j • H:i" }}</span>
+              </div>
+              <div class="msg-body">{{ t.last_message_body }}</div>
+            </div>
+          </div>
+        {% else %}
+          <div class="empty">No messages yet.</div>
+        {% endif %}
+
+        <div class="ticket-actions">
+          <a class="ticket-open-btn" href="#">Open full ticket</a>
+        </div>
+      </div>
+    </details>
+  {% endfor %}
+</div>
