@@ -13,7 +13,7 @@ user_fixtures = [
 ]
 
 department_fixtures = [
-    {'name': 'Informatics', 'description': 'Handles all issues related to Informatics', 'created_by': '@janedoe'},
+    {'name': 'Informatics', 'description': 'Handles all issues related to Informatics', 'created_by': 'janedoe'},
 ]
 
 class Command(BaseCommand):
@@ -43,6 +43,7 @@ class Command(BaseCommand):
         self.create_tickets()
         self.assign_tickets_to_departments()
         self.create_ticket_messages()
+        self.assign_staff_to_tickets()
     
     def create_users(self):
         """Create users in the database."""
@@ -220,3 +221,21 @@ class Command(BaseCommand):
             sender = ticket.created_by
             body = self.faker.paragraph(nb_sentences=3)
             TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
+
+    def assign_staff_to_tickets(self):
+        """Randomly assign staff members as participants to tickets."""
+        print("Assigning staff to tickets...")
+        tickets = list(Ticket.objects.all())
+        staff_users = list(User.objects.filter(is_staff=True))
+
+        for ticket in tickets:
+            num_participants = randint(1, 3)
+            participants = random.sample(staff_users, num_participants)
+            self.add_participants_to_ticket(ticket, participants)
+
+        print("Staff assignments to tickets complete.")
+
+    def add_participants_to_ticket(self, ticket, participants):
+        """Assign multiple staff members as participants to a ticket."""
+        for user in participants:
+            TicketParticipant.objects.get_or_create(ticket=ticket, user=user)

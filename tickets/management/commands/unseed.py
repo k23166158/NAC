@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from tickets.models import Ticket, Department
+from tickets.models import Ticket, Department, TicketParticipant
 
 User = get_user_model()
 
@@ -17,4 +17,5 @@ class Command(BaseCommand):
         Ticket.objects.all().delete()
         Department.objects.all().delete()
         User.objects.all().delete()
+        TicketParticipant.objects.all().delete()
         print("Unseeding complete.")
