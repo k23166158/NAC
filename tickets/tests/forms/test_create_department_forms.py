@@ -77,7 +77,6 @@ class CreateDepartmentFormTests(TestCase):
 
     def test_clean_name_allows_updating_existing_department(self):
         """Test that updating an existing department doesn't trigger false duplicate errors."""
-        # Create an existing department
         department = Department.objects.create(
             name="IT Support",
             created_by=self.user
@@ -101,7 +100,6 @@ class CreateDepartmentFormTests(TestCase):
         
     def test_clean_name_returns_empty_name_directly(self):
         """Test that clean_name returns early when name is empty/None."""
-        # Test clean_name directly to cover the early return path
         form = CreateDepartmentForm()
         form.cleaned_data = {'name': ''}
         result = form.clean_name()
