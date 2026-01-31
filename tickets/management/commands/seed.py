@@ -5,9 +5,9 @@ from django.core.management.base import BaseCommand
 from tickets.models import *
 
 user_fixtures = [
-    {'username': '@johndoe', 'email': 'john.doe@example.org', 'first_name': 'John', 'last_name': 'Doe', 'superuser' : True, 'staff': True},
-    {'username': '@janedoe', 'email': 'jane.doe@example.org', 'first_name': 'Jane', 'last_name': 'Doe', 'staff': True},
-    {'username': '@charlie', 'email': 'charlie.johnson@example.org', 'first_name': 'Charlie', 'last_name': 'Johnson'},
+    {'username': 'johndoe', 'email': 'johndoe@example.org', 'first_name': 'John', 'last_name': 'Doe', 'superuser' : True, 'staff': True},
+    {'username': 'janedoe', 'email': 'janedoe@example.org', 'first_name': 'Jane', 'last_name': 'Doe', 'staff': True},
+    {'username': 'charlie', 'email': 'charliejohnson@example.org', 'first_name': 'Charlie', 'last_name': 'Johnson'},
 ]
 
 department_fixtures = [
@@ -16,7 +16,6 @@ department_fixtures = [
 
 class Command(BaseCommand):
     """Build automation command to seed the database with data."""
-
     USER_COUNT = 100
     DEPARTMENT_COUNT = 30
     TICKET_COUNT = 200
@@ -36,7 +35,6 @@ class Command(BaseCommand):
         Runs the full seeding workflow and stores the data for any
         post-processing or debugging (not required for operation).
         """
-
         self.create_users()
         self.create_departments()
         self.assign_users_to_departments()
@@ -63,12 +61,11 @@ class Command(BaseCommand):
 
     def create_random_staff_users(self):
         """Create random staff users using Faker library."""
-
         for _ in range((self.USER_COUNT - len(user_fixtures)) // 2):
             first_name = self.faker.first_name()
             last_name = self.faker.last_name()
-            username = f"@{first_name.lower()}{last_name.lower()}{randint(1, 9999)}"
-            email = f"{first_name.lower()}.{last_name.lower()}{randint(1, 9999)}@example.org"
+            username = f"{first_name.lower()}{last_name.lower()}{randint(1, 9999)}"
+            email = f"{username}@example.org"
 
             self.try_create_user(
                 username=username, email=email, password=self.DEFAULT_PASSWORD, 
@@ -77,7 +74,6 @@ class Command(BaseCommand):
 
     def create_random_users(self):
         """Create random users using Faker library."""
-
         for _ in range((self.USER_COUNT - len(user_fixtures)) // 2):
             first_name = self.faker.first_name()
             last_name = self.faker.last_name()
@@ -141,6 +137,7 @@ class Command(BaseCommand):
             num_assignments = randint(5, 10)
             assigned_users = random.sample(users, num_assignments)
             self.add_users_to_department(assigned_users, department)
+
         print("User assignments complete.")
 
     def add_users_to_department(self, users, department):
