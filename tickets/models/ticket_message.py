@@ -9,7 +9,7 @@ class TicketMessage(models.Model):
    """Model representing a message within a support ticket."""
 
    id = models.AutoField(primary_key=True)
-   ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE)
+   ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="messages")
    body = models.TextField()
    sender = models.ForeignKey(
        settings.AUTH_USER_MODEL,
@@ -17,7 +17,7 @@ class TicketMessage(models.Model):
        related_name="ticket_messages",
        db_column="sender",)
    timestamp = models.DateTimeField(auto_now_add=True)
-
+   hidden = models.BooleanField(default=False)
 
    class Meta:
        """Meta information for the TicketMessage model."""

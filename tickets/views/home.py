@@ -1,17 +1,17 @@
+from django.db.models import OuterRef, Subquery, Q
 from datetime import timedelta
-
 from django.shortcuts import render
 from django.utils import timezone
 from django.views import View
-from django.db.models import OuterRef, Subquery
 
-from ..models import Ticket, TicketMessage
+from ..models import Ticket, TicketMessage, Department
+from ..models.ticket_participant import TicketParticipant
 
 
 class HomeView(View):
     """View for the home page/dashboard."""
     def get(self, request):
-        """ Handle GET requests for the home view. """
+        """Handle GET request for home page."""
         if not request.user.is_authenticated:
             return render(request, "landing.html")
 
@@ -24,31 +24,43 @@ class HomeView(View):
         }
         return render(request, "home.html", context)
 
+    def _base_tickets(self, user):
+        """Tickets visible to this user."""
+        if not user.is_staff:
+            return Ticket.objects.filter(created_by=user)
+
+        dept_ids = Department.objects.filter(
+            assigned_users__user=user
+        ).values_list("id", flat=True)
+
+        return Ticket.objects.filter(
+            Q(created_by=user)
+            | Q(messages__sender=user)
+            | Q(participants__user=user)
+            | Q(assignments__department_id__in=dept_ids)
+        ).distinct()
+
     def _annotated_tickets(self, user):
-        """Annotate tickets with their latest message details."""
-        last_msg = TicketMessage.objects.filter(
-            ticket_id=OuterRef("pk")
-        ).order_by("-timestamp")
+        """Tickets with last message info annotated."""
+        last_msg = TicketMessage.objects.filter(ticket_id=OuterRef("pk")).order_by("-timestamp")
         return (
-            Ticket.objects
-            .filter(created_by=user)
+            self._base_tickets(user)
             .annotate(
                 last_message_at=Subquery(last_msg.values("timestamp")[:1]),
                 last_message_body=Subquery(last_msg.values("body")[:1]),
                 last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
                 last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
-                last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]), last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
+                last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
+                last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
             )
         )
 
     def _completed_tickets(self, qs):
-        """Return tickets with status CLOSED.""" 
-        return qs.filter(
-            status=Ticket.Status.CLOSED
-        ).order_by("-updated_at")
+        """Tickets that are completed/closed."""
+        return qs.filter(status=Ticket.Status.CLOSED).order_by("-updated_at")
 
     def _overdue_tickets(self, qs):
-        """Return tickets that are overdue."""
+        """Tickets that are overdue for a response."""
         cutoff = timezone.now() - timedelta(days=7)
         return qs.filter(
             status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING],
@@ -58,7 +70,7 @@ class HomeView(View):
         ).order_by("-last_message_at")
 
     def _active_tickets(self, qs, overdue):
-        """Return tickets that are open or pending and not overdue."""
+        """Tickets that are active and not overdue."""
         return qs.filter(
             status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING],
         ).exclude(

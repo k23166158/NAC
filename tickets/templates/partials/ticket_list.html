@@ -1,12 +1,16 @@
 <div class="ticket-list">
   {% for t in tickets %}
-    <details class="ticket-row">
+    <details
+      class="ticket-row"
+      id="ticket-{{ t.uuid }}"
+      {% if request.GET.open|default:'' == t.uuid|stringformat:"s" %}open{% endif %}
+    >
       <summary class="ticket-bar {% if t.status == 'pending' %}ticket-bar-overdue{% endif %}">
         <span class="chev" aria-hidden="true"></span>
 
         <div class="ticket-bar-main">
           <div class="ticket-bar-left">
-            <span class="ticket-id">#{{ t.id }}</span>
+            <span class="ticket-id">#{{ t.uuid }}</span>
             <span class="ticket-title">{{ t.title }}</span>
           </div>
 
@@ -18,9 +22,13 @@
             {% else %}
                 <span class="pill status status-active">OPEN</span>
             {% endif %}
-            
+
             <span class="ticket-date">
-              Last message {{ t.last_message_at|date:"M j, Y" }}
+              {% if t.last_message_at %}
+                Last message {{ t.last_message_at|date:"M j, Y" }}
+              {% else %}
+                No messages yet
+              {% endif %}
             </span>
           </div>
         </div>
@@ -31,7 +39,48 @@
           <span class="pill">👤 {{ t.created_by.first_name }} {{ t.created_by.last_name }}</span>
           <span class="pill">🗓 {{ t.created_at|date:"M j, Y" }}</span>
           <span class="pill">⏱ {{ t.updated_at|date:"M j, Y" }}</span>
+
+          {% if user.is_staff %}
+            <form class="forward-form" method="post" action="{% url 'ticket_forward' t.uuid %}">
+              {% csrf_token %}
+
+              <!-- preserve which tab user was on -->
+              <input type="hidden" name="return_tab" class="return-tab" value="active">
+
+              <div class="forward-control">
+                <span class="forward-ico" aria-hidden="true">↪</span>
+                <input
+                  class="forward-input"
+                  type="email"
+                  name="email"
+                  placeholder="Forward to staff email…"
+                  required
+                  autocomplete="email"
+                >
+              </div>
+              <button class="forward-btn" type="submit">Forward</button>
+            </form>
+          {% endif %}
         </div>
+
+        {# ✅ POPUP GOES EXACTLY HERE (after meta, before thread) #}
+        {% if request.GET.tid|default:'' == t.uuid|stringformat:"s" and request.GET.fwd|default:'' %}
+          <div class="fwd-pop {% if request.GET.fwd|default:'' == 'ok' %}fwd-pop--ok{% else %}fwd-pop--err{% endif %}">
+            <span class="fwd-pop-ico" aria-hidden="true">
+              {% if request.GET.fwd == 'ok' %}✓{% else %}!{% endif %}
+            </span>
+
+            <div class="fwd-pop-text">
+              {% if request.GET.fwd|default:'' == 'ok' %}
+                Forwarded to <strong>{{ request.GET.email|default:'' }}</strong>.
+              {% else %}
+                {{ request.GET.msg|default:"Email failed to forward." }}
+              {% endif %}
+            </div>
+
+            <button type="button" class="fwd-pop-x" aria-label="Close">×</button>
+          </div>
+        {% endif %}
 
         {% if t.last_message_at %}
           <div class="thread">
@@ -55,7 +104,7 @@
         {% endif %}
 
         <div class="ticket-actions">
-          <a class="ticket-open-btn" href="#">Open full ticket</a>
+          <a class="ticket-open-btn" href="{% url 'ticket_thread' t.uuid %}">Open full ticket</a>
         </div>
       </div>
     </details>
