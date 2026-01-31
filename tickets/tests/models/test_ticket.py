@@ -1,5 +1,8 @@
+import uuid as uuid_module
+
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+
 from tickets.models import Ticket
 
 User = get_user_model()
@@ -30,6 +33,8 @@ class TicketModelTests(TestCase):
         self.assertEqual(self.ticket.title, "Test Server Issue")
         self.assertEqual(self.ticket.created_by, self.user)
         self.assertEqual(self.ticket.status, Ticket.Status.OPEN)
+        self.assertIsNotNone(self.ticket.uuid)
+        self.assertIsInstance(self.ticket.uuid, uuid_module.UUID)
 
     def test_str_representation(self):
         """Test the __str__ method matches the format '#{id} - {title}'."""
@@ -61,3 +66,15 @@ class TicketModelTests(TestCase):
         
         self.assertIn(self.ticket, user_tickets)
         self.assertEqual(user_tickets.count(), 1)
+
+    def test_ticket_uuid_is_unique(self):
+        """Test that each ticket gets a unique uuid."""
+        another_ticket = Ticket.objects.create(
+            title="Another Ticket",
+            created_by=self.user,
+        )
+        self.assertNotEqual(self.ticket.uuid, another_ticket.uuid)
+        self.assertEqual(
+            Ticket.objects.filter(uuid=self.ticket.uuid).count(),
+            1,
+        )

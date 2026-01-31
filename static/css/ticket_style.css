@@ -1,0 +1,236 @@
+.tickets-wrap {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+.back-link-container {
+    margin-bottom: 20px;
+}
+
+.ticket-link {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--blue);
+    text-decoration: none;
+    background: rgb(235, 234, 234);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    transition: background 0.2s, color 0.2s;
+}
+
+.ticket-link:hover {
+    background: var(--blue);
+    color: #fff;
+}
+
+.ticket-header-card {
+    margin-bottom: 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px 12px;
+    anchor-name: --ticket-header-card;
+}
+
+.ticket-header-card .col-body,
+.reply-container .col-body {
+    min-height: 0;
+}
+.reply-container {
+    margin-bottom: 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+}
+.col-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.col-head-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ticket-meta {
+    margin-bottom: 4px;
+    gap: 6px;
+}
+
+.tickets-title {
+    margin: 0;
+    font-size: 18px; /* optional, closer to message scale */
+}
+
+.pill {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.section-title {
+    font-size: 16px;
+    margin-bottom: 10px;
+    margin-left: 20px;
+}
+.ticket-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 12px 12px 12px; /* Top, Right, Bottom, Left */
+    margin-bottom: 10px;
+    margin-left: 20px;
+}
+.ticket-card .deleted-message {
+    background: #f7f7f7;
+    border: 1px dashed var(--border);
+    color: #888;
+    font-style: italic;
+    padding: 6px 8px;
+    border-radius: 6px;
+    opacity: 0.7;
+}
+
+.ticket-card:has(.deleted-message) {
+    border-left: none;
+}
+
+.reply {
+    anchor-name: --reply;
+    anchor-scope: --reply;
+}
+.reply::after {
+    content: "";
+    border: 2px solid grey;
+    border-right-color: transparent;
+    border-top-color: transparent;
+    border-radius: 0 0 0 10px;
+    width: 15px; 
+    position: absolute;
+    top: anchor(bottom --ticket-header-card);
+    left: anchor(left --ticket-header-card);
+    bottom: anchor(center --reply);
+    right: anchor(left --reply);
+}
+.reply:has(.deleted-message)::after {
+    display: none;
+}
+
+.my-message {
+    border-left: 4px solid var(--blue);
+}
+.sender-name {
+    font-size: 13px;
+}
+.timestamp {
+    font-size: 12px;
+    color: var(--muted);
+    float: right;
+}
+.message-body {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.45;
+}
+.ticket-header-card .message-body {
+    margin-top: 3px;
+}
+
+
+.reply-textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+.reply-actions {
+    margin-top: 10px;
+    text-align: right;
+}
+
+.btn-submit {
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 800;
+    cursor: pointer;
+}
+.ticket-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+.btn-close-ticket {
+    background: #dc3545; /* Red */
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-close-ticket:hover {
+    background: #b02a37;
+}
+
+.ticket-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px; 
+}
+
+.meta-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.timestamp {
+    font-size: 0.85rem;
+    color: #888;
+    float: none; /* Remove float as you are using flexbox in meta-right */
+}
+
+.message-actions {
+    display: flex;
+    gap: 5px;
+}
+
+/* .edit-btn::before {
+    content: "✏️";
+}
+
+.delete-btn::before {
+    content: "🗑";
+} */
+ 
+.btn-tiny {
+    font-size: 0.9rem;
+    text-decoration: none;
+    padding: 3px 6px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    color: #555;
+    transition: all 0.2s ease;
+}
+.btn-tiny:hover {
+    background-color: #e0e0e0;
+    color: #333;
+    border-color: #bbb;
+}
+.delete-btn:hover {
+    background-color: #ffe6e6;
+    color: #d9534f;
+    border-color: #d9534f;
+}
