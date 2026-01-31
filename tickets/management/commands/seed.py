@@ -1,222 +1,223 @@
-"""
-Management command to seed the database with demo data.
-
-Existing records are left untouched—if a create fails (e.g., due
-to duplicates) generation continues.
-"""
-
-from random import choice, randint
+import random
 from faker import Faker
+from random import randint, choice
 from django.core.management.base import BaseCommand
-from django.contrib.auth import get_user_model
+from tickets.models import *
 
-from tickets.models import Department, Ticket, TicketMessage, TicketAssigned
-
-
-USER_FIXTURES = [
-    {
-        "username": "admin_kcl",
-        "email": "admin.kcl@example.org",
-        "first_name": "Amina",
-        "last_name": "Khan",
-        "password": "AdminPass123!",
-        "superuser": True,
-    },
-    {
-        "username": "staff_support",
-        "email": "support.staff@example.org",
-        "first_name": "James",
-        "last_name": "Owen",
-        "password": "StaffPass123!",
-        "staff": True,
-    },
-    {
-        "username": "staff_finance",
-        "email": "finance.staff@example.org",
-        "first_name": "Sarah",
-        "last_name": "Patel",
-        "password": "StaffPass456!",
-        "staff": True,
-    },
-    {
-        "username": "student_ali",
-        "email": "ali.student@example.org",
-        "first_name": "Ali",
-        "last_name": "Hassan",
-        "password": "StudentPass123!",
-    },
-    {
-        "username": "student_maya",
-        "email": "maya.student@example.org",
-        "first_name": "Maya",
-        "last_name": "Singh",
-        "password": "StudentPass456!",
-    },
-    {
-        "username": "student_zoe",
-        "email": "zoe.student@example.org",
-        "first_name": "Zoe",
-        "last_name": "Williams",
-        "password": "StudentPass789!",
-    },
+user_fixtures = [
+    {'username': '@johndoe', 'email': 'john.doe@example.org', 'first_name': 'John', 'last_name': 'Doe', 'superuser' : True, 'staff': True},
+    {'username': '@janedoe', 'email': 'jane.doe@example.org', 'first_name': 'Jane', 'last_name': 'Doe', 'staff': True},
+    {'username': '@charlie', 'email': 'charlie.johnson@example.org', 'first_name': 'Charlie', 'last_name': 'Johnson'},
 ]
 
-DEPARTMENT_FIXTURES = [
-    "NMES",
-    "Finance",
-    "HR",
-    "Support",
-    "Art and Humanities",
-    "Classics",
+department_fixtures = [
+    {'name': 'Informatics', 'description': 'Handles all issues related to Informatics', 'created_by': '@janedoe'},
 ]
-
 
 class Command(BaseCommand):
     """Build automation command to seed the database with data."""
 
-    TICKET_COUNT = 40
-    MAX_MESSAGES_PER_TICKET = 4
-    help = "Seeds the database with sample data"
+    USER_COUNT = 100
+    DEPARTMENT_COUNT = 30
+    TICKET_COUNT = 200
+    DEFAULT_PASSWORD = 'Password123'
 
     def __init__(self, *args, **kwargs):
         """Initialize the command with a locale-specific Faker instance."""
         super().__init__(*args, **kwargs)
-        self.faker = Faker("en_GB")
-        self.User = get_user_model()
+        self.faker = Faker('en_GB')
+        self.faker.seed_instance(1234)
+        random.seed(1234)
 
     def handle(self, *args, **options):
-        """Django entrypoint for the command."""
+        """
+        Django entrypoint for the command.
+
+        Runs the full seeding workflow and stores the data for any
+        post-processing or debugging (not required for operation).
+        """
+
         self.create_users()
-        self.users = list(self.User.objects.all())
         self.create_departments()
-        self.departments = list(Department.objects.all())
+        self.assign_users_to_departments()
         self.create_tickets()
-        self.tickets = list(Ticket.objects.all())
-        self.create_messages()
-        self.create_assignments()
-        self.stdout.write(self.style.SUCCESS("Seeding complete."))
-
+        self.assign_tickets_to_departments()
+        self.create_ticket_messages()
+    
     def create_users(self):
-        """Attempt to create each predefined fixture user."""
-        for data in USER_FIXTURES:
-            self.try_create_user(data)
+        """Create users in the database."""
+        print("Creating users...")
+        self.create_known_users()
+        self.create_random_staff_users()
+        self.create_random_users()
+        print(f"{User.objects.count()} Users created.")
 
-    def try_create_user(self, data):
-        """Attempt to create a user; ignore errors (e.g., duplicates)."""
+    def create_known_users(self):
+        """Create users from predefined fixtures."""
+        for fixture in user_fixtures: 
+            User.objects.create_user(
+                username=fixture['username'], email=fixture['email'], password=self.DEFAULT_PASSWORD,
+                first_name=fixture['first_name'], last_name=fixture['last_name'],
+                is_superuser=fixture.get('superuser', False), is_staff=fixture.get('staff', False)
+            )
+
+    def create_random_staff_users(self):
+        """Create random staff users using Faker library."""
+
+        for _ in range((self.USER_COUNT - len(user_fixtures)) // 2):
+            first_name = self.faker.first_name()
+            last_name = self.faker.last_name()
+            username = f"@{first_name.lower()}{last_name.lower()}{randint(1, 9999)}"
+            email = f"{first_name.lower()}.{last_name.lower()}{randint(1, 9999)}@example.org"
+
+            self.try_create_user(
+                username=username, email=email, password=self.DEFAULT_PASSWORD, 
+                first_name=first_name, last_name=last_name, is_staff=True,
+            )
+
+    def create_random_users(self):
+        """Create random users using Faker library."""
+
+        for _ in range((self.USER_COUNT - len(user_fixtures)) // 2):
+            first_name = self.faker.first_name()
+            last_name = self.faker.last_name()
+            username = f"@{first_name.lower()}{last_name.lower()}{randint(1, 9999)}"
+            email = f"{first_name.lower()}.{last_name.lower()}{randint(1, 9999)}@example.org"
+
+            self.try_create_user(
+                username=username, email=email, password=self.DEFAULT_PASSWORD,
+                first_name=first_name, last_name=last_name,
+            )
+
+    def try_create_user(self, **kwargs):
+        """Attempt to create a user, handling any errors."""
         try:
-            self.create_user(data)
+            User.objects.create_user(**kwargs)
         except Exception:
             pass
-
-    def create_user(self, data):
-        """Create a user with the supplied password and access level."""
-        if data.get("superuser"):
-            self.create_superuser(data)
-            return
-        user = self.create_regular_user(data)
-        self.apply_staff_flag(user, data)
-
-    def create_superuser(self, data):
-        """Create a superuser from fixture data."""
-        self.User.objects.create_superuser(
-            username=data["username"],
-            email=data["email"],
-            password=data["password"],
-            first_name=data["first_name"],
-            last_name=data["last_name"],
-        )
-
-    def create_regular_user(self, data):
-        """Create a regular user from fixture data."""
-        return self.User.objects.create_user(
-            username=data["username"],
-            email=data["email"],
-            password=data["password"],
-            first_name=data["first_name"],
-            last_name=data["last_name"],
-            bio=data.get("bio", ""),
-        )
-
-    def apply_staff_flag(self, user, data):
-        """Apply staff flag if requested in fixture data."""
-        if data.get("staff"):
-            user.is_staff = True
-            user.save()
 
     def create_departments(self):
-        """Create standard departments (created_by picked from existing users)."""
-        creator = self.get_first_user()
-        if not creator:
-            return
-        for name in DEPARTMENT_FIXTURES:
-            self.try_create_department(name, creator)
+        """Create departments in the database."""
+        print("Creating departments...")
+        self.create_known_departments()
+        self.create_random_departments()
+        print(f"{Department.objects.count()} Departments created.")
 
-    def try_create_department(self, name, created_by):
-        """Attempt to create a department; ignore errors (e.g., duplicates)."""
+    def create_known_departments(self):
+        """Create departments from predefined fixtures."""
+        for fixture in department_fixtures:
+            creator = User.objects.get(username=fixture['created_by'])
+            Department.objects.create(
+                name=fixture['name'],
+                description=fixture.get('description', ''),
+                created_by=creator
+            )
+
+    def create_random_departments(self):
+        """Create random departments using Faker library."""
+        staff = list(User.objects.filter(is_staff=True))
+        for _ in range(self.DEPARTMENT_COUNT - len(department_fixtures)):
+            name = self.faker.unique.company()
+            description = self.faker.text(max_nb_chars=200)
+            created_by = choice(staff)
+
+            Department.objects.create(name=name, description=description, created_by=created_by)
+
+    def try_create_department(self, **kwargs):
+        """Attempt to create a department, handling any errors."""
         try:
-            Department.objects.get_or_create(name=name, defaults={"created_by": created_by})
+            Department.objects.create(**kwargs)
         except Exception:
             pass
+
+    def assign_users_to_departments(self):
+        """Randomly assign users to departments."""
+        print("Assigning users to departments...")
+        users = list(User.objects.filter(is_staff=True))
+        departments = list(Department.objects.all())
+        
+        for department in departments:
+            UserDepartments.objects.get_or_create(user=department.created_by, department=department)
+            num_assignments = randint(5, 10)
+            assigned_users = random.sample(users, num_assignments)
+            self.add_users_to_department(assigned_users, department)
+        print("User assignments complete.")
+
+    def add_users_to_department(self, users, department):
+        """Assign multiple users to a department."""
+        for user in users:
+            UserDepartments.objects.get_or_create(user=user, department=department)
 
     def create_tickets(self):
-        """Create random tickets up to TICKET_COUNT."""
-        if not self.users:
-            return
-        while Ticket.objects.count() < self.TICKET_COUNT:
-            self.try_create_ticket(self.generate_ticket_data())
+        """Create tickets in the database."""
+        print("Creating tickets...")
+        users = list(User.objects.all())
+        for _ in range(self.TICKET_COUNT):
+            title = self.faker.sentence(nb_words=6)
+            status = choice(['open', 'closed'])
+            created_by = choice(users)
+            Ticket.objects.create(title=title, status=status, created_by=created_by)
 
-    def generate_ticket_data(self):
-        """Generate random ticket fields."""
-        return {
-            "title": self.faker.sentence(nb_words=6).rstrip("."),
-            "status": choice([Ticket.Status.OPEN, Ticket.Status.PENDING, Ticket.Status.CLOSED]),
-            "created_by": choice(self.users),
-        }
+        print(f"{Ticket.objects.count()} Tickets created.")
 
-    def try_create_ticket(self, data):
-        """Attempt to create a ticket; ignore errors."""
-        try:
-            Ticket.objects.create(**data)
-        except Exception:
-            pass
+    def assign_tickets_to_departments(self):
+        """Randomly assign tickets to departments."""
+        print("Assigning tickets to departments...")
 
-    def create_messages(self):
-        """Create between 1 and MAX_MESSAGES_PER_TICKET messages per ticket."""
-        if not Ticket.objects.exists() or not self.users:
-            return
-        for ticket in Ticket.objects.all():
-            self.create_messages_for_ticket(ticket)
+        tickets = list(Ticket.objects.all())
+        departments = list(Department.objects.all())
 
-    def create_messages_for_ticket(self, ticket):
-        """Create messages for a ticket."""
-        for _ in range(randint(1, self.MAX_MESSAGES_PER_TICKET)):
-            self.try_create_message(ticket, choice(self.users))
+        for ticket in tickets:
+            num_assignments = randint(1, 3)
+            available_departments = random.sample(departments, num_assignments)
+            self.add_tickets_to_department(ticket, available_departments)
 
-    def try_create_message(self, ticket, sender):
-        """Attempt to create a TicketMessage; ignore errors."""
-        try:
-            TicketMessage.objects.create(
+        print("Ticket assignments complete.")
+
+    def add_tickets_to_department(self, ticket, departments):
+        """Assign multiple tickets to multiple departments."""
+        for department in departments:
+            TicketAssigned.objects.get_or_create(ticket=ticket, department=department)
+
+    def create_ticket_messages(self):
+        """Create ticket messages in the database."""
+        print("Creating ticket messages...")
+        tickets = list(Ticket.objects.all())
+        
+        for ticket in tickets:
+            TicketMessage.objects.get_or_create(
                 ticket=ticket,
                 body=self.faker.paragraph(nb_sentences=3),
-                sender=sender,
+                sender=ticket.created_by,
             )
-        except Exception:
-            pass
+            self.create_ticket_response_messages(ticket)
 
-    def create_assignments(self):
-        """Assign each ticket to a random department (one assignment per ticket)."""
-        if not self.departments:
-            return
-        for ticket in Ticket.objects.all():
-            self.try_assign_ticket(ticket, choice(self.departments))
+        print("Ticket messages created.")
+    
+    def create_ticket_response_messages(self, ticket):
+        """Create initial response messages from staff for a ticket."""
 
-    def try_assign_ticket(self, ticket, department):
-        """Attempt to create a TicketAssigned row; ignore errors (unique_together)."""
-        try:
-            TicketAssigned.objects.get_or_create(ticket=ticket, department=department)
-        except Exception:
-            pass
+        num_messages = randint(4, 6)
+        for _ in range(num_messages):
 
-    def get_first_user(self):
-        """Return the first available user, or None if no users exist."""
-        return self.User.objects.first()
+            available_senders = list(User.objects.filter(
+                is_staff=True, 
+                user__department__assigned_tickets__ticket=ticket
+            ).distinct())
+
+            self.create_staff_ticket_response_messages(ticket, available_senders)
+            self.random_create_user_ticket_response_messages(ticket)
+
+    def create_staff_ticket_response_messages(self, ticket, available_senders):
+        """Create response messages from staff for a ticket."""
+        if available_senders:
+            sender = choice(available_senders)
+            body = self.faker.paragraph(nb_sentences=3)
+            TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
+    
+    def random_create_user_ticket_response_messages(self, ticket):
+        """Randomly create response messages from users for a ticket."""
+        if randint(0, 1):
+            sender = ticket.created_by
+            body = self.faker.paragraph(nb_sentences=3)
+            TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
