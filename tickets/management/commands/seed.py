@@ -78,7 +78,7 @@ class Command(BaseCommand):
             first_name = self.faker.first_name()
             last_name = self.faker.last_name()
             username = f"@{first_name.lower()}{last_name.lower()}{randint(1, 9999)}"
-            email = f"{first_name.lower()}.{last_name.lower()}{randint(1, 9999)}@example.org"
+            email = f"{username}@example.org"
 
             self.try_create_user(
                 username=username, email=email, password=self.DEFAULT_PASSWORD,
