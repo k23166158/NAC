@@ -1,4 +1,5 @@
 # tickets/tests/views/test_forward_ticket.py
+from unittest.mock import patch
 from urllib.parse import unquote
 
 from django.test import TestCase, Client
@@ -7,6 +8,9 @@ from django.contrib.auth import get_user_model
 
 from tickets.models import Ticket
 from tickets.models.ticket_participant import TicketParticipant
+from tickets.views.forward_ticket import _err, _err, _ticket_redirect
+
+from types import SimpleNamespace
 
 User = get_user_model()
 
@@ -34,7 +38,7 @@ class ForwardTicketViewTests(TestCase):
         self.staff2 = getattr(self, 'staff2') if hasattr(self, 'staff2') else User.objects.get(username='teacher2')
         self.ticket = Ticket.objects.create(title="Forward me", created_by=self.student,
                                             status=getattr(Ticket.Status, "OPEN", "open"))
-        self.url = reverse(self.forward_url_name, args=[self.ticket.id])
+        self.url = reverse(self.forward_url_name, args=[self.ticket.uuid])
 
     # ---------- helpers ----------
 
@@ -85,8 +89,8 @@ class ForwardTicketViewTests(TestCase):
         """Missing email parameter should redirect with an error status."""
         resp = self.post(self.staff1, return_tab="active")
         self.assert_loc_has(
-            resp, "/?tab=active", f"open={self.ticket.id}",
-            "fwd=err", f"tid={self.ticket.id}", "msg="
+            resp, "/?tab=active", f"open={self.ticket.uuid}",
+            "fwd=err", f"tid={self.ticket.uuid}", "msg="
         )
 
     def test_email_not_found_goes_err_with_msg(self):
@@ -110,7 +114,7 @@ class ForwardTicketViewTests(TestCase):
     def test_success_creates_participant_and_ok_redirect(self):
         """Successful forward should create a TicketParticipant and redirect with ok."""
         resp = self.post(self.staff1, email=self.staff2.email, return_tab="active")
-        self.assert_loc_has(resp, "/?tab=active", "fwd=ok", f"tid={self.ticket.id}", "email=")
+        self.assert_loc_has(resp, "/?tab=active", "fwd=ok", f"tid={self.ticket.uuid}", "email=")
         self.assertTrue(TicketParticipant.objects.filter(ticket=self.ticket, user=self.staff2).exists())
         self.assertIn(self.staff2.email, self.decoded(resp))
 
@@ -132,3 +136,33 @@ class ForwardTicketViewTests(TestCase):
         """If no return_tab is provided, redirect defaults to the 'active' tab."""
         resp = self.post(self.staff1, email=self.staff2.email)
         self.assert_loc_has(resp, "/?tab=active", "fwd=ok")
+
+    def test_ticket_not_found_returns_404(self):
+        """Forwarding a non-existent ticket UUID should return 404."""
+        fake_url = reverse(self.forward_url_name, args=["00000000-0000-0000-0000-000000000000"])
+        self.login(self.staff1)
+        resp = self.client.post(fake_url, data={"email": self.staff2.email})
+        self.assertEqual(resp.status_code, 404)
+
+    def test_ticket_redirect_with_no_params(self):
+        """_ticket_redirect should redirect even when no params are given."""
+        resp = _ticket_redirect("active", self.ticket.uuid)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(f"/?tab=active&open={self.ticket.uuid}", resp["Location"])
+    
+    def test_err_falls_back_when_no_email_error(self):
+        """_err should fall back to default message if no email error exists."""
+        form = SimpleNamespace(errors={})
+        self.assertEqual(_err(form), "Email failed to forward.")
+
+    @patch("tickets.views.forward_ticket.TicketParticipant.objects.get_or_create")
+    @patch("tickets.views.forward_ticket._has_field", return_value=False)
+    def test_defaults_empty_when_no_added_by_field(self, _has_field_mock, get_or_create_mock):
+        """If TicketParticipant has no added_by field, defaults should be empty."""
+        self.client.force_login(self.staff1)
+        self.client.post(self.url, data={"email": self.staff2.email, "return_tab": "active"})
+
+        self.assertTrue(get_or_create_mock.called)
+        kwargs = get_or_create_mock.call_args.kwargs
+        self.assertEqual(kwargs.get("defaults"), {})
+    

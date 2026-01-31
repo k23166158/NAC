@@ -1,7 +1,12 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
-from tickets.forms.forward_ticket import ForwardTicketForm  # adjust path if needed
+from tickets.forms.forward_ticket import ForwardTicketForm
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from tickets.views.forward_ticket import _ticket_redirect, _err, _has_field
+
 
 User = get_user_model()
 
@@ -74,3 +79,21 @@ class ForwardTicketFormTests(TestCase):
 
         u = form.get_user()
         self.assertEqual(u.id, self.staff.id)
+
+def test_ticket_redirect_without_params(self):
+    """Redirect helper should work without extra query params."""
+    resp = _ticket_redirect("active", "abc-123")
+    self.assertEqual(resp.status_code, 302)
+    self.assertIn("/?tab=active&open=abc-123", resp["Location"])
+
+def test_err_returns_default_message(self):
+    """_err should return default message when no email error exists."""
+    form = SimpleNamespace(errors={})
+    self.assertEqual(_err(form), "Email failed to forward.")
+
+def test_has_field_false_branch(self):
+    """_has_field should return False when field does not exist."""
+    Dummy = SimpleNamespace(
+        _meta=SimpleNamespace(fields=[SimpleNamespace(name="foo")])
+    )
+    self.assertFalse(_has_field(Dummy, "missing"))

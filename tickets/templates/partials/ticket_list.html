@@ -2,15 +2,15 @@
   {% for t in tickets %}
     <details
       class="ticket-row"
-      id="ticket-{{ t.id }}"
-      {% if request.GET.open|default:'' == t.id|stringformat:"s" %}open{% endif %}
+      id="ticket-{{ t.uuid }}"
+      {% if request.GET.open|default:'' == t.uuid|stringformat:"s" %}open{% endif %}
     >
       <summary class="ticket-bar {% if t.status == 'pending' %}ticket-bar-overdue{% endif %}">
         <span class="chev" aria-hidden="true"></span>
 
         <div class="ticket-bar-main">
           <div class="ticket-bar-left">
-            <span class="ticket-id">#{{ t.id }}</span>
+            <span class="ticket-id">#{{ t.uuid }}</span>
             <span class="ticket-title">{{ t.title }}</span>
           </div>
 
@@ -41,7 +41,7 @@
           <span class="pill">⏱ {{ t.updated_at|date:"M j, Y" }}</span>
 
           {% if user.is_staff %}
-            <form class="forward-form" method="post" action="{% url 'ticket_forward' t.id %}">
+            <form class="forward-form" method="post" action="{% url 'ticket_forward' t.uuid %}">
               {% csrf_token %}
 
               <!-- preserve which tab user was on -->
@@ -64,7 +64,7 @@
         </div>
 
         {# ✅ POPUP GOES EXACTLY HERE (after meta, before thread) #}
-        {% if request.GET.tid|default:'' == t.id|stringformat:"s" and request.GET.fwd|default:'' %}
+        {% if request.GET.tid|default:'' == t.uuid|stringformat:"s" and request.GET.fwd|default:'' %}
           <div class="fwd-pop {% if request.GET.fwd|default:'' == 'ok' %}fwd-pop--ok{% else %}fwd-pop--err{% endif %}">
             <span class="fwd-pop-ico" aria-hidden="true">
               {% if request.GET.fwd == 'ok' %}✓{% else %}!{% endif %}
