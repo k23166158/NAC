@@ -16,9 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from tickets.views import HomeView, CustomLoginView, DepartmentView, CreateDepartmentView
+from tickets.views import HomeView, CustomLoginView, DepartmentView, CreateDepartmentView, TicketThreadView, ForwardTicketView
 from django.contrib.auth.views import LogoutView
-from tickets.views.ticket_thread import TicketThreadView
 from tickets.views import SignUpView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -32,4 +31,5 @@ urlpatterns = [
     path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
     path('signup/', SignUpView, name='signup'),
     path('departments/create/', CreateDepartmentView.as_view(), name='create_department'),
+    path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
 ]

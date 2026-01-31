@@ -7,7 +7,9 @@ from tickets.models import *
 user_fixtures = [
     {'username': 'johndoe', 'email': 'johndoe@example.org', 'first_name': 'John', 'last_name': 'Doe', 'superuser' : True, 'staff': True},
     {'username': 'janedoe', 'email': 'janedoe@example.org', 'first_name': 'Jane', 'last_name': 'Doe', 'staff': True},
+    {'username': 'janetdoe', 'email': 'janetdoe@example.org', 'first_name': 'Janet', 'last_name': 'Doe', 'staff': True},
     {'username': 'charlie', 'email': 'charliejohnson@example.org', 'first_name': 'Charlie', 'last_name': 'Johnson'},
+    {'username': 'bo', 'email': 'bo@example.org', 'first_name': 'Bo', 'last_name': 'Smith'},
 ]
 
 department_fixtures = [
