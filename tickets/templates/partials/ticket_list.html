@@ -3,7 +3,7 @@
     <details
       class="ticket-row"
       id="ticket-{{ t.id }}"
-      {% if request.GET.open == t.id|stringformat:"s" %}open{% endif %}
+      {% if request.GET.open|default:'' == t.id|stringformat:"s" %}open{% endif %}
     >
       <summary class="ticket-bar {% if t.status == 'pending' %}ticket-bar-overdue{% endif %}">
         <span class="chev" aria-hidden="true"></span>
@@ -64,15 +64,15 @@
         </div>
 
         {# ✅ POPUP GOES EXACTLY HERE (after meta, before thread) #}
-        {% if request.GET.tid == t.id|stringformat:"s" and request.GET.fwd %}
-          <div class="fwd-pop {% if request.GET.fwd == 'ok' %}fwd-pop--ok{% else %}fwd-pop--err{% endif %}">
+        {% if request.GET.tid|default:'' == t.id|stringformat:"s" and request.GET.fwd|default:'' %}
+          <div class="fwd-pop {% if request.GET.fwd|default:'' == 'ok' %}fwd-pop--ok{% else %}fwd-pop--err{% endif %}">
             <span class="fwd-pop-ico" aria-hidden="true">
               {% if request.GET.fwd == 'ok' %}✓{% else %}!{% endif %}
             </span>
 
             <div class="fwd-pop-text">
-              {% if request.GET.fwd == 'ok' %}
-                Forwarded to <strong>{{ request.GET.email }}</strong>.
+              {% if request.GET.fwd|default:'' == 'ok' %}
+                Forwarded to <strong>{{ request.GET.email|default:'' }}</strong>.
               {% else %}
                 {{ request.GET.msg|default:"Email failed to forward." }}
               {% endif %}
