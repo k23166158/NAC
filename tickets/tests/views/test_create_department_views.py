@@ -64,7 +64,7 @@ class CreateDepartmentViewTests(TestCase):
             'description': 'Information Technology Support'
         }
 
-        with patch('tickets.views.create_department_views.redirect') as mock_redirect:
+        with patch('tickets.views.department_create_view.redirect') as mock_redirect:
             from django.http import HttpResponseRedirect
             mock_redirect.return_value = HttpResponseRedirect('/departments/')
             
@@ -120,14 +120,14 @@ class CreateDepartmentViewTests(TestCase):
 
     def test_test_func_returns_true_for_staff(self):
         """Test that test_func returns True for staff users."""
-        from tickets.views.create_department_views import CreateDepartmentView
+        from tickets.views.department_create_view import CreateDepartmentView
         view = CreateDepartmentView()
         view.request = type('Request', (), {'user': self.staff_user})()
         self.assertTrue(view.test_func())
 
     def test_test_func_returns_false_for_non_staff(self):
         """Test that test_func returns False for non-staff users."""
-        from tickets.views.create_department_views import CreateDepartmentView
+        from tickets.views.department_create_view import CreateDepartmentView
         view = CreateDepartmentView()
         view.request = type('Request', (), {'user': self.regular_user})()
         self.assertFalse(view.test_func())
@@ -150,7 +150,7 @@ class CreateDepartmentViewTests(TestCase):
             'description': 'Human Resources'
         }
 
-        with patch('tickets.views.create_department_views.redirect') as mock_redirect:
+        with patch('tickets.views.department_create_view.redirect') as mock_redirect:
             from django.http import HttpResponseRedirect
             mock_redirect.return_value = HttpResponseRedirect('/departments/')
             
@@ -164,7 +164,7 @@ class CreateDepartmentViewTests(TestCase):
         self.client.force_login(self.staff_user)
         form_data = {'name': 'Finance Department', 'description': 'Finance and Accounting'}
 
-        with patch('tickets.views.create_department_views.redirect') as mock_redirect:
+        with patch('tickets.views.department_create_view.redirect') as mock_redirect:
             from django.http import HttpResponseRedirect
             mock_redirect.return_value = HttpResponseRedirect('/department/finance-department/')
             self.client.post(self.url, data=form_data)
