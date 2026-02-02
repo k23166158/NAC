@@ -16,7 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from tickets.views import HomeView, CustomLoginView, DepartmentView, CreateDepartmentView, TicketThreadView, ForwardTicketView, EditDepartmentView, DeleteDepartmentView
+from tickets.views import (
+    HomeView, CustomLoginView, TicketThreadView, ForwardTicketView,
+    DepartmentView, CreateDepartmentView, DepartmentManageView, EditDepartmentView, DeleteDepartmentView,
+    UserManagementView, ToggleUserStatusView,
+)
 from django.contrib.auth.views import LogoutView
 from tickets.views import SignUpView
 from django.conf import settings
@@ -33,9 +37,11 @@ urlpatterns = [
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
 
     path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
-    path('', HomeView.as_view(), name='department_manage'), # temporary placeholder for department management home
+    path('department/manage/', DepartmentManageView.as_view(), name='department_manage'),
     path('department/create', CreateDepartmentView.as_view(), name='create_department'),
     path('department/edit/<slug:department_slug>/', EditDepartmentView.as_view(), name='edit_department'),
     path('department/delete/<slug:department_slug>/', DeleteDepartmentView.as_view(), name='delete_department'),
     
+    path('manage-users/', UserManagementView.as_view(), name='manage_users'),
+    path('manage-users/<int:pk>/toggle-status/', ToggleUserStatusView.as_view(), name='toggle_user_status'),
 ]

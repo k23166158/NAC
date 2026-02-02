@@ -1,0 +1,238 @@
+.user-management-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #e1e4e8;
+    padding-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #24292e;
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+}
+
+.search-form {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: #fff;
+    transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.search-form:focus-within {
+    border-color: #0366d6;
+    box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.3);
+}
+
+.search-input {
+    border: none;
+    padding: 5px 12px;
+    font-size: 14px;
+    line-height: 20px;
+    outline: none;
+    min-width: 240px;
+    color: #24292e;
+    background-color: transparent;
+}
+
+.search-input:focus {
+    background-color: transparent;
+}
+
+.btn-search {
+    border: none;
+    background: transparent;
+    padding: 5px 10px;
+    cursor: pointer;
+    color: #6a737d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-search:hover {
+    color: #0366d6;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.users-table th,
+.users-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e1e4e8;
+}
+
+.users-table th {
+    background-color: #f6f8fa;
+    font-weight: 600;
+    color: #24292e;
+    font-size: 14px;
+}
+
+.users-table tr:last-child td {
+    border-bottom: none;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #e1e4e8;
+}
+
+.avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #f0f3f6;
+    color: #586069;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid #e1e4e8;
+}
+
+.full-name {
+    font-weight: 600;
+    color: #24292e;
+}
+
+.username {
+    color: #586069;
+    font-size: 14px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    border-radius: 2em;
+    border: 1px solid transparent;
+}
+
+.badge-staff {
+    background-color: #e1ecf4;
+    color: #0366d6;
+    border-color: #0366d6;
+}
+
+.badge-user {
+    background-color: #f0f3f6;
+    color: #586069;
+    border-color: #d1d5da;
+}
+
+.dept-count {
+    font-weight: 600;
+    color: #24292e;
+}
+
+.no-users {
+    text-align: center;
+    color: #586069;
+    margin-top: 2rem;
+}
+
+.badge-inactive {
+    background-color: #ffeef0;
+    color: #cb2431;
+    border-color: #d73a49;
+    margin-left: 4px;
+}
+
+.actions-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.inline-form {
+    display: inline;
+    margin: 0;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 4px;
+    text-decoration: none;
+    border: 1px solid rgba(27, 31, 35, 0.15);
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-profile {
+    color: #24292e;
+    background-color: #fafbfc;
+}
+
+.btn-profile:hover {
+    background-color: #f3f4f6;
+    border-color: rgba(27, 31, 35, 0.15);
+    text-decoration: none;
+}
+
+.btn-deactivate {
+    color: #cb2431;
+    background-color: #fafbfc;
+}
+
+.btn-deactivate:hover {
+    background-color: #cb2431;
+    color: #fff;
+    border-color: #cb2431;
+}
+
+.btn-activate {
+    color: #28a745;
+    background-color: #fafbfc;
+}
+
+.btn-activate:hover {
+    background-color: #28a745;
+    color: #fff;
+    border-color: #28a745;
+}
+
+.btn-action i {
+    font-size: 14px;
+}

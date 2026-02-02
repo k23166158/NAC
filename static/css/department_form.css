@@ -7,6 +7,33 @@
     color: var(--text);
 }
 
+.tickets-header-centered .tickets-title {
+    text-align: center;
+}
+
+.tickets-header-centered .tickets-subtitle {
+    text-align: center;
+}
+
+
+.tickets-wrap.tickets-centered {
+    padding-top: 24px;
+    padding-bottom: 32px;
+}
+
+.tickets-header.tickets-header-centered {
+    margin-bottom: 32px;
+}
+
+.tickets-header-centered .tickets-title {
+    margin-bottom: 8px;
+}
+
+.tickets-header-centered .tickets-subtitle {
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
 .department-form-container {
     max-width: 600px;
     margin: 0 auto;
@@ -14,23 +41,23 @@
 
 .department-form-card {
     background: var(--card);
-    padding: 32px;
+    padding: 40px;
     border-radius: var(--radius);
     box-shadow: 0 2px 8px rgba(27, 31, 36, .08);
     border: 1px solid var(--border);
 }
 
 .department-form-group {
-    margin-bottom: 24px;
+    margin-bottom: 28px;
 }
 
 .department-form-group:last-of-type {
-    margin-bottom: 32px;
+    margin-bottom: 36px;
 }
 
 .department-form-label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     font-weight: 700;
     color: var(--text);
     font-size: 14px;
@@ -88,7 +115,8 @@
     display: flex;
     gap: 12px;
     justify-content: flex-end;
-    padding-top: 8px;
+    padding-top: 4px;
+    margin-top: 0;
 }
 
 .department-form-cancel {
@@ -141,7 +169,7 @@
     color: #991b1b;
     padding: 16px;
     border-radius: 8px;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
 }
 
 .department-form-errors strong {
@@ -189,12 +217,30 @@
 }
 
 @media (max-width: 640px) {
+    .tickets-wrap.tickets-centered {
+        padding-top: 16px;
+        padding-bottom: 24px;
+    }
+
+    .tickets-header.tickets-header-centered {
+        margin-bottom: 24px;
+    }
+
     .department-form-card {
-        padding: 24px;
+        padding: 28px 24px;
+    }
+
+    .department-form-group {
+        margin-bottom: 24px;
+    }
+
+    .department-form-group:last-of-type {
+        margin-bottom: 32px;
     }
 
     .department-form-actions {
         flex-direction: column-reverse;
+        gap: 10px;
     }
 
     .department-form-cancel,

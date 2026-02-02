@@ -140,8 +140,8 @@ class TicketThreadViewTests(TestCase):
         response = self.client.get(self._url())
         self.assertIsNone(response.context["last_user_message_id"])
 
-    def test_context_messages_ordered_by_timestamp(self):
-        """Reply messages in context are ordered by timestamp."""
+    def test_context_messages_ordered_by_created_at(self):
+        """Reply messages in context are ordered by created_at."""
         first = TicketMessage.objects.create(
             ticket=self.ticket,
             sender=self.user,
@@ -191,6 +191,102 @@ class TicketThreadViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(TicketMessage.objects.filter(ticket=self.ticket).count(), 0)
+
+    # --- POST: edit / update message ---
+
+    def test_post_edit_sets_edit_message_in_context(self):
+        """POST action=edit shows the edit form for the selected message."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="Original body",
+        )
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="edit", message_id=str(msg.id)),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["edit_message"], msg)
+        self.assertEqual(
+            TicketMessage.objects.filter(ticket=self.ticket).count(),
+            1,
+        )
+
+    def test_post_update_changes_message_body(self):
+        """POST action=update modifies the existing message body."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="Original body",
+        )
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="update",
+                message_id=str(msg.id),
+                body="Updated body",
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        msg.refresh_from_db()
+        self.assertEqual(msg.body, "Updated body")
+
+    def test_post_update_other_users_message_returns_404(self):
+        """POST action=update on another user's message returns 404."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.other_user,
+            body="Other user body",
+        )
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="update",
+                message_id=str(msg.id),
+                body="Updated body",
+            ),
+        )
+        self.assertEqual(response.status_code, 404)
+        msg.refresh_from_db()
+        self.assertEqual(msg.body, "Other user body")
+
+    def test_post_update_without_body_does_not_change_message(self):
+        """POST action=update without body leaves the message unchanged."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="Original body",
+        )
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="update", message_id=str(msg.id)),
+        )
+        self.assertEqual(response.status_code, 200)
+        msg.refresh_from_db()
+        self.assertEqual(msg.body, "Original body")
+
+    def test_post_edit_other_users_message_returns_404(self):
+        """POST action=edit on another user's message returns 404."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.other_user,
+            body="Other user body",
+        )
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="edit", message_id=str(msg.id)),
+        )
+        self.assertEqual(response.status_code, 404)
 
     # --- POST: delete (hide) message ---
 

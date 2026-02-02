@@ -125,7 +125,7 @@
 .sender-name {
     font-size: 13px;
 }
-.timestamp {
+.created_at, .edited_at {
     font-size: 12px;
     color: var(--muted);
     float: right;
@@ -195,7 +195,7 @@
     align-items: center;
     gap: 10px;
 }
-.timestamp {
+.created_at, .edited_at {
     font-size: 0.85rem;
     color: #888;
     float: none; /* Remove float as you are using flexbox in meta-right */
@@ -206,14 +206,6 @@
     gap: 5px;
 }
 
-/* .edit-btn::before {
-    content: "✏️";
-}
-
-.delete-btn::before {
-    content: "🗑";
-} */
- 
 .btn-tiny {
     font-size: 0.9rem;
     text-decoration: none;
