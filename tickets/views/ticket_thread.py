@@ -92,16 +92,18 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
             )
 
     def post(self, request, *args, **kwargs):
-        """Post request handler to add a new message or delete one."""
+        """Handle POST actions: add, update, delete, or edit a message."""
         self.object = self.get_object()
         action = request.POST.get("action")
+
         if action == "delete":
             self.handle_delete_action(request)
-        elif action == "update":
+            return self.get(request, *args, **kwargs)
+        if action == "update":
             self.handle_update_action(request)
-        elif action == "edit":
-            # No side effects; edit mode handled in get_context_data.
-            pass
-        else:
-            self.handle_add_action(request)
+            return self.get(request, *args, **kwargs)
+        if action == "edit":
+            return self.get(request, *args, **kwargs)
+        
+        self.handle_add_action(request)
         return self.get(request, *args, **kwargs)
