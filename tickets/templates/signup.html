@@ -10,8 +10,8 @@
 <div class="signup-wrapper">
     <div class="signup-card">
 
-        <a href="{% url 'home' %}" style="display:block;text-align:center;">
-            <img src="{% static 'images/logo.png' %}" alt="Logo" style="max-width:64px;">
+        <a href="{% url 'home' %}" class="signup-logo-link">
+            <img src="{% static 'images/logo.png' %}" alt="Logo" class="signup-logo-img">
         </a>
 
         <h1 class="signup-title">Create an account</h1>
@@ -23,7 +23,7 @@
             <div class="profile-upload">
                 <div class="avatar">
                     <span id="avatarText">No photo</span>
-                    <img id="avatarImg" style="display:none;">
+                    <img id="avatarImg">
                 </div>
 
                 <div class="profile-upload-right">
