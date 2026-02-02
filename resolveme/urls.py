@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from tickets.views import HomeView, CustomLoginView, DepartmentView, CreateDepartmentView, TicketThreadView, ForwardTicketView
+from tickets.views import HomeView, CustomLoginView, DepartmentView, CreateDepartmentView, TicketThreadView, ForwardTicketView, EditDepartmentView, DeleteDepartmentView
 from django.contrib.auth.views import LogoutView
 from tickets.views import SignUpView
 from django.conf import settings
@@ -26,10 +26,15 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', HomeView.as_view(), name='home'),
     path('login/', CustomLoginView.as_view(), name='login'),
-    path('logout/', LogoutView.as_view(), name='logout'),
-    path('tickets/<uuid:uuid>/', TicketThreadView.as_view(), name='ticket_thread'),
-    path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
     path('signup/', SignUpView, name='signup'),
-    path('create/department/', CreateDepartmentView.as_view(), name='create_department'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+
+    path('tickets/<uuid:uuid>/', TicketThreadView.as_view(), name='ticket_thread'),
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
+
+    path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
+    path('department/create', CreateDepartmentView.as_view(), name='create_department'),
+    path('department/edit/<slug:department_slug>/', EditDepartmentView.as_view(), name='edit_department'),
+    path('department/delete/<slug:department_slug>/', DeleteDepartmentView.as_view(), name='delete_department'),
+    
 ]
