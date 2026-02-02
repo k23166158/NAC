@@ -918,3 +918,6 @@ input[type="file"] {
 .fwd-pop.is-hidden {
     display: none;
 }
+.logout-form {
+    display: inline;
+}
