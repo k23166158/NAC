@@ -19,8 +19,8 @@
             </div>
             
             <div class="dept-actions">
-                <button class="pill btn-action btn-secondary">Edit</button>
-                <button class="pill btn-action btn-danger">Delete</button>
+                <a class="pill btn-action btn-secondary" href="{% url 'edit_department' department.slug %}">Edit</a>
+                <a class="pill btn-action btn-danger" href="{% url 'delete_department' department.slug %}">Delete</a>
             </div>
         </div>
     </div>
