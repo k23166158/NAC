@@ -30,11 +30,17 @@ class CreateDepartmentForm(forms.ModelForm):
         }
 
     def clean_name(self):
-        """Validate that the department name is unique."""
+        """Validate that the department name is unique and not a reserved word."""
         name = self.cleaned_data.get('name')
         if not name:
             return name
         slug = slugify(name)
+        reserved_slugs = ['create', 'edit', 'delete']
+        if slug in reserved_slugs:
+            raise ValidationError(
+                f'"{name}" is a reserved name and cannot be used for a department. Please choose a different name.'
+            )
+        
         existing = Department.objects.filter(slug=slug).first()
         if existing and existing != self.instance:
             raise ValidationError(
