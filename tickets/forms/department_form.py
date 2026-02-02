@@ -8,7 +8,7 @@ class DepartmentForm(forms.ModelForm):
     """Form for creating a new department."""
     
     class Meta:
-        """Meta configuration for CreateDepartmentForm."""
+        """Meta configuration for DepartmentForm."""
         model = Department
         fields = ['name', 'description']
         widgets = {

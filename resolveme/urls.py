@@ -33,6 +33,7 @@ urlpatterns = [
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
 
     path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
+    path('', HomeView.as_view(), name='department_manage'), # temporary placeholder for department management home
     path('department/create', CreateDepartmentView.as_view(), name='create_department'),
     path('department/edit/<slug:department_slug>/', EditDepartmentView.as_view(), name='edit_department'),
     path('department/delete/<slug:department_slug>/', DeleteDepartmentView.as_view(), name='delete_department'),

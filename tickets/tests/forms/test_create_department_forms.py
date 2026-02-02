@@ -2,14 +2,14 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 
-from tickets.forms import CreateDepartmentForm
+from tickets.forms import DepartmentForm
 from tickets.models import Department
 
 User = get_user_model()
 
 
-class CreateDepartmentFormTests(TestCase):
-    """Tests for the CreateDepartmentForm."""
+class DepartmentFormTests(TestCase):
+    """Tests for the DepartmentForm."""
 
     def setUp(self):
         """Set up a user for creating departments."""
@@ -27,7 +27,7 @@ class CreateDepartmentFormTests(TestCase):
             'name': 'IT Support',
             'description': 'Information Technology Support Department'
         }
-        form = CreateDepartmentForm(data=form_data)
+        form = DepartmentForm(data=form_data)
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data['name'], 'IT Support')
         self.assertEqual(form.cleaned_data['description'], 'Information Technology Support Department')
@@ -38,7 +38,7 @@ class CreateDepartmentFormTests(TestCase):
             'name': 'Finance',
             'description': ''
         }
-        form = CreateDepartmentForm(data=form_data)
+        form = DepartmentForm(data=form_data)
         self.assertTrue(form.is_valid())
 
     def test_clean_name_raises_error_on_duplicate_name(self):
@@ -52,7 +52,7 @@ class CreateDepartmentFormTests(TestCase):
             'name': 'IT Support',
             'description': 'Another IT department'
         }
-        form = CreateDepartmentForm(data=form_data)
+        form = DepartmentForm(data=form_data)
         self.assertFalse(form.is_valid())
         self.assertIn('name', form.errors)
         self.assertIn(
@@ -71,7 +71,7 @@ class CreateDepartmentFormTests(TestCase):
             'name': 'it support',
             'description': 'Lowercase version'
         }
-        form = CreateDepartmentForm(data=form_data)
+        form = DepartmentForm(data=form_data)
         self.assertFalse(form.is_valid())
         self.assertIn('name', form.errors)
 
@@ -86,7 +86,7 @@ class CreateDepartmentFormTests(TestCase):
             'name': 'IT Support',
             'description': 'Updated description'
         }
-        form = CreateDepartmentForm(data=form_data, instance=department)
+        form = DepartmentForm(data=form_data, instance=department)
         self.assertTrue(form.is_valid())
 
     def test_clean_name_handles_empty_name(self):
@@ -95,12 +95,12 @@ class CreateDepartmentFormTests(TestCase):
             'name': '',
             'description': 'Some description'
         }
-        form = CreateDepartmentForm(data=form_data)
+        form = DepartmentForm(data=form_data)
         self.assertFalse(form.is_valid())
         
     def test_clean_name_returns_empty_name_directly(self):
         """Test that clean_name returns early when name is empty/None."""
-        form = CreateDepartmentForm()
+        form = DepartmentForm()
         form.cleaned_data = {'name': ''}
         result = form.clean_name()
         self.assertEqual(result, '')
@@ -121,6 +121,6 @@ class CreateDepartmentFormTests(TestCase):
             'name': 'IT and Support',
             'description': 'Similar name'
         }
-        form = CreateDepartmentForm(data=form_data)
+        form = DepartmentForm(data=form_data)
         self.assertTrue(form.is_valid())
 
