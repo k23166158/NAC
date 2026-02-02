@@ -1,0 +1,171 @@
+/* =========================
+   AUTH PAGES (LOGIN / SIGNUP)
+   ========================= */
+
+.signup-wrapper, .login-wrapper {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.signup-card, .login-card {
+    width: 100%;
+    max-width: 600px;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 28px 32px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+}
+
+.signup-title, .login-title {
+    text-align: center;
+    margin-bottom: 6px;
+    font-size: 1.6rem;
+}
+
+.signup-subtitle, .login-subtitle {
+    text-align: center;
+    margin-bottom: 22px;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.signup-card p {
+    margin-bottom: 18px;
+}
+
+.signup-card label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.signup-card input,
+.signup-card textarea,
+.login-card input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+.signup-card button,
+.login-card button {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: none;
+    background: #000000;
+    color: white;
+    cursor: pointer;
+}
+
+.signup-card button:hover,
+.login-card button:hover {
+    background: #222;
+}
+
+.errorlist {
+    color: #b91c1c;
+    padding-left: 18px;
+    margin-top: 6px;
+}
+
+.small-link {
+    text-align: center;
+    margin-top: 14px;
+    color: #444;
+}
+
+.small-link a {
+    color: #111;
+    text-decoration: none;
+}
+
+.small-link a:hover {
+    text-decoration: underline;
+}
+
+.profile-upload {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fafafa;
+}
+
+.avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    border: 1px solid #d1d5db;
+    overflow: hidden;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-upload-right {
+    flex: 1;
+}
+
+.profile-upload-title {
+    margin: 0 0 4px 0;
+    font-weight: 600;
+}
+
+.profile-upload-hint {
+    margin: 0 0 8px 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+input[type="file"] {
+    padding: 6px;
+}
+
+.signup-logo-link {
+    display: block;
+    text-align: center;
+}
+
+.signup-logo-img, .login-logo {
+    max-width: 64px;
+    display: block;
+    margin: 0 auto;
+}
+
+.login-home-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.login-home-link:hover {
+    text-decoration: underline;
+}
+
+#avatarImg {
+    display: none;
+}
+
+.login-error-msg {
+    color: #b91c1c;
+    margin-bottom: 12px;
+}
