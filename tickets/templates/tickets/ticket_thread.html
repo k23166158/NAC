@@ -19,11 +19,6 @@
     <div class="ticket-header-card">
         <div class="col-head">
             <div class="col-head-left">
-                <span class="dot 
-                    {% if ticket.status == 'open' %}active
-                    {% elif ticket.status == 'pending' %}overdue
-                    {% else %}completed{% endif %}">
-                </span>
                 <h1 class="tickets-title">{{ ticket.title }}</h1>
             </div>
 
