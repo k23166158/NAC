@@ -1,0 +1,55 @@
+# tickets/tests/forms/test_create_ticket_form.py
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+
+from tickets.forms.create_ticket import CreateTicketForm
+from tickets.models import Department
+
+
+class CreateTicketFormTests(TestCase):
+    def setUp(self):
+        """Set up a user and a department for testing."""
+        User = get_user_model()
+        self.creator = User.objects.create_user(
+            username="creator",
+            email="creator@example.com",
+            first_name="Cre",
+            last_name="Ator",
+            password="pass12345",
+        )
+        self.department = Department.objects.create(name="Support", created_by=self.creator)
+
+    def test_form_valid_data(self):
+        """Test that the form is valid with correct data."""
+        form = CreateTicketForm(
+            data={"title": "My title", "department": self.department.id, "body": "Hello there"}
+        )
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["title"], "My title")
+        self.assertEqual(form.cleaned_data["body"], "Hello there")
+        self.assertEqual(form.cleaned_data["department"], self.department)
+
+    def test_form_strips_title_and_body(self):
+        """Test that the form strips leading/trailing whitespace from title and body."""
+        form = CreateTicketForm(
+            data={"title": "  My title  ", "department": self.department.id, "body": "  Hi  "}
+        )
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["title"], "My title")
+        self.assertEqual(form.cleaned_data["body"], "Hi")
+
+    def test_form_rejects_empty_title(self):
+        """Test that the form rejects an empty title."""
+        form = CreateTicketForm(
+            data={"title": "   ", "department": self.department.id, "body": "Valid body"}
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
+
+    def test_form_rejects_empty_body(self):
+        """Test that the form rejects an empty body."""
+        form = CreateTicketForm(
+            data={"title": "Valid title", "department": self.department.id, "body": "   "}
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("body", form.errors)

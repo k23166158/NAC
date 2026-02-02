@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/create_ticket.css' %}">
+
+{% block content %}
+<div class="page">
+  <div class="card">
+    <h1 class="title">Create a ticket</h1>
+    <p class="subtitle">Submit a query to the right department and we’ll track it for you.</p>
+
+    <form method="post" class="form">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-error">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="field">
+        <label class="label" for="{{ form.title.id_for_label }}">Title</label>
+        {{ form.title }}
+        {% if form.title.errors %}
+          <div class="error">{{ form.title.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div class="field">
+        <label class="label" for="{{ form.department.id_for_label }}">Department</label>
+        {{ form.department }}
+        {% if form.department.errors %}
+          <div class="error">{{ form.department.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div class="field">
+        <label class="label" for="{{ form.body.id_for_label }}">Message</label>
+        {{ form.body }}
+        {% if form.body.errors %}
+          <div class="error">{{ form.body.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">Submit ticket</button>
+        <a class="btn btn-ghost" href="{% url 'home' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
