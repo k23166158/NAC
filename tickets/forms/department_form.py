@@ -4,12 +4,11 @@ from django.utils.text import slugify
 
 from ..models import Department
 
-
-class CreateDepartmentForm(forms.ModelForm):
+class DepartmentForm(forms.ModelForm):
     """Form for creating a new department."""
     
     class Meta:
-        """Meta configuration for CreateDepartmentForm."""
+        """Meta configuration for DepartmentForm."""
         model = Department
         fields = ['name', 'description']
         widgets = {
