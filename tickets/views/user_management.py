@@ -17,7 +17,12 @@ class UserManagementView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         return self.request.user.is_staff or self.request.user.is_superuser
 
     def get_queryset(self):
-        return User.objects.annotate(department_count=Count('user')).order_by('last_name', 'first_name')
+        return User.objects.annotate(department_count=Count('user')).order_by(
+            '-is_superuser',
+            '-is_staff',
+            'last_name',
+            'first_name'
+        )
 
 class ToggleUserStatusView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
