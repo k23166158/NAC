@@ -1,0 +1,143 @@
+/* Global Good Stuff */
+:root {
+    --bg: #f7f8fa;
+    --card: #ffffff;
+    --text: #111827;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+
+    --blue: #2563eb;
+    --red: #dc2626;
+    --green: #16a34a;
+
+    --shadow: 0 10px 25px rgba(17, 24, 39, .06);
+    --shadow-sm: 0 1px 0 rgba(17, 24, 39, .04);
+    --radius: 14px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+header {
+    background: #0b1220;
+    color: #fff;
+    padding: .9rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+header nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+header nav ul li {
+    display: inline;
+    margin-right: 18px;
+}
+
+header nav ul li a {
+    color: #fff;
+    text-decoration: none;
+    opacity: .9;
+    font-size: 14px;
+}
+
+header nav ul li a:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.logout-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    opacity: .9;
+}
+
+.logout-btn:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.logout-form {
+    display: inline;
+}
+
+main {
+    flex: 1;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 22px 18px 40px;
+    text-align: left;
+}
+
+footer {
+    background: #fff;
+    text-align: center;
+    padding: 14px;
+    margin-top: auto;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12.5px;
+}
+
+/* Shared Atoms */
+.empty {
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    color: var(--muted);
+    background: rgba(255, 255, 255, .7);
+    font-size: 13px;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #f8fafc;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.status {
+    border: 1px solid transparent;
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: .2px;
+}
+
+.status-active {
+    background: var(--blue);
+}
+
+.status-overdue {
+    background: var(--red);
+}
+
+.status-completed {
+    background: var(--green);
+}

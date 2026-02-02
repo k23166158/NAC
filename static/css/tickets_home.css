@@ -1,0 +1,145 @@
+/* Tickets page layout */
+.tickets-wrap {
+    width: 100%;
+    margin: 0 auto;
+    padding: 6px 0 18px;
+}
+
+.tickets-centered {
+    max-width: 920px;
+    margin: 0 auto;
+}
+
+.tickets-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.tickets-header-centered {
+    text-align: center;
+    width: 100%;
+}
+
+.tickets-title {
+    font-size: 26px;
+    font-weight: 780;
+    letter-spacing: -0.4px;
+    margin: 0;
+}
+
+.tickets-subtitle {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.35;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 14px 0 18px;
+}
+
+.tabs-centered {
+    justify-content: center;
+}
+
+.tabs[role="tablist"] {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px;
+    box-shadow: var(--shadow-sm);
+    gap: 6px;
+}
+
+.tab-btn {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    padding: 9px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 720;
+    font-size: 13.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: background .12s ease, border-color .12s ease, color .12s ease, transform .06s ease;
+}
+
+.tab-btn:hover {
+    background: #f8fafc;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.tab-btn:active {
+    transform: translateY(1px);
+}
+
+.tab-btn.is-active {
+    background: #111827;
+    border-color: #111827;
+    color: #fff;
+}
+
+.tab-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+}
+
+.dot-active {
+    background: var(--blue);
+}
+
+.dot-overdue {
+    background: var(--red);
+}
+
+.dot-completed {
+    background: var(--green);
+}
+
+.tab-btn.is-active .tab-dot {
+    background: #fff;
+}
+
+.tab-count {
+    font-size: 12px;
+    color: inherit;
+    opacity: .9;
+    background: rgba(255, 255, 255, .12);
+    border: 1px solid rgba(255, 255, 255, .16);
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-weight: 800;
+}
+
+.tab-btn:not(.is-active) .tab-count {
+    background: #f3f4f6;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    opacity: 1;
+}
+
+.tab-panel {
+    animation: fadeIn .14s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

@@ -3,6 +3,10 @@
 
 {% block title %}Login{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
+
 {% block content %}
 
 <div class="login-wrapper">
@@ -20,7 +24,7 @@
         <div class="login-subtitle">Log in to continue</div>
 
         {% if form.errors %}
-            <div style="color:#b91c1c; margin-bottom:12px;">
+            <div class="login-error-msg">
                 Invalid username or password.
             </div>
         {% endif %}

@@ -1,0 +1,176 @@
+/* Form Styles for Create Department */
+.department-form-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.department-form-card {
+    background: var(--card);
+    padding: 32px;
+    border-radius: var(--radius);
+    box-shadow: 0 2px 8px rgba(27, 31, 36, .08);
+    border: 1px solid var(--border);
+}
+
+.department-form-group {
+    margin-bottom: 24px;
+}
+
+.department-form-group:last-of-type {
+    margin-bottom: 32px;
+}
+
+.department-form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: var(--text);
+    font-size: 14px;
+    letter-spacing: -0.1px;
+}
+
+.department-form-label .required {
+    color: var(--red);
+    margin-left: 2px;
+}
+
+.department-form-input,
+.department-form-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    background: #fff;
+    color: var(--text);
+    transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.department-form-input:focus,
+.department-form-textarea:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, .1);
+}
+
+.department-form-textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.5;
+}
+
+.department-form-help {
+    display: block;
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.4;
+}
+
+.department-form-error {
+    display: block;
+    margin-top: 6px;
+    color: #991b1b;
+    font-size: 12.5px;
+    line-height: 1.4;
+}
+
+.department-form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 8px;
+}
+
+.department-form-cancel {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    text-decoration: none;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    transition: background .12s ease, border-color .12s ease;
+}
+
+.department-form-cancel:hover {
+    background: rgba(246, 248, 250, .8);
+    border-color: #afb8c1;
+}
+
+.department-form-submit {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    transition: background .12s ease, transform .12s ease;
+    box-shadow: 0 1px 0 rgba(27, 31, 36, .04);
+}
+
+.department-form-submit:hover {
+    background: #0860ca;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(27, 31, 36, .08);
+}
+
+.department-form-submit:active {
+    transform: translateY(0);
+}
+
+.department-form-errors {
+    background-color: #fff5f5;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.department-form-errors strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.department-form-errors ul {
+    margin: 0;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+
+.department-form-errors li {
+    margin-bottom: 4px;
+    font-size: 13.5px;
+    line-height: 1.4;
+}
+
+.department-form-errors li:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+    .department-form-card {
+        padding: 24px;
+    }
+
+    .department-form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .department-form-cancel,
+    .department-form-submit {
+        width: 100%;
+        justify-content: center;
+    }
+}

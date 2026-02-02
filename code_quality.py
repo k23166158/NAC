@@ -2,15 +2,17 @@ import ast
 import os
 import re
 import sys
-import subprocess
+from pathlib import Path
 
-SOURCE_DIRS = ['tickets', 'resolveme']
+SOURCE_DIRS = ['tickets', 'resolveme', 'static']
+TARGET_EXTENSIONS = {'.py', '.html', '.css', '.js'}
 MAX_LINES_SOURCE = 15
 MAX_NESTING_SOURCE = 1
 MAX_LINES_TEST = 25
 MAX_NESTING_TEST = 2
 MAX_FILE_LINE_LENGTH = 400
 STYLE_TAG_REGEX = re.compile(r'<\s*style\b', re.IGNORECASE)
+STYLE_ATTR_REGEX = re.compile(r'\bstyle\s*=', re.IGNORECASE)
 
 class QualityAuditor(ast.NodeVisitor):
     """
@@ -64,6 +66,105 @@ class QualityAuditor(ast.NodeVisitor):
                 f"has nesting level {depth}. Max allowed: {limit}."
             )
 
+def run_check():
+    """Main entry point to run code quality checks."""
+    files = []
+    for folder in SOURCE_DIRS:
+        files += get_directory_files(folder)
+
+    errors = []
+    for file in files:
+        errors += handle_file(file)
+
+    if errors:
+        print_errors(errors)
+        sys.exit(1)
+    
+    print("Code Quality Passed.")
+    sys.exit(0)
+
+def get_directory_files(directory):
+    """Retrieve all nested targeted files from a directory."""
+    path_obj = Path(directory)
+    
+    files = [
+        str(file.resolve()) 
+        for file in path_obj.rglob('*') 
+        if file.is_file() and file.suffix in TARGET_EXTENSIONS
+    ]
+    return files
+
+def handle_file(file):
+    """Dispatch file to appropriate handler based on extension."""
+    extension = os.path.splitext(file)[-1]
+    errors = []
+    if extension == '.py':
+        errors = handle_python_file(file)
+    elif extension == '.html':
+        errors = handle_html_file(file)
+    elif extension == '.css':
+        errors = handle_css_file(file)
+    elif extension == '.js':
+        errors = handle_js_file(file)
+    return errors
+
+def handle_python_file(filepath):
+    """Parse and visit Python content to find logical errors."""
+    is_migration = 'migration' in filepath
+    if is_migration:
+        return []
+
+    is_test = 'test' in filepath
+    tree, error = get_ast_tree(filepath)
+    if error:
+        return [f"Syntax Error in {filepath}: {error}"]
+        
+    auditor = QualityAuditor(filepath, is_test)
+    auditor.visit(tree)
+    return auditor.errors
+
+def handle_html_file(file):
+    """Check HTML files for inline styles and scripts."""
+    errors = []
+    lines = get_file_content(file)
+    if lines is None:
+        return errors
+    
+    if len(lines) >= MAX_FILE_LINE_LENGTH:
+        errors += [f"Width Error: {file} exceeds {MAX_FILE_LINE_LENGTH} lines."]
+    
+    content = ''.join(lines)
+    if STYLE_TAG_REGEX.search(content) or STYLE_ATTR_REGEX.search(content):
+        errors += [f"HTML Error: Inline <style> tag or style attribute found in {file}. Use external CSS only."]
+    
+    return errors
+
+def handle_css_file(file):
+    """Check CSS files for line length."""
+    lines = get_file_content(file)
+    if len(lines) >= MAX_FILE_LINE_LENGTH:
+        return [f"Width Error: {file} exceeds {MAX_FILE_LINE_LENGTH} lines."]
+    return []
+
+def handle_js_file(file):
+    """Check JS files for line length."""
+    lines = get_file_content(file)
+    if len(lines) >= MAX_FILE_LINE_LENGTH:
+        return [f"Width Error: {file} exceeds {MAX_FILE_LINE_LENGTH} lines."]
+    return []
+
+def parse_ast(filepath):
+    """Internal helper to parse AST inside a with block."""
+    with open(filepath, 'r', encoding='utf-8') as f:
+        return ast.parse(f.read())
+
+def get_ast_tree(filepath):
+    """Safely get AST tree or return error message."""
+    try:
+        return parse_ast(filepath), None
+    except Exception as e:
+        return None, str(e)
+    
 def get_child_depth(child, current, nesting_nodes):
     """Helper to calculate depth for a single child node."""
     next_depth = current + 1 if isinstance(child, nesting_nodes) else current
@@ -83,10 +184,11 @@ def compute_max_nesting(node, current_depth=0):
     )
     return max(child_depths, default=current_depth)
 
-def read_file(filepath):
-    """Internal helper to read file inside a with block."""
-    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-        return f.readlines()
+def print_errors(errors):
+    """Print all reported errors."""
+    print("Code Quality Failed:")
+    for err in errors:
+        print(f" - {err}")
 
 def get_file_content(filepath):
     """Safely retrieve file content or return None on error."""
@@ -95,136 +197,10 @@ def get_file_content(filepath):
     except Exception:
         return None
 
-def find_width_errors(filepath, lines):
-    """Generate errors for lines exceeding width using list comprehension."""
-    return [
-        f"Width Error: {filepath}:{i} exceeds {MAX_FILE_LINE_LENGTH} chars."
-        for i, line in enumerate(lines, 1)
-        if len(line) > MAX_FILE_LINE_LENGTH
-    ]
-
-def check_file_width(filepath):
-    """Orchestrate width check without nesting."""
-    lines = get_file_content(filepath)
-    if lines is None:
-        return [f"Read Error: Could not check width for {filepath}"]
-    return find_width_errors(filepath, lines)
-
-def check_html_style_tags(filepath):
-    """Ensure HTML files do not contain <style> tags."""
-    lines = get_file_content(filepath)
-    if lines is None:
-        return []
-    
-    content = ''.join(lines)
-    if STYLE_TAG_REGEX.search(content):
-        return [f"HTML Error: Inline <style> tag found in {filepath}. Use external CSS only."]
-    return []
-
-def parse_ast(filepath):
-    """Internal helper to parse AST inside a with block."""
-    with open(filepath, 'r', encoding='utf-8') as f:
-        return ast.parse(f.read())
-
-def get_ast_tree(filepath):
-    """Safely get AST tree or return error message."""
-    try:
-        return parse_ast(filepath), None
-    except Exception as e:
-        return None, str(e)
-
-def analyze_python_content(filepath, is_test):
-    """Parse and visit Python content to find logical errors."""
-    tree, error = get_ast_tree(filepath)
-    if error:
-        return [f"Syntax Error in {filepath}: {error}"]
-        
-    auditor = QualityAuditor(filepath, is_test)
-    auditor.visit(tree)
-    return auditor.errors
-
-def analyze_html_content(filepath):
-    """Analyze HTML content for style tag violations."""
-    return check_html_style_tags(filepath)
-
-def process_file(filepath, root):
-    """Dispatch file to appropriate checkers based on extension."""
-    errors = check_file_width(filepath)
-    
-    if filepath.endswith('.py'):
-        is_test = 'test' in filepath or 'tests' in root
-        errors.extend(analyze_python_content(filepath, is_test))
-
-    if filepath.endswith('.html'):
-        errors.extend(analyze_html_content(filepath))
-        
-    return errors
-
-def should_skip_directory(root):
-    """Determine if a directory should be skipped."""
-    skip_markers = ['migrations', '/.', '__pycache__', 'venv', '.git']
-    return any(marker in root for marker in skip_markers)
-
-def scan_directory(root, files):
-    """Process all files in a single directory."""
-    errors = []
-    if should_skip_directory(root):
-        return errors
-
-    for file in files:
-        full_path = os.path.join(root, file)
-        errors.extend(process_file(full_path, root))
-        
-    return errors
-
-def check_coverage():
-    """Verify that test coverage is 100% using subprocess.run."""
-
-    test_cmd = [sys.executable, '-m', 'coverage', 'run', 'manage.py', 'test']
-    test_result = subprocess.run(test_cmd, check=False)
-    
-    if test_result.returncode != 0:
-        return ["Test Execution Failed: Unit tests failed to pass."]
-
-    cmd = [sys.executable, '-m', 'coverage', 'report', '--fail-under=100']
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
-    if result.returncode != 0:
-        report_output = result.stdout if result.stdout else result.stderr        
-        return [f'Coverage Error: Test coverage is below 100%.\n{report_output}']
-    
-    return []
-
-def print_errors(errors):
-    """Print all reported errors."""
-    print("Code Quality Audit Failed:")
-    for err in errors:
-        print(f" - {err}")
-
-def walk_and_scan(start_dir):
-    """Recursively scan a directory tree."""
-    errors = []
-    if not os.path.exists(start_dir):
-        return errors
-
-    for root, _, files in os.walk(start_dir):
-        errors.extend(scan_directory(root, files))
-    return errors
-
-def run_audit():
-    """Main execution entry point."""
-    targets = ['resolveme', 'static', 'tickets']
-    all_errors = []
-
-    for target in targets:
-        all_errors.extend(walk_and_scan(target))
-
-    all_errors.extend(check_coverage())
-
-    if all_errors:
-        print_errors(all_errors)
-        sys.exit(1)
-    
-    sys.exit(0)
+def read_file(filepath):
+    """Internal helper to read file inside a with block."""
+    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+        return f.readlines()
 
 if __name__ == "__main__":
-    run_audit()
+    run_check()

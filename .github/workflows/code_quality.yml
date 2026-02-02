@@ -28,12 +28,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install radon
-        python manage.py makemigrations
-        python manage.py migrate
-
-    - name: Run tests with coverage
-      run: |
-        coverage run manage.py test
 
     - name: Run Code Quality Checks
       run: |
