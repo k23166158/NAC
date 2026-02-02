@@ -60,20 +60,24 @@
                         <strong class="sender-name">{{ message.sender.username }}</strong>
                         <div class="meta-right">
                             <span class="timestamp">
-                                {{ message.timestamp|date:"M d, Y H:i" }}
+                                {% if message.edited %}
+                                    Updated: {{ message.edited_at|date:"M d, Y H:i" }}
+                                {% else %}
+                                    {{ message.created_at|date:"M d, Y H:i" }}
+                                {% endif %}
                             </span>
 
                             {% if not message.hidden and message.sender == user %}
                                 <div class="message-actions">
                                     {% if message.id == last_user_message_id %}
-                                        <form method="post">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn-tiny edit-btn"
-                                                    title="Edit this message"
-                                                    onclick="return confirm('Are you sure you want to edit this message?');">
-                                                <i class="bi bi-pen"></i>
-                                            </button>
-                                        </form>
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="edit">
+                                        <input type="hidden" name="message_id" value="{{ message.id }}">
+                                        <button type="submit" class="btn-tiny edit-btn" title="Edit this message">
+                                            <i class="bi bi-pen"></i>
+                                        </button>
+                                    </form>
                                     {% endif %}
 
                                     <form method="post">
@@ -108,15 +112,33 @@
 
     <div class="reply-container">
         <div class="col-head">
-            <h3 class="col-title">Reply</h3>
+            <h3 class="col-title">
+                {% if edit_message %}Edit Message{% else %}Reply{% endif %}
+            </h3>
         </div>
         
         <div class="col-body">
-            <form method="post" action="">
+            <form method="post">
                 {% csrf_token %}
-                <textarea name="body" rows="4" placeholder="Write your reply…" class="reply-textarea" required></textarea>
+
+                {% if edit_message %}
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="message_id" value="{{ edit_message.id }}">
+                {% endif %}
+
+                <textarea name="body"
+                        rows="4"
+                        class="reply-textarea"
+                        required>{{ edit_message.body|default_if_none:"" }}</textarea>
+
                 <div class="reply-actions">
-                    <button type="submit" class="btn-submit">Send reply</button>
+                    <button type="submit" class="btn-submit">
+                        {% if edit_message %}Update{% else %}Send reply{% endif %}
+                    </button>
+
+                    {% if edit_message %}
+                        <a href="" class="btn-cancel">Cancel</a>
+                    {% endif %}
                 </div>
             </form>
         </div>
