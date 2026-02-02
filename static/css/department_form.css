@@ -1,4 +1,12 @@
 /* Form Styles for Create Department */
+.department-form-title {
+    text-align: center;
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
 .department-form-container {
     max-width: 600px;
     margin: 0 auto;

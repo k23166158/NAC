@@ -4,8 +4,7 @@ from django.utils.text import slugify
 
 from ..models import Department
 
-
-class CreateDepartmentForm(forms.ModelForm):
+class DepartmentForm(forms.ModelForm):
     """Form for creating a new department."""
     
     class Meta:
