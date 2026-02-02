@@ -4,6 +4,7 @@
 {% block title %}Manage Departments{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/department_view.css' %}">
 <style>
 .department-list {
   display: flex;
@@ -73,16 +74,18 @@
 
 {% block content %}
 <div class="tickets-wrap tickets-centered">
-  <div class="tickets-header tickets-header-centered">
-    <div>
-      <h1 class="tickets-title" style="font-size: 2.5rem;">Manage Departments</h1>
+  <div class="tickets-header tickets-header-centered dept-header">
+    <div class="dept-header-inner">
+      <div>
+        <h1 class="tickets-title dept-title" style="font-size: 2.5rem;">Manage Departments</h1>
+      </div>
+      <div class="dept-actions">
+        <a href="{% url 'create_department' %}" class="create-department-btn">Create Department</a>
+      </div>
     </div>
   </div>
 
   <div class="section-wrapper">
-    <div style="margin-bottom: 20px;">
-      <a href="{% url 'create_department' %}" class="create-department-btn">Create Department</a>
-    </div>
     {% if departments %}
       <div class="department-list">
         {% for department in departments %}
