@@ -7,67 +7,238 @@
 <link rel="stylesheet" href="{% static 'css/department_view.css' %}">
 <style>
 .department-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
 }
 
 .department-item {
-  display: block;
-  padding: 16px 20px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
   text-decoration: none;
   color: inherit;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  animation: fadeInUp 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+.department-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0969da, #0860ca);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
 }
 
 .department-item:hover {
-  border-color: #111827;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
+  border-color: #0969da;
+  box-shadow: 0 8px 24px rgba(9, 105, 218, 0.15);
+  transform: translateY(-4px);
+}
+
+.department-item:hover::before {
+  transform: scaleX(1);
+}
+
+.department-item:hover .department-item-arrow {
+  transform: translateX(4px);
+  opacity: 1;
+}
+
+.department-item-content {
+  flex: 1;
+  position: relative;
+}
+
+.department-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.department-item-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0969da 0%, #0860ca 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(9, 105, 218, 0.2);
 }
 
 .department-item-name {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin: 0 0 4px 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
   color: #111827;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
 }
 
 .department-item-description {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: #6b7280;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.department-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.department-item-arrow {
+  color: #0969da;
+  font-size: 18px;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.3s ease;
 }
 
 .create-department-btn {
   display: inline-flex;
   align-items: center;
-  padding: 10px 20px;
-  background: var(--blue, #0969da);
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #0969da 0%, #0860ca 100%);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 700;
   font-size: 14px;
   text-decoration: none;
-  transition: background .12s ease, transform .12s ease;
-  box-shadow: 0 1px 0 rgba(27, 31, 36, .04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(9, 105, 218, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.create-department-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.create-department-btn:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .create-department-btn:hover {
-  background: #0860ca;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(27, 31, 36, .08);
+  background: linear-gradient(135deg, #0860ca 0%, #0757b8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(9, 105, 218, 0.4);
 }
 
 .create-department-btn:active {
   transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(9, 105, 218, 0.3);
+}
+
+.create-department-btn i {
+  font-size: 16px;
+}
+
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  color: #9ca3af;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  border-radius: 12px;
+  border: 2px dashed #e5e7eb;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.empty-state::before {
+  content: '📁';
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.section-title {
+  position: relative;
+  padding-left: 16px;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(135deg, #0969da 0%, #0860ca 100%);
+  border-radius: 2px;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.department-item:nth-child(1) { animation-delay: 0.1s; }
+.department-item:nth-child(2) { animation-delay: 0.2s; }
+.department-item:nth-child(3) { animation-delay: 0.3s; }
+.department-item:nth-child(4) { animation-delay: 0.4s; }
+.department-item:nth-child(5) { animation-delay: 0.5s; }
+.department-item:nth-child(n+6) { animation-delay: 0.6s; }
+
+@media (max-width: 768px) {
+  .department-list {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
 {% endblock %}
@@ -80,7 +251,10 @@
         <h1 class="tickets-title dept-title" style="font-size: 2.5rem;">Manage Departments</h1>
       </div>
       <div class="dept-actions">
-        <a href="{% url 'create_department' %}" class="create-department-btn">Create Department</a>
+        <a href="{% url 'create_department' %}" class="create-department-btn">
+          <i class="bi bi-plus-circle"></i>
+          Create Department
+        </a>
       </div>
     </div>
   </div>
@@ -92,10 +266,21 @@
         {% for department in departments %}
           <a href="{% url 'department' department_slug=department.slug %}" class="department-item">
             <div class="department-item-content">
+              <div class="department-item-header">
+                <div class="department-item-icon">
+                  <i class="bi bi-building"></i>
+                </div>
+              </div>
               <h3 class="department-item-name">{{ department.name }}</h3>
               {% if department.description %}
                 <p class="department-item-description">{{ department.description }}</p>
+              {% else %}
+                <p class="department-item-description" style="color: #d1d5db; font-style: italic;">No description available</p>
               {% endif %}
+              <div class="department-item-footer">
+                <span style="font-size: 0.85rem; color: #9ca3af;">View details</span>
+                <i class="bi bi-arrow-right department-item-arrow"></i>
+              </div>
             </div>
           </a>
         {% endfor %}
