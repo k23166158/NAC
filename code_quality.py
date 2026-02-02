@@ -80,6 +80,7 @@ def run_check():
         print_errors(errors)
         sys.exit(1)
     
+    print("Code Quality Passed.")
     sys.exit(0)
 
 def get_directory_files(directory):
