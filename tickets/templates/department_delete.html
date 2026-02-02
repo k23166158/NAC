@@ -17,20 +17,17 @@
 
   <div class="department-form-container">
     <div class="department-form-card">
-      <p style="margin-bottom: 20px; text-align: center;">
-        Are you sure you want to delete the department <strong>{{ department.name }}</strong>? 
-        <br>
-        <span style="color: #d9534f;">This action cannot be undone.</span>
-      </p>
+      <p class="centre-aligned">Are you sure you want to delete the department <strong>{{ department.name }}</strong>? </p>
+      <p class="red-text">This action cannot be undone.</p>
 
-      <form method="post" class="department-form-actions" style="justify-content: center;">
+      <form method="post" class="department-form-actions centre-aligned">
         {% csrf_token %}
         
         <a href="{% url 'department' department.slug %}" class="department-form-cancel">
           Cancel
         </a>
         
-        <button type="submit" class="department-form-submit" style="background-color: #d9534f; border-color: #d9534f;">
+        <button type="submit" class="department-form-submit red-delete-button">
           Confirm Delete
         </button>
       </form>

@@ -167,6 +167,27 @@
     margin-bottom: 0;
 }
 
+.red-text {
+    color: #d9534f; 
+    text-align: center;
+}
+
+.red-delete-button {
+    background-color: #d9534f; 
+    border-color: #d9534f;
+}
+
+.red-delete-button:hover {
+    background-color: #c9302c; 
+    border-color: #c9302c;
+}
+
+.centre-aligned {
+    justify-content: center;
+    text-align: center;
+    align-items: center;
+}
+
 @media (max-width: 640px) {
     .department-form-card {
         padding: 24px;
