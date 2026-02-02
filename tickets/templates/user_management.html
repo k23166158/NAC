@@ -22,6 +22,7 @@
                     <th>Email</th>
                     <th>Role</th>
                     <th>Departments</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -45,9 +46,37 @@
                         {% else %}
                             <span class="badge badge-user">User</span>
                         {% endif %}
+                        {% if not user_obj.is_active %}
+                            <span class="badge badge-inactive">Inactive</span>
+                        {% endif %}
                     </td>
                     <td>
                         <span class="dept-count">{{ user_obj.department_count }}</span>
+                    </td>
+                    <td>
+                         <div class="actions-group">
+                            <a href="/profile/{{ user_obj.pk }}" class="btn-action btn-profile" title="View Profile">
+                                <i class="bi bi-person"></i> Profile
+                            </a>
+
+
+                            {% if user_obj != user %}
+                                {% if not user_obj.is_superuser or user.is_superuser %}
+                                    <form action="{% url 'toggle_user_status' user_obj.pk %}" method="post" class="inline-form">
+                                        {% csrf_token %}
+                                        {% if user_obj.is_active %}
+                                            <button type="submit" class="btn-action btn-deactivate" title="Deactivate User">
+                                                <i class="bi bi-person-x"></i> Deactivate
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn-action btn-activate" title="Activate User">
+                                                <i class="bi bi-person-check"></i> Activate
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
