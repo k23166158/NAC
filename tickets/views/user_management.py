@@ -11,6 +11,7 @@ class UserManagementView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = User
     template_name = 'user_management.html'
     context_object_name = 'users'
+    paginate_by = 10
 
     def test_func(self):
         return self.request.user.is_staff or self.request.user.is_superuser
