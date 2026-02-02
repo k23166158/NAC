@@ -3,12 +3,73 @@
 
 {% block title %}Manage Departments{% endblock %}
 
+{% block extra_css %}
+<style>
+.department-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.department-item {
+  display: block;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.department-item:hover {
+  border-color: #111827;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.department-item-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #111827;
+}
+
+.department-item-description {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="tickets-wrap tickets-centered">
   <div class="tickets-header tickets-header-centered">
     <div>
       <h1 class="tickets-title" style="font-size: 2.5rem;">Manage Departments</h1>
     </div>
+  </div>
+
+  <div class="section-wrapper">
+    {% if departments %}
+      <div class="department-list">
+        {% for department in departments %}
+          <a href="{% url 'department' department_slug=department.slug %}" class="department-item">
+            <div class="department-item-content">
+              <h3 class="department-item-name">{{ department.name }}</h3>
+              {% if department.description %}
+                <p class="department-item-description">{{ department.description }}</p>
+              {% endif %}
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty empty-state">No departments found.</div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
