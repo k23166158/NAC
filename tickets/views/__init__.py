@@ -5,3 +5,4 @@ from .department_view import DepartmentView
 from .department_create_view import CreateDepartmentView
 from .department_manage_view import DepartmentManageView
 from .forward_ticket import ForwardTicketView
+from .user_management import UserManagementView, ToggleUserStatusView
