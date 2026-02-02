@@ -124,3 +124,37 @@ class CreateDepartmentFormTests(TestCase):
         form = CreateDepartmentForm(data=form_data)
         self.assertTrue(form.is_valid())
 
+    def test_clean_name_rejects_reserved_slug_create(self):
+        """Test that clean_name rejects 'create' as a department name."""
+        form_data = {
+            'name': 'create',
+            'description': 'Some description'
+        }
+        form = CreateDepartmentForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('name', form.errors)
+        self.assertIn(
+            '"create" is a reserved name and cannot be used for a department. Please choose a different name.',
+            form.errors['name']
+        )
+
+    def test_clean_name_rejects_reserved_slug_edit(self):
+        """Test that clean_name rejects 'edit' as a department name."""
+        form_data = {
+            'name': 'edit',
+            'description': 'Some description'
+        }
+        form = CreateDepartmentForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('name', form.errors)
+
+    def test_clean_name_rejects_reserved_slug_delete(self):
+        """Test that clean_name rejects 'delete' as a department name."""
+        form_data = {
+            'name': 'delete',
+            'description': 'Some description'
+        }
+        form = CreateDepartmentForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('name', form.errors)
+
