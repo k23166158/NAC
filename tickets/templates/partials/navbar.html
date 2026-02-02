@@ -3,6 +3,9 @@
         <ul>
             <li><a href="/">Home</a></li>
                 {% if user.is_authenticated %}
+                    {% if user.is_staff %}
+                        <li><a href="{% url 'department_manage' %}">Departments</a></li>
+                    {% endif %}
         <li>
             <form action="/logout/" method="post" class="logout-form">
                 {% csrf_token %}
