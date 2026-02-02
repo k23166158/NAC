@@ -130,7 +130,7 @@ class DepartmentFormTests(TestCase):
             'name': 'create',
             'description': 'Some description'
         }
-        form = CreateDepartmentForm(data=form_data)
+        form = DepartmentForm(data=form_data)
         self.assertFalse(form.is_valid())
         self.assertIn('name', form.errors)
         self.assertIn(
@@ -144,7 +144,7 @@ class DepartmentFormTests(TestCase):
             'name': 'edit',
             'description': 'Some description'
         }
-        form = CreateDepartmentForm(data=form_data)
+        form = DepartmentForm(data=form_data)
         self.assertFalse(form.is_valid())
         self.assertIn('name', form.errors)
 
@@ -154,7 +154,7 @@ class DepartmentFormTests(TestCase):
             'name': 'delete',
             'description': 'Some description'
         }
-        form = CreateDepartmentForm(data=form_data)
+        form = DepartmentForm(data=form_data)
         self.assertFalse(form.is_valid())
         self.assertIn('name', form.errors)
 

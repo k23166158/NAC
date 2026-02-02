@@ -36,11 +36,11 @@ urlpatterns = [
     path('tickets/<uuid:uuid>/', TicketThreadView.as_view(), name='ticket_thread'),
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
 
-    path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
     path('department/manage/', DepartmentManageView.as_view(), name='department_manage'),
-    path('department/create', CreateDepartmentView.as_view(), name='create_department'),
+    path('department/create/', CreateDepartmentView.as_view(), name='create_department'),
     path('department/edit/<slug:department_slug>/', EditDepartmentView.as_view(), name='edit_department'),
-    path('department/delete/<slug:department_slug>/', DeleteDepartmentView.as_view(), name='delete_department'),
+    path('department/delete/<slug:department_slug>/', DeleteDepartmentView.as_view(), name='delete_department'),    
+    path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
     
     path('manage-users/', UserManagementView.as_view(), name='manage_users'),
     path('manage-users/<int:pk>/toggle-status/', ToggleUserStatusView.as_view(), name='toggle_user_status'),
