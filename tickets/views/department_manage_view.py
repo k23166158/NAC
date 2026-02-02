@@ -1,6 +1,7 @@
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render
+from ..models import Department
 
 
 class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, View):
@@ -14,5 +15,12 @@ class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, View):
 
     def get(self, request):
         """Handle GET requests for the department manage view."""
-        return render(request, "department_manage.html")
+        departments = Department.objects.filter(
+            assigned_users__user=request.user
+        ).distinct().order_by('name')
+        
+        context = {
+            'departments': departments
+        }
+        return render(request, "department_manage.html", context)
 
