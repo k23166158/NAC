@@ -31,7 +31,7 @@ class CreateDepartmentForm(forms.ModelForm):
 
     def _check_reserved_slug(self, slug, name):
         """Check if slug is a reserved word."""
-        reserved_slugs = ['create', 'edit', 'delete']
+        reserved_slugs = ['create', 'edit', 'delete', 'manage']
         if slug in reserved_slugs:
             raise ValidationError(
                 f'"{name}" is a reserved name and cannot be used for a department. Please choose a different name.'
