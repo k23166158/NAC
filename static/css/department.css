@@ -421,6 +421,18 @@
     margin-bottom: 0;
 }
 
+.remove-staff-form {
+    margin: 0;
+}
+
+.empty-state-block {
+    display: block;
+}
+
+.section-title-dimmed {
+    color: #666;
+}
+
 @media (max-width: 640px) {
     .department-form-card {
         padding: 24px;

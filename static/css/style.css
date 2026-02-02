@@ -918,6 +918,25 @@ input[type="file"] {
 .fwd-pop.is-hidden {
     display: none;
 }
+
+.signup-logo-link {
+    display: block;
+    text-align: center;
+}
+
+.signup-logo-img {
+    max-width: 64px;
+}
+
+#avatarImg {
+    display: none;
+}
+
+.login-error-msg {
+    color: #b91c1c;
+    margin-bottom: 12px;
+}
+
 .logout-form {
     display: inline;
 }

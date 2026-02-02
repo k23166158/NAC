@@ -47,7 +47,7 @@
                             </div>
                             
                             {% if department.created_by != user %}
-                                <form method="POST" style="margin: 0;">
+                                <form method="POST" class="remove-staff-form">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="remove">
                                     <input type="hidden" name="user_id" value="{{ user.id }}">
@@ -81,7 +81,7 @@
                                 </button>
                             </form>
                         {% empty %}
-                            <div class="empty empty-state-small" style="display: block;">No more staff available.</div>
+                            <div class="empty empty-state-small empty-state-block">No more staff available.</div>
                         {% endfor %}
                         <div id="noResultsMsg" class="empty-state-small">No staff found.</div>
                     </div>
@@ -108,7 +108,7 @@
         </div>
 
         <div class="section-dimmed">
-            <h2 class="section-title" style="color: #666;">
+            <h2 class="section-title section-title-dimmed">
                 Closed Tickets
                 <span class="pill badge-count badge-gray">{{ closed_tickets|length }}</span>
             </h2>
