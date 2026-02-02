@@ -6,6 +6,44 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/department_view.css' %}">
 <style>
+.dept-header-inner {
+  align-items: baseline;
+}
+
+.department-search-wrapper {
+  position: relative;
+  margin-top: 16px;
+  margin-bottom: 20px;
+  max-width: 500px;
+}
+
+.department-search-input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.department-search-input:focus {
+  outline: none;
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+}
+
+.department-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 18px;
+  pointer-events: none;
+}
+
 .department-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -211,9 +249,13 @@
   <div class="section-wrapper">
     <h2 class="section-title">Your Departments</h2>
     {% if departments %}
-      <div class="department-list">
+      <div class="department-search-wrapper">
+        <input type="text" id="departmentSearchInput" class="department-search-input" autocomplete="off" placeholder="Search departments...">
+        <i class="bi bi-search department-search-icon"></i>
+      </div>
+      <div class="department-list" id="departmentList">
         {% for department in departments %}
-          <a href="{% url 'department' department_slug=department.slug %}" class="department-item">
+          <a href="{% url 'department' department_slug=department.slug %}" class="department-item" data-name="{{ department.name|lower }}" data-description="{{ department.description|lower|default:'' }}">
             <div class="department-item-content">
               <div class="department-item-header">
                 <div class="department-item-icon">
@@ -234,6 +276,7 @@
           </a>
         {% endfor %}
       </div>
+      <div id="noDepartmentsMsg" class="empty empty-state" style="display: none;">No departments match your search.</div>
     {% else %}
       <div class="empty empty-state">No departments found.</div>
     {% endif %}
@@ -241,5 +284,39 @@
 
   <!-- Future section for invites will go here -->
 </div>
+
+<script>
+  const searchInput = document.getElementById('departmentSearchInput');
+  const departmentList = document.getElementById('departmentList');
+  const departmentItems = document.querySelectorAll('.department-item');
+  const noDepartmentsMsg = document.getElementById('noDepartmentsMsg');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const query = this.value.toLowerCase().trim();
+      let hasVisibleItems = false;
+
+      departmentItems.forEach(item => {
+        const name = item.getAttribute('data-name') || '';
+        const description = item.getAttribute('data-description') || '';
+        
+        if (query.length === 0 || name.includes(query) || description.includes(query)) {
+          item.style.display = 'flex';
+          hasVisibleItems = true;
+        } else {
+          item.style.display = 'none';
+        }
+      });
+
+      if (departmentList) {
+        departmentList.style.display = hasVisibleItems ? 'grid' : 'none';
+      }
+      
+      if (noDepartmentsMsg) {
+        noDepartmentsMsg.style.display = (query.length > 0 && !hasVisibleItems) ? 'block' : 'none';
+      }
+    });
+  }
+</script>
 {% endblock %}
 
