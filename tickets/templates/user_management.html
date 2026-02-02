@@ -12,6 +12,12 @@
 <div class="user-management-container">
     <div class="header">
         <h1>User Management</h1>
+        <div class="header-actions">
+            <form method="get" class="search-form">
+                <input type="text" name="q" placeholder="Search users..." value="{{ search_query }}" class="search-input">
+                <button type="submit" class="btn-search"><i class="bi bi-search"></i></button>
+            </form>
+        </div>
     </div>
 
     <div class="users-list">
@@ -93,8 +99,8 @@
     <div class="pagination">
         <span class="step-links">
             {% if page_obj.has_previous %}
-                <a href="?page=1" class="pagination-link">&laquo; first</a>
-                <a href="?page={{ page_obj.previous_page_number }}" class="pagination-link">previous</a>
+                <a href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}" class="pagination-link">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="pagination-link">previous</a>
             {% endif %}
 
             <span class="current">
@@ -102,8 +108,8 @@
             </span>
 
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" class="pagination-link">next</a>
-                <a href="?page={{ page_obj.paginator.num_pages }}" class="pagination-link">last &raquo;</a>
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="pagination-link">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}" class="pagination-link">last &raquo;</a>
             {% endif %}
         </span>
     </div>

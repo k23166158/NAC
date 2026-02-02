@@ -1,7 +1,7 @@
 from django.views.generic import ListView
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 
@@ -17,12 +17,28 @@ class UserManagementView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         return self.request.user.is_staff or self.request.user.is_superuser
 
     def get_queryset(self):
-        return User.objects.annotate(department_count=Count('user')).order_by(
+        queryset = User.objects.annotate(department_count=Count('user'))
+
+        search_query = self.request.GET.get('q')
+        if search_query:
+            queryset = queryset.filter(
+                Q(username__icontains=search_query) |
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(email__icontains=search_query)
+            )
+
+        return queryset.order_by(
             '-is_superuser',
             '-is_staff',
             'last_name',
             'first_name'
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_query'] = self.request.GET.get('q', '')
+        return context
 
 class ToggleUserStatusView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
