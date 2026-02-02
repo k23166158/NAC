@@ -2,6 +2,9 @@
     <nav>
         <ul>
             <li><a href="/">Home</a></li>
+            {% if user.is_staff or user.is_superuser %}
+                <li><a href="{% url 'manage_users' %}">Manage Users</a></li>
+            {% endif %}
                 {% if user.is_authenticated %}
         <li>
             <form action="/logout/" method="post" class="logout-form">
