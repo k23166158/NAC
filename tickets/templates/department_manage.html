@@ -42,6 +42,32 @@
   margin: 0;
   line-height: 1.4;
 }
+
+.create-department-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: var(--blue, #0969da);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background .12s ease, transform .12s ease;
+  box-shadow: 0 1px 0 rgba(27, 31, 36, .04);
+}
+
+.create-department-btn:hover {
+  background: #0860ca;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(27, 31, 36, .08);
+}
+
+.create-department-btn:active {
+  transform: translateY(0);
+}
 </style>
 {% endblock %}
 
@@ -54,6 +80,9 @@
   </div>
 
   <div class="section-wrapper">
+    <div style="margin-bottom: 20px;">
+      <a href="{% url 'create_department' %}" class="create-department-btn">Create Department</a>
+    </div>
     {% if departments %}
       <div class="department-list">
         {% for department in departments %}
