@@ -29,6 +29,7 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         return last_user_message.id if last_user_message else None
 
     def get_context_data(self, **kwargs):
+        """Add ticket messages to the context."""
         context = super().get_context_data(**kwargs)
         messages = self.get_messages_queryset()
 
