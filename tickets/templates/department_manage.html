@@ -121,57 +121,6 @@
   transition: all 0.3s ease;
 }
 
-.create-department-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #0969da 0%, #0860ca 100%);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 14px;
-  text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(9, 105, 218, 0.3);
-  position: relative;
-  overflow: hidden;
-}
-
-.create-department-btn::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
-}
-
-.create-department-btn:hover::before {
-  width: 300px;
-  height: 300px;
-}
-
-.create-department-btn:hover {
-  background: linear-gradient(135deg, #0860ca 0%, #0757b8 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(9, 105, 218, 0.4);
-}
-
-.create-department-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(9, 105, 218, 0.3);
-}
-
-.create-department-btn i {
-  font-size: 16px;
-}
 
 .empty-state {
   padding: 60px 20px;
@@ -251,7 +200,7 @@
         <h1 class="tickets-title dept-title" style="font-size: 2.5rem;">Manage Departments</h1>
       </div>
       <div class="dept-actions">
-        <a href="{% url 'create_department' %}" class="create-department-btn">
+        <a href="{% url 'create_department' %}" class="btn btn-primary">
           <i class="bi bi-plus-circle"></i>
           Create Department
         </a>
