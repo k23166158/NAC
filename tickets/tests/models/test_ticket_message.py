@@ -32,16 +32,37 @@ class TicketMessageModelTests(TestCase):
         self.assertEqual(message.body, "This is a test message.")
         self.assertEqual(message.ticket, self.ticket)
         self.assertEqual(message.sender, self.user)
-        self.assertIsNotNone(message.timestamp)
+        self.assertIsNotNone(message.created_at)
+        self.assertIsNotNone(message.edited_at)
+        self.assertFalse(message.edited)
 
         expected_str = f"Message {message.id} for Ticket {self.ticket.id} by User {self.user.id}"
         self.assertEqual(str(message), expected_str)
 
     def test_ordering(self):
-        """Test that messages are ordered by timestamp descending."""
+        """Test that messages are ordered by created_at descending (newest first in default)."""
         m1 = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="First")
         m2 = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="Second")
-        
+
         messages = list(TicketMessage.objects.all())
         self.assertEqual(messages[0], m2)
         self.assertEqual(messages[1], m1)
+
+    def test_edited_flag_and_edited_at(self):
+        """Test that editing a message sets edited=True and updates edited_at."""
+        message = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="Original",
+        )
+        self.assertFalse(message.edited)
+        original_edited_at = message.edited_at
+
+        message.body = "Updated"
+        message.edited = True
+        message.save()
+
+        message.refresh_from_db()
+        self.assertTrue(message.edited)
+        self.assertEqual(message.body, "Updated")
+        self.assertGreaterEqual(message.edited_at, original_edited_at)

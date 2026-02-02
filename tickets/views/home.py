@@ -42,11 +42,11 @@ class HomeView(View):
 
     def _annotated_tickets(self, user):
         """Tickets with last message info annotated."""
-        last_msg = TicketMessage.objects.filter(ticket_id=OuterRef("pk")).order_by("-timestamp")
+        last_msg = TicketMessage.objects.filter(ticket_id=OuterRef("pk")).order_by("-edited_at")
         return (
             self._base_tickets(user)
             .annotate(
-                last_message_at=Subquery(last_msg.values("timestamp")[:1]),
+                last_message_at=Subquery(last_msg.values("edited_at")[:1]),
                 last_message_body=Subquery(last_msg.values("body")[:1]),
                 last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
                 last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),

@@ -13,7 +13,7 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
 
     def get_messages_queryset(self):
         """Get the queryset for ticket messages."""
-        return TicketMessage.objects.filter(ticket=self.object).order_by("timestamp")
+        return TicketMessage.objects.filter(ticket=self.object).order_by("created_at")
 
     def get_first_message(self, messages):
         """Extract the first message."""
@@ -29,13 +29,29 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         return last_user_message.id if last_user_message else None
 
     def get_context_data(self, **kwargs):
-        """Get context data for the ticket thread view."""
         context = super().get_context_data(**kwargs)
         messages = self.get_messages_queryset()
+
         context["first_message"] = self.get_first_message(messages)
         context["messages"] = self.get_reply_messages(messages)
         context["last_user_message_id"] = self.get_last_user_message_id(messages)
+
+        context["edit_message"] = self.get_edit_message()
+
         return context
+
+    def get_edit_message(self):
+        """Return the message being edited, if any."""
+        message_id = self.request.POST.get("message_id")
+        if self.request.POST.get("action") == "edit" and message_id:
+            return get_object_or_404(
+                TicketMessage,
+                id=message_id,
+                ticket=self.object,
+                sender=self.request.user,
+                hidden=False,
+            )
+        return None
 
     def handle_delete_action(self, request):
         """Handle deleting a message by hiding it."""
@@ -48,6 +64,22 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         )
         message.hidden = True
         message.save()
+
+    def handle_update_action(self, request):
+        """Handle updating an existing message."""
+        message_id = request.POST.get("message_id")
+        message = get_object_or_404(
+            TicketMessage,
+            id=message_id,
+            ticket=self.object,
+            sender=request.user,
+            hidden=False,
+        )
+        body = request.POST.get("body")
+        if body:
+            message.body = body
+            message.edited = True
+            message.save()
 
     def handle_add_action(self, request):
         """Handle adding a new message."""
@@ -65,6 +97,11 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         action = request.POST.get("action")
         if action == "delete":
             self.handle_delete_action(request)
+        elif action == "update":
+            self.handle_update_action(request)
+        elif action == "edit":
+            # No side effects; edit mode handled in get_context_data.
+            pass
         else:
             self.handle_add_action(request)
         return self.get(request, *args, **kwargs)
