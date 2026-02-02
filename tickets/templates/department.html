@@ -18,10 +18,12 @@
                 <p class="tickets-subtitle dept-subtitle">{{ department.description }}</p>
             </div>
             
-            <div class="dept-actions">
-                <a class="pill btn-action btn-secondary" href="{% url 'edit_department' department.slug %}">Edit</a>
-                <a class="pill btn-action btn-danger" href="{% url 'delete_department' department.slug %}">Delete</a>
-            </div>
+            {% if department.created_by == user %}
+                <div class="dept-actions">
+                    <a class="pill btn-action btn-secondary" href="{% url 'edit_department' department.slug %}">Edit</a>
+                    <a class="pill btn-action btn-danger" href="{% url 'delete_department' department.slug %}">Delete</a>
+                </div>
+            {% endif %}
         </div>
     </div>
 
