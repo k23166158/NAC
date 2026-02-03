@@ -15,12 +15,12 @@ def _q(value):
 
 
 def _ticket_redirect(return_tab, ticket_uuid, **params):
-    """Redirect to home preserving tab/open and adding query params."""
-    base = f"/?tab={_q(return_tab)}&open={_q(ticket_uuid)}"
+    """Redirect to ticket thread with query params."""
+    base = f"/tickets/{_q(ticket_uuid)}/"
     if not params:
         return redirect(base)
     extra = "&".join(f"{k}={_q(v)}" for k, v in params.items())
-    return redirect(f"{base}&{extra}")
+    return redirect(f"{base}?{extra}")
 
 
 def _has_field(model, field_name):

@@ -106,6 +106,49 @@
         {% endfor %}
     </div>
 
+    <div class="line-break"></div>
+    {% if user.is_staff %}
+        <div class="forward-ticket-container">
+            <p class="forward-info">Forward this ticket to another staff member via email.</p>
+
+            {# Popup for forward success/error messages #}
+            {% if request.GET.tid|default:'' == ticket.uuid|stringformat:"s" and request.GET.fwd|default:'' %}
+              <div class="fwd-pop {% if request.GET.fwd|default:'' == 'ok' %}fwd-pop--ok{% else %}fwd-pop--err{% endif %}">
+                <span class="fwd-pop-ico" aria-hidden="true">
+                  {% if request.GET.fwd == 'ok' %}✓{% else %}!{% endif %}
+                </span>
+
+                <div class="fwd-pop-text">
+                  {% if request.GET.fwd|default:'' == 'ok' %}
+                    Forwarded to <strong>{{ request.GET.email|default:'' }}</strong>.
+                  {% else %}
+                    {{ request.GET.msg|default:"Email failed to forward." }}
+                  {% endif %}
+                </div>
+
+                <button type="button" class="fwd-pop-x" aria-label="Close">×</button>
+              </div>
+            {% endif %}
+
+            <form class="forward-form" method="post" action="{% url 'ticket_forward' ticket.uuid %}">
+                {% csrf_token %}
+
+                <div class="forward-control">
+                    <span class="forward-ico" aria-hidden="true">↪</span>
+                    <input
+                        class="forward-input"
+                        type="email"
+                        name="email"
+                        placeholder="Email"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+                <button class="forward-btn" type="submit">Forward</button>
+            </form>
+        </div>
+    {% endif %}
+
     {% if ticket.status != 'closed' %}
     <div class="reply-container">
         <div class="col-head">
@@ -155,5 +198,16 @@
     {% endif %}
 
 </div>
-{% endblock %}
 {% comment %} {% url 'close_ticket' ticket.id %} {% endcomment %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".fwd-pop").forEach(pop => {
+      const x = pop.querySelector(".fwd-pop-x");
+      const hide = () => pop.classList.add("is-hidden");
+      if (x) x.addEventListener("click", hide);
+      setTimeout(hide, 3200);
+    });
+  });
+</script>
+
+{% endblock %}
