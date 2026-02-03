@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path
 from tickets.views import HomeView, CustomLoginView, DepartmentView, CreateDepartmentView, DepartmentManageView, TicketThreadView, ForwardTicketView, UserManagementView, ToggleUserStatusView
 from django.contrib.auth.views import LogoutView
-from tickets.views import SignUpView
+from tickets.views import SignUpView,ProfileView, MyProfileView, ProfileEditView
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -35,4 +35,7 @@ urlpatterns = [
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
     path('manage-users/', UserManagementView.as_view(), name='manage_users'),
     path('manage-users/<int:pk>/toggle-status/', ToggleUserStatusView.as_view(), name='toggle_user_status'),
+    path("profile/me/", MyProfileView.as_view(), name="my_profile"),
+    path("profile/<int:pk>/", ProfileView.as_view(), name="profile"),
+    path("profile/edit/", ProfileEditView.as_view(), name="profile_edit"),
 ]

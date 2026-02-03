@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Profile{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+  <div class="profile-card">
+
+    <div class="profile-top">
+      <div class="profile-avatar">
+        {% if profile_user.profile_picture %}
+          <img src="{{ profile_user.profile_picture.url }}" alt="{{ profile_user.username }}">
+        {% else %}
+          <div class="profile-avatar-blank"></div>
+        {% endif %}
+      </div>
+
+      <div class="profile-headings">
+        <h1 class="profile-name">{{ profile_user.first_name }} {{ profile_user.last_name }}</h1>
+        <div class="profile-username">@{{ profile_user.username }}</div>
+
+        {% if is_own_profile %}
+          <a href="{% url 'profile_edit' %}" class="profile-edit-btn">Edit Profile</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="profile-details">
+      <div class="profile-field">
+        <div class="profile-label">First name</div>
+        <div class="profile-value">{{ profile_user.first_name }}</div>
+      </div>
+
+      <div class="profile-field">
+        <div class="profile-label">Last name</div>
+        <div class="profile-value">{{ profile_user.last_name }}</div>
+      </div>
+
+      <div class="profile-field">
+        <div class="profile-label">Username</div>
+        <div class="profile-value">{{ profile_user.username }}</div>
+      </div>
+
+      <div class="profile-field">
+        <div class="profile-label">Email</div>
+        <div class="profile-value">{{ profile_user.email }}</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
