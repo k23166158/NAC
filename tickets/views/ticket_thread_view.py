@@ -101,17 +101,14 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
             self.touch_ticket()
 
     def dispatch_post_action(self, action, request):
-        """Dispatch POST action to the correct handler."""
-        if action == "delete":
-            self.handle_delete_action(request)
-        elif action == "update":
-            self.handle_update_action(request)
-        elif action == "close_ticket":
-            self.handle_close_ticket_action()
-        elif action == "edit":
-            pass
-        else:
-            self.handle_add_action(request)
+        """Dispatch POST action to the appropriate handler."""
+        handlers = {
+            "delete": lambda: self.handle_delete_action(request),
+            "update": lambda: self.handle_update_action(request),
+            "close_ticket": self.handle_close_ticket_action,
+            "edit": lambda: None,
+        }
+        handlers.get(action, lambda: self.handle_add_action(request))()
 
     def post(self, request, *args, **kwargs):
         """Handle POST actions for the ticket thread."""
