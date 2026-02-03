@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="signup-wrapper">
+  <div class="signup-card">
+
+    <h1 class="signup-title">Edit Profile</h1>
+    <p class="signup-subtitle">Update your personal details</p>
+
+    {% if error %}
+      <p class="login-error-msg">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <!-- Profile Picture -->
+      <div class="profile-upload">
+        <div class="avatar">
+          {% if user.profile_picture %}
+            <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}">
+          {% endif %}
+        </div>
+
+        <div class="profile-upload-right">
+          <p class="profile-upload-title">Profile picture</p>
+          <p class="profile-upload-hint">PNG or JPG. Square images work best.</p>
+          <input type="file" name="profile_picture">
+        </div>
+      </div>
+
+      <p>
+        <label for="first_name">First name</label>
+        <input type="text" name="first_name" id="first_name"
+               value="{{ user.first_name }}" required>
+      </p>
+
+      <p>
+        <label for="last_name">Last name</label>
+        <input type="text" name="last_name" id="last_name"
+               value="{{ user.last_name }}" required>
+      </p>
+
+      <p>
+        <label for="username">Username</label>
+        <input type="text" name="username" id="username"
+               value="{{ user.username }}" required>
+      </p>
+
+      <p>
+        <label for="email">Email</label>
+        <input type="email" name="email" id="email"
+               value="{{ user.email }}" required>
+      </p>
+
+      <p>
+        <label for="password">New password (optional)</label>
+        <input type="password" name="password" id="password"
+               placeholder="Leave blank to keep current password">
+      </p>
+
+      <button type="submit">Save changes</button>
+
+      <div class="small-link">
+        <a href="{% url 'my_profile' %}">Cancel</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
