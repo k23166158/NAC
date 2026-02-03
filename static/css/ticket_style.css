@@ -248,3 +248,10 @@
     color: #d9534f;
     border-color: #d9534f;
 }
+.ticket-closed-notice {
+    margin: 30px 0 10px;
+    text-align: center;
+    font-size: 0.95rem;
+    color: #888;
+    font-style: italic;
+}
