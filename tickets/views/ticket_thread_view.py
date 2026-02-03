@@ -113,6 +113,17 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
             return self.get(request, *args, **kwargs)
         if action == "edit":
             return self.get(request, *args, **kwargs)
+        if action == "close_ticket":
+            self.handle_close_ticket_action()
+            return self.get(request, *args, **kwargs)
         
         self.handle_add_action(request)
         return self.get(request, *args, **kwargs)
+
+    def handle_close_ticket_action(self):
+        """Close the ticket."""
+        if self.object.status != Ticket.Status.CLOSED:
+            self.object.status = Ticket.Status.CLOSED
+            self.object.closed_at = timezone.now()
+            self.object.save()
+            self.touch_ticket()

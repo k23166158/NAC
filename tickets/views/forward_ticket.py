@@ -17,9 +17,8 @@ def _q(value):
 def _ticket_redirect(return_tab, ticket_uuid, **params):
     """Redirect to ticket thread with query params."""
     base = f"/tickets/{_q(ticket_uuid)}/"
-    if not params:
-        return redirect(base)
-    extra = "&".join(f"{k}={_q(v)}" for k, v in params.items())
+    params_with_tab = {"tab": return_tab, "open": ticket_uuid, **params}
+    extra = "&".join(f"{k}={_q(v)}" for k, v in params_with_tab.items())
     return redirect(f"{base}?{extra}")
 
 
