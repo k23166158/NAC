@@ -7,7 +7,7 @@ from ..models import Ticket, TicketMessage
 class TicketThreadView(LoginRequiredMixin, DetailView):
     """View to display the thread of messages of tickets."""
     model = Ticket
-    template_name = 'tickets/ticket_thread.html'
+    template_name = 'ticket_thread.html'
     context_object_name = 'ticket'
     slug_url_kwarg = 'uuid'
     slug_field = 'uuid'
