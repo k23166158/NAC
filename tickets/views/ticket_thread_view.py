@@ -7,7 +7,7 @@ from ..models import Ticket, TicketMessage
 class TicketThreadView(LoginRequiredMixin, DetailView):
     """View to display the thread of messages of tickets."""
     model = Ticket
-    template_name = 'tickets/ticket_thread.html'
+    template_name = 'ticket_thread.html'
     context_object_name = 'ticket'
     slug_url_kwarg = 'uuid'
     slug_field = 'uuid'
@@ -100,19 +100,28 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
             )
             self.touch_ticket()
 
+    def dispatch_post_action(self, action, request):
+        """Dispatch POST action to the appropriate handler."""
+        handlers = {
+            "delete": lambda: self.handle_delete_action(request),
+            "update": lambda: self.handle_update_action(request),
+            "close_ticket": self.handle_close_ticket_action,
+            "edit": lambda: None,
+        }
+        handlers.get(action, lambda: self.handle_add_action(request))()
+
     def post(self, request, *args, **kwargs):
-        """Handle POST actions: add, update, delete, or edit a message."""
+        """Handle POST actions for the ticket thread."""
         self.object = self.get_object()
         action = request.POST.get("action")
 
-        if action == "delete":
-            self.handle_delete_action(request)
-            return self.get(request, *args, **kwargs)
-        if action == "update":
-            self.handle_update_action(request)
-            return self.get(request, *args, **kwargs)
-        if action == "edit":
-            return self.get(request, *args, **kwargs)
-        
-        self.handle_add_action(request)
+        self.dispatch_post_action(action, request)
         return self.get(request, *args, **kwargs)
+
+    def handle_close_ticket_action(self):
+        """Close the ticket."""
+        if self.object.status != Ticket.Status.CLOSED:
+            self.object.status = Ticket.Status.CLOSED
+            self.object.closed_at = timezone.now()
+            self.object.save()
+            self.touch_ticket()

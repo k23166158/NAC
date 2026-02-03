@@ -60,7 +60,7 @@
           </div>
 
           {% if user.is_staff %}
-            <form class="forward-form" method="post" action="{% url 'ticket_forward' t.uuid %}">
+            <form class="forward-form" method="post">
               {% csrf_token %}
               <input type="hidden" name="return_tab" class="return-tab" value="active">
 
