@@ -12,7 +12,7 @@
 
 {% block content %}
 <div class="tickets-wrap tickets-centered">
-  {% if user.is_staff or user.is_superuser %}
+  {% if user.is_superuser %}
   <div class="admin-card">
     <div class="admin-header">
         <h3>Admin Dashboard</h3>

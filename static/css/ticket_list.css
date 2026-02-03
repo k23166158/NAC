@@ -2,7 +2,7 @@
 .ticket-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
 }
 
 .ticket-row {
@@ -18,11 +18,15 @@
     border-color: rgba(17, 24, 39, .18);
 }
 
+.ticket-row[open] .ticket-bar {
+    background: #f8fafc;
+}
+
 /* summary bar */
 .ticket-bar {
     list-style: none;
     cursor: pointer;
-    padding: 14px 16px;
+    padding: 16px 18px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -33,7 +37,7 @@
 }
 
 .ticket-bar:hover {
-    background: #fafafa;
+    background: #f9fafb;
 }
 
 .ticket-bar-overdue {
@@ -77,25 +81,31 @@
 }
 
 .ticket-bar-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
     min-width: 0;
 }
 
-.ticket-id {
-    font-weight: 800;
-    color: var(--muted);
-    font-size: 13px;
+/* Title hierarchy */
+.ticket-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
 }
 
 .ticket-title {
-    font-size: 15px;
-    font-weight: 760;
+    font-size: 15.5px;
+    font-weight: 800;
     letter-spacing: -0.2px;
+    line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.ticket-id {
+    font-weight: 700;
+    color: var(--muted);
+    font-size: 12.5px;
 }
 
 .ticket-bar-right {
@@ -105,46 +115,34 @@
     flex: 0 0 auto;
 }
 
-.status-chip {
-    font-size: 12px;
-    font-weight: 800;
-    padding: 5px 10px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: #fff;
-    color: var(--text);
-}
-
-.status-chip--open {
-    border-color: rgba(37, 99, 235, .25);
-    background: rgba(37, 99, 235, .08);
-    color: #1d4ed8;
-}
-
-.status-chip--overdue {
-    border-color: rgba(220, 38, 38, .25);
-    background: rgba(220, 38, 38, .08);
-    color: #b91c1c;
-}
-
-.status-chip--done {
-    border-color: rgba(22, 163, 74, .25);
-    background: rgba(22, 163, 74, .08);
-    color: #15803d;
-}
-
+/* Date */
 .ticket-date {
     font-size: 12.5px;
     color: var(--muted);
     white-space: nowrap;
 }
 
+.ticket-date strong {
+    color: var(--text);
+    font-weight: 800;
+}
+
+/* Expanded area */
 .ticket-expanded {
     border-top: 1px solid var(--border);
-    padding: 14px 16px 16px;
+    padding: 16px 18px 18px;
     background: #fff;
 }
 
+.ticket-expanded-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+/* Meta row */
 .meta-row {
     display: flex;
     align-items: center;
@@ -153,7 +151,7 @@
     gap: 10px;
     color: var(--muted);
     font-size: 12.8px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
 }
 
 .meta-item {
@@ -163,27 +161,28 @@
 }
 
 .meta-ico {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border: 1px solid var(--border);
     background: #fff;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: 12px;
+    opacity: .95;
 }
 
 .meta-dot {
     opacity: .55;
 }
 
-/* latest message block */
+/* Latest message block */
 .latest {
     border: 1px solid var(--border);
     background: #fbfbfc;
-    border-radius: 14px;
-    padding: 12px 12px 12px;
+    border-radius: 16px;
+    padding: 14px;
 }
 
 .latest-head {
@@ -195,11 +194,7 @@
     flex-wrap: wrap;
 }
 
-.latest-time {
-    font-size: 12.5px;
-    color: var(--muted);
-}
-
+.latest-time,
 .latest-from {
     font-size: 12.5px;
     color: var(--muted);
@@ -224,11 +219,12 @@
 
 .latest-body {
     font-size: 14px;
-    line-height: 1.45;
+    line-height: 1.5;
     color: var(--text);
     white-space: pre-wrap;
 }
 
+/* Actions */
 .ticket-actions {
     margin-top: 12px;
     display: flex;
