@@ -4,12 +4,11 @@ from django.utils.text import slugify
 
 from ..models import Department
 
-
-class CreateDepartmentForm(forms.ModelForm):
+class DepartmentForm(forms.ModelForm):
     """Form for creating a new department."""
     
     class Meta:
-        """Meta configuration for CreateDepartmentForm."""
+        """Meta configuration for DepartmentForm."""
         model = Department
         fields = ['name', 'description']
         widgets = {
@@ -31,7 +30,7 @@ class CreateDepartmentForm(forms.ModelForm):
 
     def _check_reserved_slug(self, slug, name):
         """Check if slug is a reserved word."""
-        reserved_slugs = ['create', 'edit', 'delete']
+        reserved_slugs = ['create', 'edit', 'delete', 'manage']
         if slug in reserved_slugs:
             raise ValidationError(
                 f'"{name}" is a reserved name and cannot be used for a department. Please choose a different name.'

@@ -1,7 +1,13 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Create Department{% endblock %}
+{% block title %}
+{% if type == 'edit' %}
+  Edit Department
+{% else %}
+  Create Department
+{% endif %}
+{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/department_form.css' %}">
@@ -11,8 +17,7 @@
 <div class="tickets-wrap tickets-centered">
   <div class="tickets-header tickets-header-centered">
     <div>
-      <h1 class="tickets-title">Create New Department</h1>
-      <p class="tickets-subtitle">Fill in the details below to create a new department.</p>
+      <h1 class="department-form-title">{% if type == 'edit' %}Edit Department{% else %}Create New Department{% endif %}</h1>
     </div>
   </div>
 
@@ -60,19 +65,18 @@
             </small>
           {% endfor %}
         {% endif %}
-        {% if form.description.help_text %}
-          <small class="department-form-help">
-            {{ form.description.help_text }}
-          </small>
-        {% endif %}
       </div>
 
       <div class="department-form-actions">
-        <a href="{% url 'home' %}" class="department-form-cancel">
+        {% if type == 'create' %}
+          <a href="{% url 'department_manage' %}" class="department-form-cancel">
+        {% else %}
+          <a href="{% url 'department' department.slug %}" class="department-form-cancel">
+        {% endif %}
           Cancel
         </a>
         <button type="submit" class="department-form-submit">
-          Create Department
+          {% if type == 'edit' %}Update Department{% else %}Create Department{% endif %}
         </button>
       </div>
     </form>

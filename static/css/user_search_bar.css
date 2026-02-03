@@ -1,0 +1,112 @@
+/* Search Dropdown */
+.search-dropdown {
+    display: none; /* Toggled by JS */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin-top: 5px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.dropdown-item {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #eee;
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: 0.2s;
+}
+
+.dropdown-item:hover {
+    background: #f8f9fa;
+}
+
+.avatar-small {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #666;
+    font-weight: bold;
+}
+
+.dropdown-name {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text);
+}
+
+/* Ticket Sections */
+.tickets-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.ticket-scroll-container {
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 5px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+}
+
+.section-dimmed {
+    opacity: 0.85;
+}
+
+.badge-count {
+    font-size: 0.8rem;
+}
+
+.badge-blue {
+    background: #e3f2fd;
+    color: #0d47a1;
+}
+
+.badge-gray {
+    background: #f5f5f5;
+    color: #666;
+}
+
+.empty-state {
+    padding: 20px;
+    text-align: center;
+    color: #999;
+}
+
+.empty-state-small {
+    padding: 15px;
+    text-align: center;
+    color: #999;
+    font-size: 0.9rem;
+    display: none; /* Toggled by JS */
+}
+
+.remove-staff-form {
+    margin: 0;
+}
+
+.empty-state-block {
+    display: block;
+}
+
+.section-title-dimmed {
+    color: #666;
+}
