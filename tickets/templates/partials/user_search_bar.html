@@ -1,0 +1,67 @@
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/user_search_bar.css' %}">
+{% endblock %}
+
+<div class="search-wrapper">
+    <input type="text" id="staffSearchInput" class="search-input" autocomplete="off" placeholder="Type to search staff...">
+
+    <div id="staffList" class="search-dropdown">
+        {% for user in staff %}
+            <form method="POST" class="staff-item" data-name="{{ user.full_name|lower }}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add">
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <button type="submit" class="dropdown-item">
+                    <div class="avatar-small">+</div>
+                    <span class="dropdown-name">{{ user.full_name }}</span>
+                    <i><span class="dropdown-username">{{ user.username }}</span></i>
+                </button>
+            </form>
+        {% empty %}
+            <div class="empty empty-state-small empty-state-block">No more staff available.</div>
+        {% endfor %}
+        <div id="noResultsMsg" class="empty-state-small">No staff found.</div>
+    </div>
+</div>
+
+<script>
+    const searchInput = document.getElementById('staffSearchInput');
+    const staffList = document.getElementById('staffList');
+    const items = document.querySelectorAll('.staff-item');
+    const noResultsMsg = document.getElementById('noResultsMsg');
+
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        
+        if (query.length <= 0) {
+            staffList.style.display = 'none';
+        }
+
+        staffList.style.display = 'block';
+        let hasVisibleItems = false;
+
+        items.forEach(item => {
+            const name = item.getAttribute('data-name');
+            if (name.includes(query)) {
+                item.style.display = 'block';
+                hasVisibleItems = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        if (!hasVisibleItems) {
+            noResultsMsg.style.display = 'block';
+        } else {
+            noResultsMsg.style.display = 'none';
+        }        
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !staffList.contains(e.target)) {
+            staffList.style.display = 'none';
+        }
+    });
+</script>
