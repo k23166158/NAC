@@ -169,6 +169,15 @@
     font-weight: 800;
     cursor: pointer;
 }
+.btn-cancel {
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 800;
+    cursor: pointer;
+}
 .ticket-actions {
     display: flex;
     justify-content: flex-end;

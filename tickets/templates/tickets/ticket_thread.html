@@ -35,7 +35,7 @@
             <div class="ticket-meta">
                 <span class="pill">Created by <strong>{{ ticket.created_by.username }}</strong></span>
                 <span class="pill">Created {{ ticket.created_at|date:"M d, Y H:i" }}</span>
-                <span class="pill">Updated {{ ticket.updated_at|date:"M d, Y H:i" }}</span>
+                <span class="pill">Updated: {{ ticket.updated_at|date:"M d, Y H:i" }}</span>
             </div>
             {% if first_message %}
                 <div class="ticket-description">
@@ -132,7 +132,9 @@
                     </button>
 
                     {% if edit_message %}
-                        <a href="" class="btn-cancel">Cancel</a>
+                        <button type="submit" class="btn-cancel">
+                            Cancel
+                        </button>
                     {% endif %}
                 </div>
             </form>
