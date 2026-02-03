@@ -1,6 +1,7 @@
 from django.views.generic import DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from ..models import Ticket, TicketMessage
 
 class TicketThreadView(LoginRequiredMixin, DetailView):
@@ -40,6 +41,10 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         context["edit_message"] = self.get_edit_message()
 
         return context
+    
+    def touch_ticket(self):
+        """Update the ticket's updated_at timestamp."""
+        Ticket.objects.filter(id=self.object.id).update(updated_at=timezone.now())
 
     def get_edit_message(self):
         """Return the message being edited, if any."""
@@ -65,6 +70,7 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         )
         message.hidden = True
         message.save()
+        self.touch_ticket()
 
     def handle_update_action(self, request):
         """Handle updating an existing message."""
@@ -81,6 +87,7 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
             message.body = body
             message.edited = True
             message.save()
+            self.touch_ticket()
 
     def handle_add_action(self, request):
         """Handle adding a new message."""
@@ -91,6 +98,7 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
                 sender=request.user,
                 body=body
             )
+            self.touch_ticket()
 
     def post(self, request, *args, **kwargs):
         """Handle POST actions: add, update, delete, or edit a message."""
