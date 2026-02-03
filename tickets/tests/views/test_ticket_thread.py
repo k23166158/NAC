@@ -1,5 +1,5 @@
 import uuid
-
+from django.utils import timezone
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -59,7 +59,7 @@ class TicketThreadViewTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(self._url())
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "tickets/ticket_thread.html")
+        self.assertTemplateUsed(response, "ticket_thread.html")
 
     def test_get_nonexistent_ticket_returns_404(self):
         """Requesting a non-existent ticket returns 404."""
@@ -175,7 +175,7 @@ class TicketThreadViewTests(TestCase):
             data=self._csrf_data(body="New reply"),
         )
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "tickets/ticket_thread.html")
+        self.assertTemplateUsed(response, "ticket_thread.html")
         self.assertEqual(TicketMessage.objects.filter(ticket=self.ticket).count(), 1)
         msg = TicketMessage.objects.get(ticket=self.ticket)
         self.assertEqual(msg.body, "New reply")
@@ -354,3 +354,54 @@ class TicketThreadViewTests(TestCase):
         self.assertEqual(response.status_code, 404)
         msg.refresh_from_db()
         self.assertFalse(msg.hidden)
+
+        # --- POST: close ticket ---
+
+    def test_post_close_ticket_sets_status_closed(self):
+        """POST action=close_ticket sets ticket status to closed and updates updated_at."""
+        self.client.force_login(self.user)
+        old_updated_at = self.ticket.updated_at
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="close_ticket"),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+        self.assertTrue(self.ticket.updated_at > old_updated_at)
+
+    def test_post_close_ticket_already_closed(self):
+        """POST action=close_ticket on an already closed ticket does not error and leaves closed_at unchanged."""
+        self.ticket.status = Ticket.Status.CLOSED
+        self.ticket.closed_at = timezone.now()
+        self.ticket.save()
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        old_closed_at = self.ticket.closed_at
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="close_ticket"),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+        self.assertEqual(self.ticket.closed_at, old_closed_at)
+
+    # --- touch_ticket coverage ---
+
+    def test_touch_ticket_updates_updated_at(self):
+        """touch_ticket explicitly updates updated_at timestamp."""
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        old_updated_at = self.ticket.updated_at
+        
+        # Trigger an action that calls touch_ticket, e.g. adding a message
+        self.client.post(
+            self._url(),
+            data=self._csrf_data(body="Touch test"),
+        )
+        
+        self.ticket.refresh_from_db()
+        self.assertTrue(self.ticket.updated_at > old_updated_at)
+

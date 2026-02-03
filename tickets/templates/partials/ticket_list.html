@@ -41,7 +41,7 @@
           <span class="pill">⏱ {{ t.updated_at|date:"M j, Y" }}</span>
 
           {% if user.is_staff %}
-            <form class="forward-form" method="post" action="{% url 'ticket_forward' t.uuid %}">
+            <form class="forward-form" method="post">
               {% csrf_token %}
 
               <!-- preserve which tab user was on -->
