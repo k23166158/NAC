@@ -4,7 +4,8 @@ from django.contrib.auth import get_user_model
 from unittest.mock import patch
 
 from tickets.models import Department, UserDepartments
-from tickets.forms import CreateDepartmentForm
+from tickets.views import CreateDepartmentView
+from tickets.forms import DepartmentForm
 
 User = get_user_model()
 
@@ -40,8 +41,8 @@ class CreateDepartmentViewTests(TestCase):
         self.client.force_login(self.staff_user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'create_department.html')
-        self.assertIsInstance(response.context['form'], CreateDepartmentForm)
+        self.assertTemplateUsed(response, 'department_form.html')
+        self.assertIsInstance(response.context['form'], DepartmentForm)
 
     def test_get_request_non_staff_user(self):
         """Test that non-staff users are denied access when accessing the form."""
@@ -63,19 +64,15 @@ class CreateDepartmentViewTests(TestCase):
             'name': 'IT Support',
             'description': 'Information Technology Support'
         }
+    
+        response = self.client.post(self.url, data=form_data)
 
-        with patch('tickets.views.create_department_views.redirect') as mock_redirect:
-            from django.http import HttpResponseRedirect
-            mock_redirect.return_value = HttpResponseRedirect('/departments/')
-            
-            response = self.client.post(self.url, data=form_data)
+        self.assertTrue(Department.objects.filter(name='IT Support').exists())
+        department = Department.objects.get(name='IT Support')
+        self.assertEqual(department.created_by, self.staff_user)
+        self.assertEqual(department.description, 'Information Technology Support')
 
-            self.assertTrue(Department.objects.filter(name='IT Support').exists())
-            department = Department.objects.get(name='IT Support')
-            self.assertEqual(department.created_by, self.staff_user)
-            self.assertEqual(department.description, 'Information Technology Support')
-
-            self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 302)
 
     def test_post_request_invalid_form_staff_user(self):
         """Test that invalid form data re-renders the form with errors."""
@@ -92,7 +89,7 @@ class CreateDepartmentViewTests(TestCase):
         response = self.client.post(self.url, data=form_data)
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'create_department.html')
+        self.assertTemplateUsed(response, 'department_form.html')
         self.assertFalse(response.context['form'].is_valid())
         self.assertIn('name', response.context['form'].errors)
 
@@ -120,14 +117,13 @@ class CreateDepartmentViewTests(TestCase):
 
     def test_test_func_returns_true_for_staff(self):
         """Test that test_func returns True for staff users."""
-        from tickets.views.create_department_views import CreateDepartmentView
         view = CreateDepartmentView()
         view.request = type('Request', (), {'user': self.staff_user})()
         self.assertTrue(view.test_func())
 
     def test_test_func_returns_false_for_non_staff(self):
         """Test that test_func returns False for non-staff users."""
-        from tickets.views.create_department_views import CreateDepartmentView
+        
         view = CreateDepartmentView()
         view.request = type('Request', (), {'user': self.regular_user})()
         self.assertFalse(view.test_func())
@@ -139,8 +135,8 @@ class CreateDepartmentViewTests(TestCase):
         response = self.client.get(self.url)
         # This tests _render_form indirectly through the GET method
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'create_department.html')
-        self.assertIsInstance(response.context['form'], CreateDepartmentForm)
+        self.assertTemplateUsed(response, 'department_form.html')
+        self.assertIsInstance(response.context['form'], DepartmentForm)
 
     def test_department_created_by_is_set_correctly(self):
         """Test that department.created_by is set to the request user."""
@@ -149,30 +145,23 @@ class CreateDepartmentViewTests(TestCase):
             'name': 'HR Department',
             'description': 'Human Resources'
         }
-
-        with patch('tickets.views.create_department_views.redirect') as mock_redirect:
-            from django.http import HttpResponseRedirect
-            mock_redirect.return_value = HttpResponseRedirect('/departments/')
             
-            self.client.post(self.url, data=form_data)
-            
-            department = Department.objects.get(name='HR Department')
-            self.assertEqual(department.created_by, self.staff_user)
+        self.client.post(self.url, data=form_data)
+        
+        department = Department.objects.get(name='HR Department')
+        self.assertEqual(department.created_by, self.staff_user)
 
     def test_creator_automatically_added_to_user_departments(self):
         """Test that department creator is automatically added to UserDepartments."""
         self.client.force_login(self.staff_user)
         form_data = {'name': 'Finance Department', 'description': 'Finance and Accounting'}
 
-        with patch('tickets.views.create_department_views.redirect') as mock_redirect:
-            from django.http import HttpResponseRedirect
-            mock_redirect.return_value = HttpResponseRedirect('/department/finance-department/')
-            self.client.post(self.url, data=form_data)
-            
-            department = Department.objects.get(name='Finance Department')
-            user_department = UserDepartments.objects.get(
-                user=self.staff_user, department=department
-            )
-            self.assertEqual(user_department.user, self.staff_user)
-            self.assertEqual(user_department.department, department)
+        self.client.post(self.url, data=form_data)
+        
+        department = Department.objects.get(name='Finance Department')
+        user_department = UserDepartments.objects.get(
+            user=self.staff_user, department=department
+        )
+        self.assertEqual(user_department.user, self.staff_user)
+        self.assertEqual(user_department.department, department)
 

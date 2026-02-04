@@ -10,22 +10,24 @@
 
         <div class="ticket-bar-main">
           <div class="ticket-bar-left">
-            <span class="ticket-id">#{{ t.uuid }}</span>
-            <span class="ticket-title">{{ t.title }}</span>
+            <div class="ticket-title-wrap">
+              <span class="ticket-title">{{ t.title }}</span>
+              <span class="ticket-id">#{{ t.uuid }}</span>
+            </div>
           </div>
 
           <div class="ticket-bar-right">
             {% if t.status == 'closed' %}
-                <span class="pill status status-completed">CLOSED</span>
+              <span class="pill status status-completed">Closed</span>
             {% elif t.status == 'pending' %}
-                <span class="pill status status-overdue">PENDING</span>
+              <span class="pill status status-overdue">Pending</span>
             {% else %}
-                <span class="pill status status-active">OPEN</span>
+              <span class="pill status status-active">Open</span>
             {% endif %}
 
             <span class="ticket-date">
               {% if t.last_message_at %}
-                Last message {{ t.last_message_at|date:"M j, Y" }}
+                Last message <strong>{{ t.last_message_at|date:"M j, Y" }}</strong>
               {% else %}
                 No messages yet
               {% endif %}
@@ -35,16 +37,31 @@
       </summary>
 
       <div class="ticket-expanded">
-        <div class="ticket-expanded-meta">
-          <span class="pill">👤 {{ t.created_by.first_name }} {{ t.created_by.last_name }}</span>
-          <span class="pill">🗓 {{ t.created_at|date:"M j, Y" }}</span>
-          <span class="pill">⏱ {{ t.updated_at|date:"M j, Y" }}</span>
+        <div class="ticket-expanded-top">
+          <div class="meta-row">
+            <span class="meta-item">
+              <span class="meta-ico">👤</span>
+              <span><strong>{{ t.created_by.first_name }} {{ t.created_by.last_name }}</strong></span>
+            </span>
+
+            <span class="meta-dot">•</span>
+
+            <span class="meta-item">
+              <span class="meta-ico">🗓</span>
+              <span>Created <strong>{{ t.created_at|date:"M j, Y" }}</strong></span>
+            </span>
+
+            <span class="meta-dot">•</span>
+
+            <span class="meta-item">
+              <span class="meta-ico">⏱</span>
+              <span>Updated <strong>{{ t.updated_at|date:"M j, Y" }}</strong></span>
+            </span>
+          </div>
 
           {% if user.is_staff %}
-            <form class="forward-form" method="post" action="{% url 'ticket_forward' t.uuid %}">
+            <form class="forward-form" method="post">
               {% csrf_token %}
-
-              <!-- preserve which tab user was on -->
               <input type="hidden" name="return_tab" class="return-tab" value="active">
 
               <div class="forward-control">
@@ -58,12 +75,12 @@
                   autocomplete="email"
                 >
               </div>
+
               <button class="forward-btn" type="submit">Forward</button>
             </form>
           {% endif %}
         </div>
 
-        {# ✅ POPUP GOES EXACTLY HERE (after meta, before thread) #}
         {% if request.GET.tid|default:'' == t.uuid|stringformat:"s" and request.GET.fwd|default:'' %}
           <div class="fwd-pop {% if request.GET.fwd|default:'' == 'ok' %}fwd-pop--ok{% else %}fwd-pop--err{% endif %}">
             <span class="fwd-pop-ico" aria-hidden="true">
@@ -83,21 +100,22 @@
         {% endif %}
 
         {% if t.last_message_at %}
-          <div class="thread">
-            <div class="msg {% if t.last_sender_is_staff %}msg-staff{% else %}msg-user{% endif %}">
-              <div class="msg-top">
-                <span class="msg-sender">
+          <div class="latest">
+            <div class="latest-head">
+              <div class="latest-from">
+                Latest from
+                <strong>
                   {% if t.last_message_sender_id == request.user.id %}
                     You
                   {% else %}
                     {{ t.last_sender_first }} {{ t.last_sender_last }}
                   {% endif %}
-                  {% if t.last_sender_is_staff %}<span class="msg-tag">STAFF</span>{% endif %}
-                </span>
-                <span class="msg-time">{{ t.last_message_at|date:"M j • H:i" }}</span>
+                </strong>
+                {% if t.last_sender_is_staff %}<span class="mini-tag">STAFF</span>{% endif %}
               </div>
-              <div class="msg-body">{{ t.last_message_body }}</div>
+              <div class="latest-time">{{ t.last_message_at|date:"M j • H:i" }}</div>
             </div>
+            <div class="latest-body">{{ t.last_message_body }}</div>
           </div>
         {% else %}
           <div class="empty">No messages yet.</div>

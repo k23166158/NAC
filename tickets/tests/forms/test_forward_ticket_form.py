@@ -5,7 +5,7 @@ from tickets.forms.forward_ticket import ForwardTicketForm
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from tickets.views.forward_ticket import _ticket_redirect, _err, _has_field
+from tickets.views.forward_ticket_view import _ticket_redirect, _err, _has_field
 
 
 User = get_user_model()

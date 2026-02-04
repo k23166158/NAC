@@ -43,14 +43,14 @@ class HomeViewTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "home.html")
+        self.assertTemplateUsed(response, "home_view.html")
 
     def test_home_view_authenticated_staff(self):
         """Staff should see home page."""
         self.client.force_login(self.staff1)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "home.html")
+        self.assertTemplateUsed(response, "home_view.html")
 
     # ------------------------
     # Student visibility
@@ -160,7 +160,8 @@ class HomeViewTests(TestCase):
         t = Ticket.objects.create(title="Should be overdue", created_by=self.user, status=Ticket.Status.OPEN)
 
         msg = TicketMessage.objects.create(ticket=t, sender=self.user, body="User asked something")
-        TicketMessage.objects.filter(pk=msg.pk).update(timestamp=timezone.now() - timedelta(days=8))
+        old_time = timezone.now() - timedelta(days=8)
+        TicketMessage.objects.filter(pk=msg.pk).update(created_at=old_time, edited_at=old_time)
 
         self.client.force_login(self.user)
         response = self.client.get(self.url)
@@ -176,10 +177,12 @@ class HomeViewTests(TestCase):
         t = Ticket.objects.create(title="Not overdue due to staff last", created_by=self.user, status=Ticket.Status.OPEN)
 
         m1 = TicketMessage.objects.create(ticket=t, sender=self.user, body="User ping")
-        TicketMessage.objects.filter(pk=m1.pk).update(timestamp=timezone.now() - timedelta(days=10))
+        old_m1 = timezone.now() - timedelta(days=10)
+        TicketMessage.objects.filter(pk=m1.pk).update(created_at=old_m1, edited_at=old_m1)
 
         m2 = TicketMessage.objects.create(ticket=t, sender=self.staff1, body="Staff replied")
-        TicketMessage.objects.filter(pk=m2.pk).update(timestamp=timezone.now() - timedelta(days=8))
+        old_m2 = timezone.now() - timedelta(days=8)
+        TicketMessage.objects.filter(pk=m2.pk).update(created_at=old_m2, edited_at=old_m2)
 
         self.client.force_login(self.user)
         response = self.client.get(self.url)

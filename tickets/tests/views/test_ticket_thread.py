@@ -1,5 +1,5 @@
 import uuid
-
+from django.utils import timezone
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -59,7 +59,7 @@ class TicketThreadViewTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(self._url())
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "tickets/ticket_thread.html")
+        self.assertTemplateUsed(response, "ticket_thread.html")
 
     def test_get_nonexistent_ticket_returns_404(self):
         """Requesting a non-existent ticket returns 404."""
@@ -140,8 +140,8 @@ class TicketThreadViewTests(TestCase):
         response = self.client.get(self._url())
         self.assertIsNone(response.context["last_user_message_id"])
 
-    def test_context_messages_ordered_by_timestamp(self):
-        """Reply messages in context are ordered by timestamp."""
+    def test_context_messages_ordered_by_created_at(self):
+        """Reply messages in context are ordered by created_at."""
         first = TicketMessage.objects.create(
             ticket=self.ticket,
             sender=self.user,
@@ -175,7 +175,7 @@ class TicketThreadViewTests(TestCase):
             data=self._csrf_data(body="New reply"),
         )
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "tickets/ticket_thread.html")
+        self.assertTemplateUsed(response, "ticket_thread.html")
         self.assertEqual(TicketMessage.objects.filter(ticket=self.ticket).count(), 1)
         msg = TicketMessage.objects.get(ticket=self.ticket)
         self.assertEqual(msg.body, "New reply")
@@ -191,6 +191,102 @@ class TicketThreadViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(TicketMessage.objects.filter(ticket=self.ticket).count(), 0)
+
+    # --- POST: edit / update message ---
+
+    def test_post_edit_sets_edit_message_in_context(self):
+        """POST action=edit shows the edit form for the selected message."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="Original body",
+        )
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="edit", message_id=str(msg.id)),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["edit_message"], msg)
+        self.assertEqual(
+            TicketMessage.objects.filter(ticket=self.ticket).count(),
+            1,
+        )
+
+    def test_post_update_changes_message_body(self):
+        """POST action=update modifies the existing message body."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="Original body",
+        )
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="update",
+                message_id=str(msg.id),
+                body="Updated body",
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        msg.refresh_from_db()
+        self.assertEqual(msg.body, "Updated body")
+
+    def test_post_update_other_users_message_returns_404(self):
+        """POST action=update on another user's message returns 404."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.other_user,
+            body="Other user body",
+        )
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="update",
+                message_id=str(msg.id),
+                body="Updated body",
+            ),
+        )
+        self.assertEqual(response.status_code, 404)
+        msg.refresh_from_db()
+        self.assertEqual(msg.body, "Other user body")
+
+    def test_post_update_without_body_does_not_change_message(self):
+        """POST action=update without body leaves the message unchanged."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="Original body",
+        )
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="update", message_id=str(msg.id)),
+        )
+        self.assertEqual(response.status_code, 200)
+        msg.refresh_from_db()
+        self.assertEqual(msg.body, "Original body")
+
+    def test_post_edit_other_users_message_returns_404(self):
+        """POST action=edit on another user's message returns 404."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.other_user,
+            body="Other user body",
+        )
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="edit", message_id=str(msg.id)),
+        )
+        self.assertEqual(response.status_code, 404)
 
     # --- POST: delete (hide) message ---
 
@@ -258,3 +354,54 @@ class TicketThreadViewTests(TestCase):
         self.assertEqual(response.status_code, 404)
         msg.refresh_from_db()
         self.assertFalse(msg.hidden)
+
+        # --- POST: close ticket ---
+
+    def test_post_close_ticket_sets_status_closed(self):
+        """POST action=close_ticket sets ticket status to closed and updates updated_at."""
+        self.client.force_login(self.user)
+        old_updated_at = self.ticket.updated_at
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="close_ticket"),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+        self.assertTrue(self.ticket.updated_at > old_updated_at)
+
+    def test_post_close_ticket_already_closed(self):
+        """POST action=close_ticket on an already closed ticket does not error and leaves closed_at unchanged."""
+        self.ticket.status = Ticket.Status.CLOSED
+        self.ticket.closed_at = timezone.now()
+        self.ticket.save()
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        old_closed_at = self.ticket.closed_at
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="close_ticket"),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+        self.assertEqual(self.ticket.closed_at, old_closed_at)
+
+    # --- touch_ticket coverage ---
+
+    def test_touch_ticket_updates_updated_at(self):
+        """touch_ticket explicitly updates updated_at timestamp."""
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        old_updated_at = self.ticket.updated_at
+        
+        # Trigger an action that calls touch_ticket, e.g. adding a message
+        self.client.post(
+            self._url(),
+            data=self._csrf_data(body="Touch test"),
+        )
+        
+        self.ticket.refresh_from_db()
+        self.assertTrue(self.ticket.updated_at > old_updated_at)
+

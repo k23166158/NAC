@@ -6,7 +6,7 @@ from django.utils.text import slugify
 class Department(models.Model):
     """Model representing a department within the ticketing system."""
     name = models.CharField(max_length=255)
-    description = models.TextField(max_length=1023, blank=True, help_text='Description of the department')
+    description = models.TextField(max_length=1023, blank=True)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
 
     created_by = models.ForeignKey(
