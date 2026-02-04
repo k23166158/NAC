@@ -43,14 +43,14 @@ class HomeViewTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "home.html")
+        self.assertTemplateUsed(response, "home_view.html")
 
     def test_home_view_authenticated_staff(self):
         """Staff should see home page."""
         self.client.force_login(self.staff1)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "home.html")
+        self.assertTemplateUsed(response, "home_view.html")
 
     # ------------------------
     # Student visibility

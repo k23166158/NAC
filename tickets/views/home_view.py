@@ -22,7 +22,7 @@ class HomeView(View):
             "overdue_tickets": overdue,
             "active_tickets": self._active_tickets(qs, overdue),
         }
-        return render(request, "home.html", context)
+        return render(request, "home_view.html", context)
 
     def _base_tickets(self, user):
         """Tickets visible to this user."""
