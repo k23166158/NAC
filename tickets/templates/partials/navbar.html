@@ -2,8 +2,8 @@
     <nav>
         <ul>
             <li><a href="/">Home</a></li>
-            {% if user.is_superuser %}
-                <li><a href="{% url 'manage_users' %}">Manage Users</a></li>
+            {% if user.is_superuser or user.is_staff %}
+                <li><a href="{% url 'manage_users' %}">Users</a></li>
             {% endif %}
                 {% if user.is_authenticated %}
                     {% if user.is_staff %}
