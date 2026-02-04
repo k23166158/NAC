@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="{% static 'css/admin.css' %}">
 <link rel="stylesheet" href="{% static 'css/tickets_home.css' %}">
 <link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
-<link rel="stylesheet" href="{% static 'css/forward_ticket.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -40,7 +39,9 @@
   <div class="tickets-header tickets-header-centered">
     <div>
       <h1 class="tickets-title">Tickets</h1>
-      <p class="tickets-subtitle">Click a tab to view tickets. Click a ticket to expand the latest message.</p>
+      <p class="tickets-subtitle">
+        Click a tab to view tickets. Click a ticket to expand the latest message.
+      </p>
     </div>
   </div>
 
@@ -85,12 +86,6 @@
       completed: document.getElementById("panel-completed"),
     };
 
-    function setReturnTabInputs(tabName) {
-      document.querySelectorAll('input[name="return_tab"]').forEach(inp => {
-        inp.value = tabName;
-      });
-    }
-
     function openTab(name) {
       buttons.forEach(btn => {
         const isSelected = btn.dataset.tab === name;
@@ -102,30 +97,15 @@
         if (key === name) el.removeAttribute("hidden");
         else el.setAttribute("hidden", "hidden");
       });
-
-      setReturnTabInputs(name);
     }
 
-    // Click handlers
-    buttons.forEach(btn =>
-      btn.addEventListener("click", () => openTab(btn.dataset.tab))
-    );
-
-    // Load initial tab from URL (?tab=active|overdue|completed)
     const params = new URLSearchParams(window.location.search);
     const initial = params.get("tab") || "active";
     openTab(panels[initial] ? initial : "active");
-  })();
-</script>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".fwd-pop").forEach(pop => {
-      const x = pop.querySelector(".fwd-pop-x");
-      const hide = () => pop.classList.add("is-hidden");
-      if (x) x.addEventListener("click", hide);
-      setTimeout(hide, 3200);
-    });
-  });
+    buttons.forEach(btn =>
+      btn.addEventListener("click", () => openTab(btn.dataset.tab))
+    );
+  })();
 </script>
 {% endblock %}

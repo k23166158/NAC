@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 
 from tickets.models import Ticket
 from tickets.models.ticket_participant import TicketParticipant
-from tickets.views.forward_ticket import _err, _err, _ticket_redirect
+from tickets.views.forward_ticket_view import _err, _err, _ticket_redirect
 
 from types import SimpleNamespace
 
@@ -155,8 +155,8 @@ class ForwardTicketViewTests(TestCase):
         form = SimpleNamespace(errors={})
         self.assertEqual(_err(form), "Email failed to forward.")
 
-    @patch("tickets.views.forward_ticket.TicketParticipant.objects.get_or_create")
-    @patch("tickets.views.forward_ticket._has_field", return_value=False)
+    @patch("tickets.views.forward_ticket_view.TicketParticipant.objects.get_or_create")
+    @patch("tickets.views.forward_ticket_view._has_field", return_value=False)
     def test_defaults_empty_when_no_added_by_field(self, _has_field_mock, get_or_create_mock):
         """If TicketParticipant has no added_by field, defaults should be empty."""
         self.client.force_login(self.staff1)
