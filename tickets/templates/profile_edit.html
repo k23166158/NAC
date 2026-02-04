@@ -21,49 +21,50 @@
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
 
-      <!-- Profile Picture -->
       <div class="profile-upload">
         <div class="avatar">
-          {% if user.profile_picture %}
-            <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}">
-          {% endif %}
+          <span id="avatarText">{% if user.profile_picture %}{% else %}No photo{% endif %}</span>
+
+          <img id="avatarImg"
+               {% if user.profile_picture %}
+                 src="{{ user.profile_picture.url }}"
+                 style="display:block;"
+               {% else %}
+                 style="display:none;"
+               {% endif %}
+               alt="{{ user.username }}">
         </div>
 
         <div class="profile-upload-right">
           <p class="profile-upload-title">Profile picture</p>
-          <p class="profile-upload-hint">PNG or JPG. Square images work best.</p>
-          <input type="file" name="profile_picture">
+          <p class="profile-upload-hint">Choose an image to use as your avatar.</p>
+          <input type="file" name="profile_picture" accept="image/*">
         </div>
       </div>
 
       <p>
         <label for="first_name">First name</label>
-        <input type="text" name="first_name" id="first_name"
-               value="{{ user.first_name }}" required>
+        <input type="text" name="first_name" id="first_name" value="{{ user.first_name }}" required>
       </p>
 
       <p>
         <label for="last_name">Last name</label>
-        <input type="text" name="last_name" id="last_name"
-               value="{{ user.last_name }}" required>
+        <input type="text" name="last_name" id="last_name" value="{{ user.last_name }}" required>
       </p>
 
       <p>
         <label for="username">Username</label>
-        <input type="text" name="username" id="username"
-               value="{{ user.username }}" required>
+        <input type="text" name="username" id="username" value="{{ user.username }}" required>
       </p>
 
       <p>
         <label for="email">Email</label>
-        <input type="email" name="email" id="email"
-               value="{{ user.email }}" required>
+        <input type="email" name="email" id="email" value="{{ user.email }}" required>
       </p>
 
       <p>
         <label for="password">New password (optional)</label>
-        <input type="password" name="password" id="password"
-               placeholder="Leave blank to keep current password">
+        <input type="password" name="password" id="password" placeholder="Leave blank to keep current password">
       </p>
 
       <button type="submit">Save changes</button>
@@ -75,4 +76,24 @@
 
   </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const input = document.querySelector('input[type="file"][name="profile_picture"]');
+  const img = document.getElementById("avatarImg");
+  const text = document.getElementById("avatarText");
+
+  if (!input || !img || !text) return;
+
+  input.addEventListener("change", function () {
+    const file = input.files[0];
+    if (!file || !file.type.startsWith("image/")) return;
+
+    const url = URL.createObjectURL(file);
+    img.src = url;
+    img.style.display = "block";
+    text.style.display = "none";
+  });
+});
+</script>
 {% endblock %}
