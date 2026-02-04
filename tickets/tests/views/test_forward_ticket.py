@@ -155,14 +155,14 @@ class ForwardTicketViewTests(TestCase):
         form = SimpleNamespace(errors={})
         self.assertEqual(_err(form), "Email failed to forward.")
 
-    @patch("tickets.views.forward_ticket_view.TicketParticipant.objects.get_or_create")
+    @patch("tickets.views.forward_ticket_view.TicketParticipant.objects.create")
     @patch("tickets.views.forward_ticket_view._has_field", return_value=False)
-    def test_defaults_empty_when_no_added_by_field(self, _has_field_mock, get_or_create_mock):
-        """If TicketParticipant has no added_by field, defaults should be empty."""
+    def test_defaults_empty_when_no_added_by_field(self, _has_field_mock, create_mock):
+        """If TicketParticipant has no added_by field, create kwarg added_by should be absent."""
         self.client.force_login(self.staff1)
         self.client.post(self.url, data={"email": self.staff2.email, "return_tab": "active"})
 
-        self.assertTrue(get_or_create_mock.called)
-        kwargs = get_or_create_mock.call_args.kwargs
-        self.assertEqual(kwargs.get("defaults"), {})
+        self.assertTrue(create_mock.called)
+        kwargs = create_mock.call_args.kwargs
+        self.assertNotIn("added_by", kwargs)
     

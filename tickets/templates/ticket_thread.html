@@ -50,61 +50,78 @@
     <div class="ticket-list">
         {% for message in messages %}
             <div class="reply">
-                <div class="ticket-card {% if message.sender == user %}my-message{% endif %}">
-                    <div class="ticket-top">
-                        <strong class="sender-name">{{ message.sender.username }}</strong>
-                        <div class="meta-right">
-                            <span class="timestamp">
-                                {% if message.edited %}
-                                    Updated: {{ message.edited_at|date:"M d, Y H:i" }}
-                                {% else %}
-                                    {{ message.created_at|date:"M d, Y H:i" }}
-                                {% endif %}
-                            </span>
 
-                            {% if not message.hidden and message.sender == user %}
-                                {% if ticket.status != 'closed' %}
-                                    <div class="message-actions">
-                                        {% if message.id == last_user_message_id %}
-                                        <form method="post">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="edit">
-                                            <input type="hidden" name="message_id" value="{{ message.id }}">
-                                            <button type="submit" class="btn-tiny edit-btn" title="Edit this message">
-                                                <i class="bi bi-pen"></i>
-                                            </button>
-                                        </form>
-                                        {% endif %}
-
-                                        <form method="post">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="message_id" value="{{ message.id }}">
-                                            <button type="submit" class="btn-tiny delete-btn"
-                                                    title="Delete this message"
-                                                    onclick="return confirm('Are you sure you want to delete this message?');">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                {% endif%}
-                            {% endif %}
-                        </div>
+                {% if message.sender is None %}
+                    {# SYSTEM MESSAGE #}
+                    <div class="system-event">
+                        <span class="system-text">
+                            {{ message.body }}
+                        </span>
+                        <span class="system-timestamp">
+                            {{ message.created_at|date:"M d, Y H:i" }}
+                        </span>
                     </div>
 
-                    {% if message.hidden %}
-                        <p class="message-body deleted-message">
-                            <em>[This message has been deleted]</em>
-                        </p>
-                    {% else %}
-                        <p class="message-body">{{ message.body }}</p>
-                    {% endif %}
-                </div>
+                {% else %}
+                    {# NORMAL MESSAGE #}
+                    <div class="ticket-card {% if message.sender == user %}my-message{% endif %}">
+                        <div class="ticket-top">
+                            <strong class="sender-name">{{ message.sender.username }}</strong>
+                            <div class="meta-right">
+                                <span class="timestamp">
+                                    {% if message.edited %}
+                                        Updated: {{ message.edited_at|date:"M d, Y H:i" }}
+                                    {% else %}
+                                        {{ message.created_at|date:"M d, Y H:i" }}
+                                    {% endif %}
+                                </span>
+
+                                {% if not message.hidden and message.sender == user %}
+                                    {% if ticket.status != 'closed' %}
+                                        <div class="message-actions">
+                                            {% if message.id == last_user_message_id %}
+                                            <form method="post">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="edit">
+                                                <input type="hidden" name="message_id" value="{{ message.id }}">
+                                                <button type="submit" class="btn-tiny edit-btn">
+                                                    <i class="bi bi-pen"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+
+                                            <form method="post">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="message_id" value="{{ message.id }}">
+                                                <button type="submit"
+                                                        class="btn-tiny delete-btn"
+                                                        onclick="return confirm('Are you sure you want to delete this message?');">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if message.hidden %}
+                            <p class="message-body deleted-message">
+                                <em>[This message has been deleted]</em>
+                            </p>
+                        {% else %}
+                            <p class="message-body">{{ message.body }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
             </div>
         {% empty %}
             <div class="empty">No replies yet.</div>
         {% endfor %}
     </div>
+
 
     <div class="line-break"></div>
     
@@ -113,23 +130,10 @@
             <div class="forward-ticket-container">
                 <p class="forward-info">Forward this ticket to another staff member via email.</p>
 
-                {# Popup for forward success/error messages #}
-                {% if request.GET.tid|default:'' == ticket.uuid|stringformat:"s" and request.GET.fwd|default:'' %}
-                <div class="fwd-pop {% if request.GET.fwd|default:'' == 'ok' %}fwd-pop--ok{% else %}fwd-pop--err{% endif %}">
-                    <span class="fwd-pop-ico" aria-hidden="true">
-                    {% if request.GET.fwd == 'ok' %}✓{% else %}!{% endif %}
-                    </span>
-
-                    <div class="fwd-pop-text">
-                    {% if request.GET.fwd|default:'' == 'ok' %}
-                        Forwarded to <strong>{{ request.GET.email|default:'' }}</strong>.
-                    {% else %}
-                        {{ request.GET.msg|default:"Email failed to forward." }}
-                    {% endif %}
+                {% if request.GET.fwd == "err" and request.GET.tid == ticket.uuid|stringformat:"s" %}
+                    <div class="forward-error">
+                        {{ request.GET.msg }}
                     </div>
-
-                    <button type="button" class="fwd-pop-x" aria-label="Close">×</button>
-                </div>
                 {% endif %}
 
                 <form class="forward-form" method="post" action="{% url 'ticket_forward' ticket.uuid %}">
@@ -199,16 +203,5 @@
     {% endif %}
 
 </div>
-{% comment %} {% url 'close_ticket' ticket.id %} {% endcomment %}
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".fwd-pop").forEach(pop => {
-      const x = pop.querySelector(".fwd-pop-x");
-      const hide = () => pop.classList.add("is-hidden");
-      if (x) x.addEventListener("click", hide);
-      setTimeout(hide, 3200);
-    });
-  });
-</script>
 
 {% endblock %}
