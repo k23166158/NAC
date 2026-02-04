@@ -57,33 +57,34 @@ class ForwardTicketView(View):
         """Handle POST to forward a ticket to a staff user."""
         if not request.user.is_authenticated or not request.user.is_staff:
             return self._forbidden()
-        ticket = self._ticket(ticket_id)
-        rt = request.POST.get("return_tab", "active")
-        form = ForwardTicketForm(request.POST)
+
+        ticket, rt, form = self._ticket(ticket_id), request.POST.get("return_tab", "active"), ForwardTicketForm(request.POST)
         if not form.is_valid():
-            return _ticket_redirect(rt, ticket.uuid, fwd="err", tid=ticket.uuid, msg=_err(form))
+            return self._redirect_error(ticket, rt, _err(form))
+
         staff_user = form.get_user()
-        if staff_user.id == request.user.id:
-            return _ticket_redirect(rt, ticket.uuid, fwd="err", tid=ticket.uuid, msg="You cannot forward a ticket to yourself.")
-        if TicketParticipant.objects.filter(ticket=ticket, user=staff_user).exists():
-            return _ticket_redirect(
-                rt,
-                ticket.uuid,
-                fwd="err",
-                tid=ticket.uuid,
-                msg="That staff member already has access to this ticket."
-            )
+        if self._invalid_forward(request.user, ticket, staff_user):
+            return self._redirect_error(ticket, rt, self._forward_error_msg(request.user, ticket, staff_user))
 
-        TicketParticipant.objects.create(
-            ticket=ticket,
-            user=staff_user,
-            **self._defaults(request)
-        )
-
-        TicketMessage.objects.create(
-            ticket=ticket,
-            body=f"Ticket forwarded to {staff_user.full_name()}",
-            sender=None
-        )
-        self.touch_ticket(ticket)
+        self._forward_ticket(ticket, staff_user)
         return _ticket_redirect(rt, ticket.uuid, fwd="ok", tid=ticket.uuid, email=staff_user.email)
+
+    def _redirect_error(self, ticket, rt, msg):
+        """Direct to ticket with error message."""
+        return _ticket_redirect(rt, ticket.uuid, fwd="err", tid=ticket.uuid, msg=msg)
+
+    def _invalid_forward(self, user, ticket, staff_user):
+        """Check if forwarding to the given staff user is invalid."""
+        return staff_user.id == user.id or TicketParticipant.objects.filter(ticket=ticket, user=staff_user).exists()
+
+    def _forward_error_msg(self, user, ticket, staff_user):
+        """Generate an error message for invalid forwards."""
+        if staff_user.id == user.id:
+            return "You cannot forward a ticket to yourself."
+        return "That staff member already has access to this ticket."
+
+    def _forward_ticket(self, ticket, staff_user):
+        """Forward the ticket to the given staff user."""
+        TicketParticipant.objects.create(ticket=ticket, user=staff_user, **self._defaults(self.request))
+        TicketMessage.objects.create(ticket=ticket, body=f"Ticket forwarded to {staff_user.full_name()}", sender=None)
+        self.touch_ticket(ticket)
