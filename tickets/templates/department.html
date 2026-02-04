@@ -42,9 +42,7 @@
                                 {% if user.profile_picture %}
                                     <img src="{{ user.profile_picture.url }}" alt="{{ user.first_name }}" class="avatar">
                                 {% else %}
-                                    <div class="avatar-placeholder">
-                                        {{ user.first_name|first }}{{ user.last_name|first }}
-                                    </div>
+                                   {% include "partials/empty_avatar.html" with user=user %}
                                 {% endif %}
                                 <span class="staff-name">{{ user.full_name }}</span>
                             </div>
