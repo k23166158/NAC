@@ -13,15 +13,15 @@ class CreateTicketViewTests(TestCase):
         self.student = User.objects.create_user(
             username="student1",
             email="student1@example.com",
-            first_name="Stu",
-            last_name="Dent",
+            first_name="John",
+            last_name="Doe",
             password="pass12345",
         )
         self.creator = User.objects.create_user(
             username="creator1",
             email="creator1@example.com",
-            first_name="Cre",
-            last_name="Ator",
+            first_name="Jane",
+            last_name="Doe",
             password="pass12345",
         )
         self.department = Department.objects.create(name="Support", created_by=self.creator)
