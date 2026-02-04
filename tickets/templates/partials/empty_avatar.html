@@ -1,0 +1,9 @@
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/user_search_bar.css' %}">
+{% endblock %}
+
+<div class="avatar-placeholder">
+    {{ user.first_name|first }}{{ user.last_name|first }}
+</div>
