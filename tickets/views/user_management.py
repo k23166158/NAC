@@ -63,8 +63,8 @@ class ToggleUserStatusView(LoginRequiredMixin, UserPassesTestMixin, View):
         if user_to_toggle == request.user:
             return redirect('manage_users')
 
-        # Prevent staff from deactivating superusers
-        if user_to_toggle.is_superuser and not request.user.is_superuser:
+        # Prevent non supersusers from deactivating anyone
+        if not request.user.is_superuser:
             return redirect('manage_users')
 
         user_to_toggle.is_active = not user_to_toggle.is_active
