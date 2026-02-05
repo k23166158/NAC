@@ -13,6 +13,8 @@ class TicketMessage(models.Model):
    sender = models.ForeignKey(
       settings.AUTH_USER_MODEL,
       on_delete=models.CASCADE,
+      null=True,
+      blank=True,
       related_name="ticket_messages",
       db_column="sender",)
    created_at = models.DateTimeField(auto_now_add=True)
