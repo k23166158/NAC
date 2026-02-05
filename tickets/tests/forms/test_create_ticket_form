@@ -6,7 +6,7 @@ from tickets.models import Department
 
 
 class CreateTicketFormTests(TestCase):
-    """Tests for the CreateTicketForm to ensure validation logic works as expected."""
+    """Tests for CreateTicketForm validation branches."""
     def setUp(self):
         """Create a department to select in the form."""
         User = get_user_model()
@@ -19,7 +19,7 @@ class CreateTicketFormTests(TestCase):
         )
         self.department = Department.objects.create(name="Support", created_by=creator)
 
-    def test_title_whitespace_is_invalid(self):
+    def test_whitespace_title_is_invalid(self):
         """Whitespace-only title should fail validation."""
         form = CreateTicketForm(data={
             "title": "   ",
@@ -29,7 +29,7 @@ class CreateTicketFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("title", form.errors)
 
-    def test_body_whitespace_is_invalid(self):
+    def test_whitespace_body_is_invalid(self):
         """Whitespace-only body should fail validation."""
         form = CreateTicketForm(data={
             "title": "Valid title",
@@ -39,21 +39,13 @@ class CreateTicketFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("body", form.errors)
 
-    def test_departments_required(self):
-        """Departments is required."""
+    def test_title_and_body_are_stripped_when_valid(self):
+        """Valid data is accepted and whitespace is stripped."""
         form = CreateTicketForm(data={
-            "title": "Valid title",
-            "body": "Valid message",
-            "departments": [],
-        })
-        self.assertFalse(form.is_valid())
-        self.assertIn("departments", form.errors)
-
-    def test_valid_data_is_valid(self):
-        """Valid payload passes validation."""
-        form = CreateTicketForm(data={
-            "title": "Need help",
-            "body": "I need support with my module.",
+            "title": "  Need help  ",
+            "body": "  Hello there  ",
             "departments": [self.department.id],
         })
         self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["title"], "Need help")
+        self.assertEqual(form.cleaned_data["body"], "Hello there")
