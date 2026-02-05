@@ -2,7 +2,7 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
-from tickets.forms.create_ticket import CreateTicketForm
+from tickets.forms.ticket_create import CreateTicketForm
 from tickets.models import Department
 
 
