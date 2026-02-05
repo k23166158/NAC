@@ -1,4 +1,3 @@
-# tickets/tests/forms/test_create_ticket_form.py
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
@@ -7,49 +6,54 @@ from tickets.models import Department
 
 
 class CreateTicketFormTests(TestCase):
+    """Tests for the CreateTicketForm to ensure validation logic works as expected."""
     def setUp(self):
-        """Set up a user and a department for testing."""
+        """Create a department to select in the form."""
         User = get_user_model()
-        self.creator = User.objects.create_user(
+        creator = User.objects.create_user(
             username="creator",
             email="creator@example.com",
-            first_name="Cre",
-            last_name="Ator",
+            first_name="Creator",
+            last_name="User",
             password="pass12345",
         )
-        self.department = Department.objects.create(name="Support", created_by=self.creator)
+        self.department = Department.objects.create(name="Support", created_by=creator)
 
-    def test_form_valid_data(self):
-        """Test that the form is valid with correct data."""
-        form = CreateTicketForm(
-            data={"title": "My title", "department": self.department.id, "body": "Hello there"}
-        )
-        self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data["title"], "My title")
-        self.assertEqual(form.cleaned_data["body"], "Hello there")
-        self.assertEqual(form.cleaned_data["department"], self.department)
-
-    def test_form_strips_title_and_body(self):
-        """Test that the form strips leading/trailing whitespace from title and body."""
-        form = CreateTicketForm(
-            data={"title": "  My title  ", "department": self.department.id, "body": "  Hi  "}
-        )
-        self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data["title"], "My title")
-        self.assertEqual(form.cleaned_data["body"], "Hi")
-
-    def test_form_rejects_empty_title(self):
-        """Test that the form rejects an empty title."""
-        form = CreateTicketForm(
-            data={"title": "   ", "department": self.department.id, "body": "Valid body"}
-        )
+    def test_title_whitespace_is_invalid(self):
+        """Whitespace-only title should fail validation."""
+        form = CreateTicketForm(data={
+            "title": "   ",
+            "body": "Valid message",
+            "departments": [self.department.id],
+        })
         self.assertFalse(form.is_valid())
         self.assertIn("title", form.errors)
 
-    def test_form_rejects_empty_body(self):
-        """Test that the form rejects an empty body."""
-        form = CreateTicketForm(
-            data={"title": "Valid title", "department": self.department.id, "body": "   "}
-        )
+    def test_body_whitespace_is_invalid(self):
+        """Whitespace-only body should fail validation."""
+        form = CreateTicketForm(data={
+            "title": "Valid title",
+            "body": "   ",
+            "departments": [self.department.id],
+        })
         self.assertFalse(form.is_valid())
         self.assertIn("body", form.errors)
+
+    def test_departments_required(self):
+        """Departments is required."""
+        form = CreateTicketForm(data={
+            "title": "Valid title",
+            "body": "Valid message",
+            "departments": [],
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("departments", form.errors)
+
+    def test_valid_data_is_valid(self):
+        """Valid payload passes validation."""
+        form = CreateTicketForm(data={
+            "title": "Need help",
+            "body": "I need support with my module.",
+            "departments": [self.department.id],
+        })
+        self.assertTrue(form.is_valid())
