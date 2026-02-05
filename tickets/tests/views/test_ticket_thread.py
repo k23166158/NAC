@@ -68,6 +68,16 @@ class TicketThreadViewTests(TestCase):
         response = self.client.get(reverse("ticket_thread", kwargs={"uuid": uuid.uuid4()}))
         self.assertEqual(response.status_code, 404)
 
+    def test_dispatch_post_action_edit_lambda_direct(self):
+        """Directly call dispatch_post_action with action='edit' to execute the lambda."""
+        self.client.force_login(self.user)
+        view = TicketThreadView()
+        view.object = self.ticket
+        # Use a real request object
+        request = self.client.get(self._url()).wsgi_request
+        # This should execute the "edit" lambda which does nothing
+        view.dispatch_post_action("edit", request)
+
     # --- GET: context (first_message, messages, last_user_message_id) ---
 
     def test_context_zero_messages(self):
@@ -513,3 +523,30 @@ class TicketThreadViewTests(TestCase):
         view.request = self.client.get(self._url()).wsgi_request
         view.object = self.ticket
         self.assertIsNone(view.get_edit_message())
+
+    def test_handle_staff_change_unknown_action_does_nothing(self):
+        """handle_staff_change does nothing when action is unknown."""
+        staff_user = make_user("staffuser_unknown", is_staff=True)
+        self.client.force_login(self.user)
+        
+        # Manually create request and view to call handle_staff_change directly
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.post(
+            self._url(), 
+            data={"action": "unknown", "user_id": str(staff_user.id)}
+        )
+        request.user = self.user
+        
+        view = TicketThreadView()
+        view.object = self.ticket
+        view.handle_staff_change(request)
+        
+        # Verify no changes happened
+        self.assertFalse(self.ticket.participants.filter(user=staff_user).exists())
+        self.assertFalse(
+            TicketMessage.objects.filter(ticket=self.ticket, body__contains="was added").exists()
+        )
+        self.assertFalse(
+            TicketMessage.objects.filter(ticket=self.ticket, body__contains="was removed").exists()
+        )
