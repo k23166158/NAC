@@ -6,6 +6,7 @@ from tickets.models import Department, Ticket, TicketMessage, TicketAssigned
 
 
 class CreateTicketViewTests(TestCase):
+    """Tests for the CreateTicketView to ensure correct ticket creation and form handling."""
     def setUp(self):
         """Set up users and a department for testing."""
         User = get_user_model()

@@ -17,13 +17,17 @@ def render_create_ticket(request, form):
     return render(request, "create_ticket.html", {"form": form})
 
 
+def build_assignments(ticket, departments):
+    """Build TicketAssigned objects for the selected departments."""
+    return [TicketAssigned(ticket=ticket, department=dept) for dept in departments]
+
+
 def create_ticket_objects(user, cleaned):
-    """Create Ticket, TicketMessage, and TicketAssigned objects from form data."""
+    """Create Ticket, first TicketMessage, and TicketAssigned rows atomically."""
     with transaction.atomic():
         ticket = Ticket.objects.create(title=cleaned["title"], created_by=user)
         TicketMessage.objects.create(ticket=ticket, body=cleaned["body"], sender=user)
-        for dept in cleaned["departments"]:
-            TicketAssigned.objects.create(ticket=ticket, department=dept)
+        TicketAssigned.objects.bulk_create(build_assignments(ticket, cleaned["departments"]))
     return ticket
 
 
