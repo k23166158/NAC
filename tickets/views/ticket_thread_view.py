@@ -38,11 +38,13 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         return last_user_message.id if last_user_message else None
     
     def get_ticket_staff(self):
+        """Get the staff users assigned to the ticket."""
         return [
             p.user for p in self.object.participants.select_related("user")
         ]
 
     def get_available_staff(self, current_staff):
+        """Get staff users available to be added to the ticket."""
         current_ids = [u.id for u in current_staff]
         return User.objects.filter(is_staff=True).exclude(id__in=current_ids)
 
@@ -51,18 +53,13 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         """Add ticket messages to the context."""
         context = super().get_context_data(**kwargs)
         messages = self.get_messages_queryset()
-
         current_staff = self.get_ticket_staff()
-
         context["staff"] = current_staff
         context["available_staff"] = self.get_available_staff(current_staff)
-
         context["first_message"] = self.get_first_message(messages)
         context["messages"] = self.get_reply_messages(messages)
         context["last_user_message_id"] = self.get_last_user_message_id(messages)
-
         context["edit_message"] = self.get_edit_message()
-
         return context
     
     def touch_ticket(self):
@@ -123,36 +120,33 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
             )
             self.touch_ticket()
 
-    def handle_staff_change(self, request):
-        user_id = request.POST.get("user_id")
-        action = request.POST.get("action")
+    def _add_staff(self, user, added_by):
+        """Assign a staff member to the ticket."""
+        assign_staff_to_ticket(ticket=self.object, staff_user=user, added_by=added_by)
 
+    def _remove_staff(self, user):
+        """Remove a staff member from the ticket and log it."""
+        TicketParticipant.objects.filter(ticket=self.object, user=user).delete()
+        TicketMessage.objects.create(
+            ticket=self.object,
+            sender=None,
+            body=f"{user.get_full_name()} was removed from the ticket."
+        )
+
+    def handle_staff_change(self, request):
+        """Handle adding or removing a staff user from the ticket."""
+        user_id = request.POST.get("user_id")
         if not user_id:
             return
-
         user = get_object_or_404(User, id=user_id, is_staff=True)
-
+        action = request.POST.get("action")
         if action == "add":
-            assign_staff_to_ticket(
-                ticket=self.object,
-                staff_user=user,
-                added_by=request.user,
-            )
-
-        elif action == "remove":
-            TicketParticipant.objects.filter(
-                ticket=self.object,
-                user=user,
-            ).delete()
-
-            TicketMessage.objects.create(
-                ticket=self.object,
-                sender=None,
-                body=f"{user.get_full_name()} was removed from the ticket.",
-            )
-
-        self.touch_ticket()
-
+            self._add_staff(user, request.user)
+            self.touch_ticket()
+            return
+        if action == "remove":
+            self._remove_staff(user)
+            self.touch_ticket()
 
 
     def dispatch_post_action(self, action, request):
