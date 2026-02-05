@@ -143,8 +143,7 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         if action == "add":
             self._add_staff(user, request.user)
             self.touch_ticket()
-            return
-        if action == "remove":
+        elif action == "remove":
             self._remove_staff(user)
             self.touch_ticket()
 
