@@ -1,7 +1,7 @@
 .tickets-wrap {
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 0;
 }
 .back-link-container {
     margin-bottom: 20px;
@@ -76,11 +76,6 @@
     border-radius: 6px;
 }
 
-.section-title {
-    font-size: 16px;
-    margin-bottom: 10px;
-    margin-left: 20px;
-}
 .ticket-card {
     background: #fff;
     border: 1px solid var(--border);
@@ -341,4 +336,122 @@
     white-space: nowrap;
     margin-left: 15px;
     opacity: 0.8;
+}
+
+/* Section Headings */
+.section-wrapper {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0;
+    color: var(--text);
+    border-bottom: 2px solid #eee;
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+}
+
+/* Staff Grid */
+.staff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: stretch;
+    margin-top: 16px;
+}
+
+.staff-card {
+    background: #f8f9fa;
+    /* padding: 20px; */
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.staff-card-header {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+    margin-bottom: 12px;
+    margin-top: 0;
+}
+
+/* Staff List Items */
+.staff-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.staff-row {
+    padding: 10px;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.staff-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.staff-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* Avatars */
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #666;
+    font-weight: bold;
+}
+
+/* Remove Button */
+.btn-icon-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #dc3545;
+    padding: 5px;
+    margin-right: 15px;
+}
+
+/* Search Bar (included partial) */
+.search-wrapper {
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fff;
 }
