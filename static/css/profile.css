@@ -150,4 +150,18 @@
   .profile-details {
     grid-template-columns: 1fr;
   }
+
+  .profile-avatar--edit {
+    width: 96px;
+    height: 96px;
+  }
+
 }
+.hidden {
+    display: none;
+  }
+
+.avatar img {
+  display: block;
+}
+

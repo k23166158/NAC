@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -23,22 +24,27 @@
 
       <div class="profile-upload">
         <div class="avatar">
-          <span id="avatarText">{% if user.profile_picture %}{% else %}No photo{% endif %}</span>
+          <span
+            id="avatarInitials"
+            class="profile-initials {% if user.profile_picture %}hidden{% endif %}"
+          >
+            {{ user.first_name|first }}{{ user.last_name|first }}
+          </span>
 
-          <img id="avatarImg"
-               {% if user.profile_picture %}
-                 src="{{ user.profile_picture.url }}"
-                 style="display:block;"
-               {% else %}
-                 style="display:none;"
-               {% endif %}
-               alt="{{ user.username }}">
+          <img
+            id="avatarImg"
+            class="{% if not user.profile_picture %}hidden{% endif %}"
+            {% if user.profile_picture %}
+              src="{{ user.profile_picture.url }}"
+            {% endif %}
+            alt="{{ user.username }}"
+          >
         </div>
 
         <div class="profile-upload-right">
           <p class="profile-upload-title">Profile picture</p>
           <p class="profile-upload-hint">Choose an image to use as your avatar.</p>
-          <input type="file" name="profile_picture" accept="image/*">
+          <input id="profilePicInput" type="file" name="profile_picture" accept="image/*">
         </div>
       </div>
 
@@ -79,20 +85,19 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  const input = document.querySelector('input[type="file"][name="profile_picture"]');
+  const input = document.getElementById("profilePicInput");
   const img = document.getElementById("avatarImg");
-  const text = document.getElementById("avatarText");
+  const initials = document.getElementById("avatarInitials");
 
-  if (!input || !img || !text) return;
+  if (!input || !img || !initials) return;
 
   input.addEventListener("change", function () {
-    const file = input.files[0];
+    const file = input.files && input.files[0];
     if (!file || !file.type.startsWith("image/")) return;
 
-    const url = URL.createObjectURL(file);
-    img.src = url;
-    img.style.display = "block";
-    text.style.display = "none";
+    img.src = URL.createObjectURL(file);
+    img.classList.remove("hidden");
+    initials.classList.add("hidden");
   });
 });
 </script>

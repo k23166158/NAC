@@ -6,15 +6,15 @@ from tickets.models import User
 
 class ProfileView(View):
     """Displays another user's profile."""
+
     def get(self, request, pk):
+        """Render the public profile page for a given user."""
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path())
 
         if request.user.pk == pk:
             return redirect("my_profile")
-
         user_obj = get_object_or_404(User, pk=pk)
-
         return render(
             request,
             "profile.html",
