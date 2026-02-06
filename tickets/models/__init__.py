@@ -5,3 +5,4 @@ from .department import Department
 from .ticket_assigned import TicketAssigned
 from .user_departments import UserDepartments
 from .ticket_participant import TicketParticipant
+from .department_invitation import DepartmentInvitation
