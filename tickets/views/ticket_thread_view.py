@@ -135,17 +135,16 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
     def handle_staff_change(self, request):
         """Handle adding or removing a staff user from the ticket."""
         user_id = request.POST.get("user_id")
-        if not user_id:
-            return
-        user = get_object_or_404(User, id=user_id, is_staff=True)
         action = request.POST.get("action")
-        if action == "add":
-            self._add_staff(user, request.user)
-            self.touch_ticket()
-        elif action == "remove":
-            self._remove_staff(user)
-            self.touch_ticket()
-
+        if not user_id: return
+        user = get_object_or_404(User, id=user_id, is_staff=True)
+        handlers = {
+            "add": lambda: self._add_staff(user, request.user),
+            "remove": lambda: self._remove_staff(user),
+        }
+        handler = handlers.get(action)
+        if handler:
+            handler()
 
     def dispatch_post_action(self, action, request):
         """Dispatch POST action to the appropriate handler."""

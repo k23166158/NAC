@@ -497,6 +497,7 @@ class TicketThreadViewTests(TestCase):
         self.assertEqual(msg.body, "Default add")
 
     def test_add_staff_direct_call(self):
+        """Direct call to _add_staff adds the staff user as a participant."""
         staff_user = make_user("directstaff", is_staff=True)
         self.client.force_login(self.user)
         view = TicketThreadView()
@@ -505,6 +506,7 @@ class TicketThreadViewTests(TestCase):
         self.assertTrue(self.ticket.participants.filter(user=staff_user).exists())
 
     def test_remove_staff_direct_call(self):
+        """Direct call to _remove_staff removes the staff user and logs a message."""
         staff_user = make_user("directstaff", is_staff=True)
         self.ticket.participants.create(user=staff_user)
         self.client.force_login(self.user)
@@ -517,6 +519,7 @@ class TicketThreadViewTests(TestCase):
         )
 
     def test_get_edit_message_returns_none_when_no_action_or_id(self):
+        """get_edit_message returns None when no action or message_id in POST."""
         self.client.force_login(self.user)
         self.client.get(self._url())
         view = TicketThreadView()
@@ -541,7 +544,6 @@ class TicketThreadViewTests(TestCase):
         view = TicketThreadView()
         view.object = self.ticket
         view.handle_staff_change(request)
-        
         # Verify no changes happened
         self.assertFalse(self.ticket.participants.filter(user=staff_user).exists())
         self.assertFalse(

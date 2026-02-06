@@ -11,8 +11,9 @@ from tickets.models import Ticket, TicketParticipant, TicketMessage
 User = get_user_model()
 
 class AssignStaffToTicketTests(TestCase):
+    """Test cases for the assign_staff_to_ticket helper function."""
     def setUp(self):
-        # Create a standard user and a staff user
+        """Create a standard user and a staff user."""
         self.staff_user = User.objects.create_user(
             username='staff', 
             email='staff@example.com',
@@ -35,63 +36,37 @@ class AssignStaffToTicketTests(TestCase):
         )
 
     def test_assign_staff_successfully_created(self):
-        """
-        Test that a new staff member is assigned, a message is created, 
-        and the ticket timestamp is updated.
-        """
+        """Test that a new staff member is assigned, a message is created, and the ticket timestamp is updated."""
         old_updated_at = self.ticket.updated_at
-        
-        # 1. Call the function
-        result = assign_staff_to_ticket(self.ticket, self.staff_user)
 
-        # 2. Refresh ticket from DB to check timestamp
+        result = assign_staff_to_ticket(self.ticket, self.staff_user)
         self.ticket.refresh_from_db()
 
-        # --- Assertions ---
-        # Should return True
         self.assertTrue(result)
-
-        # Participant should exist
         self.assertTrue(
             TicketParticipant.objects.filter(ticket=self.ticket, user=self.staff_user).exists()
         )
-
-        # System message should be created
         expected_msg = "John Doe was added to the ticket."
         self.assertTrue(
             TicketMessage.objects.filter(ticket=self.ticket, body=expected_msg).exists()
         )
 
-        # Ticket updated_at should have changed
         self.assertNotEqual(self.ticket.updated_at, old_updated_at)
         self.assertTrue(self.ticket.updated_at > old_updated_at)
 
     def test_assign_staff_already_exists(self):
-        """
-        Test that if the staff is already a participant, function returns False
-        and no side effects occur (no new message, no timestamp update).
-        """
-        # Setup: Manually create participant first
+        """Test that if the staff is already a participant, function returns Falseand no side effects occur (no new message, no timestamp update)."""
         TicketParticipant.objects.create(ticket=self.ticket, user=self.staff_user)
         
-        # Capture state before call
         old_updated_at = self.ticket.updated_at
         initial_message_count = TicketMessage.objects.count()
-
-        # 1. Call the function
         result = assign_staff_to_ticket(self.ticket, self.staff_user)
-
-        # 2. Refresh ticket
         self.ticket.refresh_from_db()
 
-        # --- Assertions ---
-        # Should return False
         self.assertFalse(result)
 
-        # No new messages should be created
         self.assertEqual(TicketMessage.objects.count(), initial_message_count)
 
-        # Timestamp should NOT change (allowing for microsecond DB precision differences)
         self.assertEqual(self.ticket.updated_at, old_updated_at)
 
     def test_assign_with_added_by_argument(self):
