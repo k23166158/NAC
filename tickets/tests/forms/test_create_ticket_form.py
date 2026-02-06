@@ -28,6 +28,7 @@ class CreateTicketFormTests(TestCase):
         })
         self.assertFalse(form.is_valid())
         self.assertIn("title", form.errors)
+        self.assertIn("Title cannot be empty.", form.errors["title"])
 
     def test_whitespace_body_is_invalid(self):
         """Whitespace-only body should fail validation."""
@@ -38,6 +39,7 @@ class CreateTicketFormTests(TestCase):
         })
         self.assertFalse(form.is_valid())
         self.assertIn("body", form.errors)
+        self.assertIn("Message cannot be empty.", form.errors["body"])
 
     def test_title_and_body_are_stripped_when_valid(self):
         """Valid data is accepted and whitespace is stripped."""
