@@ -4,9 +4,8 @@
 {% block title %}{{ department.name }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/department_view.css' %}">
-<link rel="stylesheet" href="{% static 'css/tickets_home.css' %}">
 <link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
+<link rel="stylesheet" href="{% static 'css/department_view.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -19,10 +18,12 @@
                 <p class="tickets-subtitle dept-subtitle">{{ department.description }}</p>
             </div>
             
-            <div class="dept-actions">
-                <button class="pill btn-action btn-secondary">Edit</button>
-                <button class="pill btn-action btn-danger">Delete</button>
-            </div>
+            {% if department.created_by == user %}
+                <div class="dept-actions">
+                    <a class="pill btn-action btn-secondary" href="{% url 'edit_department' department.slug %}">Edit</a>
+                    <a class="pill btn-action btn-danger" href="{% url 'delete_department' department.slug %}">Delete</a>
+                </div>
+            {% endif %}
         </div>
     </div>
 
@@ -41,9 +42,7 @@
                                 {% if user.profile_picture %}
                                     <img src="{{ user.profile_picture.url }}" alt="{{ user.first_name }}" class="avatar">
                                 {% else %}
-                                    <div class="avatar-placeholder">
-                                        {{ user.first_name|first }}{{ user.last_name|first }}
-                                    </div>
+                                   {% include "partials/empty_avatar.html" with user=user %}
                                 {% endif %}
                                 <span class="staff-name">{{ user.full_name }}</span>
                             </div>
@@ -67,27 +66,7 @@
 
             <div class="staff-card">
                 <h3 class="staff-card-header">Add Staff</h3>
-                
-                <div class="search-wrapper">
-                    <input type="text" id="staffSearchInput" class="search-input" autocomplete="off" placeholder="Type to search staff...">
-
-                    <div id="staffList" class="search-dropdown">
-                        {% for user in available_staff %}
-                            <form method="POST" class="staff-item" data-name="{{ user.full_name|lower }}">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="add">
-                                <input type="hidden" name="user_id" value="{{ user.id }}">
-                                <button type="submit" class="dropdown-item">
-                                    <div class="avatar-small">+</div>
-                                    <span class="dropdown-name">{{ user.full_name }}</span>
-                                </button>
-                            </form>
-                        {% empty %}
-                            <div class="empty empty-state-small empty-state-block">No more staff available.</div>
-                        {% endfor %}
-                        <div id="noResultsMsg" class="empty-state-small">No staff found.</div>
-                    </div>
-                </div>
+                {% include 'partials/user_search_bar.html' with staff=available_staff %}
             </div>
         </div>
     </div>
@@ -126,45 +105,4 @@
 
     </div>
 </div>
-
-<script>
-    const searchInput = document.getElementById('staffSearchInput');
-    const staffList = document.getElementById('staffList');
-    const items = document.querySelectorAll('.staff-item');
-    const noResultsMsg = document.getElementById('noResultsMsg');
-
-    searchInput.addEventListener('input', function() {
-        const query = this.value.toLowerCase().trim();
-        
-        if (query.length > 0) {
-            staffList.style.display = 'block';
-            let hasVisibleItems = false;
-
-            items.forEach(item => {
-                const name = item.getAttribute('data-name');
-                if (name.includes(query)) {
-                    item.style.display = 'block';
-                    hasVisibleItems = true;
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-
-            if (!hasVisibleItems) {
-                noResultsMsg.style.display = 'block';
-            } else {
-                noResultsMsg.style.display = 'none';
-            }
-
-        } else {
-            staffList.style.display = 'none';
-        }
-    });
-
-    document.addEventListener('click', function(e) {
-        if (!searchInput.contains(e.target) && !staffList.contains(e.target)) {
-            staffList.style.display = 'none';
-        }
-    });
-</script>
 {% endblock %}

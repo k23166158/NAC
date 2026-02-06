@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete Department{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/department_form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tickets-wrap tickets-centered">
+  <div class="tickets-header tickets-header-centered">
+    <div>
+      <h1 class="department-form-title">Delete Department</h1>
+    </div>
+  </div>
+
+  <div class="department-form-container">
+    <div class="department-form-card">
+      <p class="centre-aligned">Are you sure you want to delete the department <strong>{{ department.name }}</strong>? </p>
+      <p class="red-text">This action cannot be undone.</p>
+
+      <form method="post" class="department-form-actions centre-aligned">
+        {% csrf_token %}
+        
+        <a href="{% url 'department' department.slug %}" class="department-form-cancel">
+          Cancel
+        </a>
+        
+        <button type="submit" class="department-form-submit red-delete-button">
+          Confirm Delete
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

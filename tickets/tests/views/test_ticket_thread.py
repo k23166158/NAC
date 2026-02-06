@@ -1,8 +1,9 @@
 import uuid
-
+from django.utils import timezone
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from tickets.views.ticket_thread_view import TicketThreadView
 
 from tickets.models import Ticket, TicketMessage
 
@@ -59,13 +60,23 @@ class TicketThreadViewTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(self._url())
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "tickets/ticket_thread.html")
+        self.assertTemplateUsed(response, "ticket_thread.html")
 
     def test_get_nonexistent_ticket_returns_404(self):
         """Requesting a non-existent ticket returns 404."""
         self.client.force_login(self.user)
         response = self.client.get(reverse("ticket_thread", kwargs={"uuid": uuid.uuid4()}))
         self.assertEqual(response.status_code, 404)
+
+    def test_dispatch_post_action_edit_lambda_direct(self):
+        """Directly call dispatch_post_action with action='edit' to execute the lambda."""
+        self.client.force_login(self.user)
+        view = TicketThreadView()
+        view.object = self.ticket
+        # Use a real request object
+        request = self.client.get(self._url()).wsgi_request
+        # This should execute the "edit" lambda which does nothing
+        view.dispatch_post_action("edit", request)
 
     # --- GET: context (first_message, messages, last_user_message_id) ---
 
@@ -175,7 +186,7 @@ class TicketThreadViewTests(TestCase):
             data=self._csrf_data(body="New reply"),
         )
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "tickets/ticket_thread.html")
+        self.assertTemplateUsed(response, "ticket_thread.html")
         self.assertEqual(TicketMessage.objects.filter(ticket=self.ticket).count(), 1)
         msg = TicketMessage.objects.get(ticket=self.ticket)
         self.assertEqual(msg.body, "New reply")
@@ -354,3 +365,190 @@ class TicketThreadViewTests(TestCase):
         self.assertEqual(response.status_code, 404)
         msg.refresh_from_db()
         self.assertFalse(msg.hidden)
+
+        # --- POST: close ticket ---
+
+    def test_post_close_ticket_sets_status_closed(self):
+        """POST action=close_ticket sets ticket status to closed and updates updated_at."""
+        self.client.force_login(self.user)
+        old_updated_at = self.ticket.updated_at
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="close_ticket"),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+        self.assertTrue(self.ticket.updated_at > old_updated_at)
+
+    def test_post_close_ticket_already_closed(self):
+        """POST action=close_ticket on an already closed ticket does not error and leaves closed_at unchanged."""
+        self.ticket.status = Ticket.Status.CLOSED
+        self.ticket.closed_at = timezone.now()
+        self.ticket.save()
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        old_closed_at = self.ticket.closed_at
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="close_ticket"),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+        self.assertEqual(self.ticket.closed_at, old_closed_at)
+
+    # --- touch_ticket coverage ---
+
+    def test_touch_ticket_updates_updated_at(self):
+        """touch_ticket explicitly updates updated_at timestamp."""
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        old_updated_at = self.ticket.updated_at
+        
+        # Trigger an action that calls touch_ticket, e.g. adding a message
+        self.client.post(
+            self._url(),
+            data=self._csrf_data(body="Touch test"),
+        )
+        
+        self.ticket.refresh_from_db()
+        self.assertTrue(self.ticket.updated_at > old_updated_at)
+
+
+    # --- Staff Management ---
+
+    def test_post_add_staff_adds_user_and_message(self):
+        """POST action=add adds staff user and system message."""
+        self.staff_user = make_user("staffuser", is_staff=True, email="staff@example.com")
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="add",
+                user_id=str(self.staff_user.id)
+            ),
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(self.ticket.participants.filter(user=self.staff_user).exists())
+        self.assertTrue(
+            TicketMessage.objects.filter(
+                ticket=self.ticket, 
+                body__contains="First Last was added to the ticket"
+            ).exists()
+        )
+
+    def test_post_remove_staff_removes_user_and_message(self):
+        """POST action=remove removes staff user and adds system message."""
+        self.staff_user = make_user("staffuser", is_staff=True, email="staff@example.com")
+        self.ticket.participants.create(user=self.staff_user)
+        
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="remove",
+                user_id=str(self.staff_user.id)
+            ),
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(self.ticket.participants.filter(user=self.staff_user).exists())
+        self.assertTrue(
+            TicketMessage.objects.filter(
+                ticket=self.ticket, 
+                body__contains="First Last was removed from the ticket"
+            ).exists()
+        )
+
+    def test_post_add_staff_invalid_user_does_nothing(self):
+        """POST action=add with missing user_id does nothing."""
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="add",
+                user_id=""
+            ),
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        # Should be just the creator
+        self.assertEqual(self.ticket.participants.count(), 0)
+
+    def test_dispatch_post_action_unknown_triggers_add(self):
+        """Unknown POST action defaults to adding a message."""
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="unknown_action", body="Default add")
+        )
+        self.assertEqual(response.status_code, 200)
+        msg = TicketMessage.objects.get(ticket=self.ticket)
+        self.assertEqual(msg.body, "Default add")
+
+    def test_add_staff_direct_call(self):
+        """Direct call to _add_staff adds the staff user as a participant."""
+        staff_user = make_user("directstaff", is_staff=True)
+        self.client.force_login(self.user)
+        view = TicketThreadView()
+        view.object = self.ticket
+        view._add_staff(staff_user, self.user)
+        self.assertTrue(self.ticket.participants.filter(user=staff_user).exists())
+
+    def test_remove_staff_direct_call(self):
+        """Direct call to _remove_staff removes the staff user and logs a message."""
+        staff_user = make_user("directstaff", is_staff=True)
+        self.ticket.participants.create(user=staff_user)
+        self.client.force_login(self.user)
+        view = TicketThreadView()
+        view.object = self.ticket
+        view._remove_staff(staff_user)
+        self.assertFalse(self.ticket.participants.filter(user=staff_user).exists())
+        self.assertTrue(
+            TicketMessage.objects.filter(ticket=self.ticket, body__contains="was removed").exists()
+        )
+
+    def test_get_edit_message_returns_none_when_no_action_or_id(self):
+        """get_edit_message returns None when no action or message_id in POST."""
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        view = TicketThreadView()
+        view.request = self.client.get(self._url()).wsgi_request
+        view.object = self.ticket
+        self.assertIsNone(view.get_edit_message())
+
+    def test_handle_staff_change_unknown_action_does_nothing(self):
+        """handle_staff_change does nothing when action is unknown."""
+        staff_user = make_user("staffuser_unknown", is_staff=True)
+        self.client.force_login(self.user)
+        
+        # Manually create request and view to call handle_staff_change directly
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.post(
+            self._url(), 
+            data={"action": "unknown", "user_id": str(staff_user.id)}
+        )
+        request.user = self.user
+        
+        view = TicketThreadView()
+        view.object = self.ticket
+        view.handle_staff_change(request)
+        # Verify no changes happened
+        self.assertFalse(self.ticket.participants.filter(user=staff_user).exists())
+        self.assertFalse(
+            TicketMessage.objects.filter(ticket=self.ticket, body__contains="was added").exists()
+        )
+        self.assertFalse(
+            TicketMessage.objects.filter(ticket=self.ticket, body__contains="was removed").exists()
+        )
