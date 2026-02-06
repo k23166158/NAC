@@ -16,7 +16,9 @@
         {% if profile_user.profile_picture %}
           <img src="{{ profile_user.profile_picture.url }}" alt="{{ profile_user.username }}">
         {% else %}
-          <div class="profile-avatar-blank"></div>
+          <div class="profile-initials">
+            {{ profile_user.first_name|default:profile_user.username|first }}{{ profile_user.last_name|default:""|first }}
+          </div>
         {% endif %}
       </div>
 
@@ -50,6 +52,13 @@
         <div class="profile-label">Email</div>
         <div class="profile-value">{{ profile_user.email }}</div>
       </div>
+
+      {% if profile_user.bio %}
+      <div class="profile-field profile-field-full">
+        <div class="profile-label">Bio</div>
+        <div class="profile-value">{{ profile_user.bio }}</div>
+      </div>
+      {% endif %}
     </div>
 
   </div>
