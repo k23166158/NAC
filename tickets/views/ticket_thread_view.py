@@ -3,7 +3,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from requests import request
 from tickets.helpers.ticket_assignment import assign_staff_to_ticket
 
 
