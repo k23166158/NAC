@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from tickets.views import (
-    HomeView, CustomLoginView, TicketThreadView, ForwardTicketView,
+    HomeView, UnauthenticatedHomeView, CustomLoginView, TicketThreadView, ForwardTicketView,
     DepartmentView, CreateDepartmentView, DepartmentManageView, EditDepartmentView, DeleteDepartmentView,
     UserManagementView, ToggleUserStatusView,
 )
@@ -29,6 +29,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', HomeView.as_view(), name='home'),
+    path('unauthenticated-home/', UnauthenticatedHomeView.as_view(), name='unauthenticated_home'),
     path('login/', CustomLoginView.as_view(), name='login'),
     path('signup/', SignUpView, name='signup'),
     path('logout/', LogoutView.as_view(), name='logout'),
