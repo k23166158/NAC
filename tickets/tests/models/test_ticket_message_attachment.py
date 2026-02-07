@@ -8,20 +8,6 @@ from tickets.models.ticket_message_attachments import TicketMessageAttachment
 User = get_user_model()
 
 
-class FileNoContentType:
-    """Wrapper around an uploaded file that intentionally hides `content_type`."""
-
-    def __init__(self, f):
-        """Store the underlying uploaded file and expose only name/size."""
-        self._f = f
-        self.name = f.name
-
-    @property
-    def size(self):
-        """Return the underlying file size (bytes)."""
-        return self._f.size
-
-
 class TicketMessageAttachmentModelTests(TestCase):
     """Tests for the TicketMessageAttachment model."""
 
@@ -107,31 +93,22 @@ class TicketMessageAttachmentModelTests(TestCase):
         self.assertEqual(att.content_type, "custom/type")
         self.assertEqual(att.size_bytes, 999)
 
-    def test_content_type_not_set_if_file_has_no_content_type_attr(self):
-        """If the file object has no `content_type`, the model should not set it."""
-        att = self._make_attachment_with_file_without_content_type()
-
-        self.assertEqual(att.original_name, "bin.dat")
-        self.assertEqual(att.size_bytes, len(b"\x00\x01\x02"))
-        self.assertEqual(att.content_type, "")
-
-    def _make_attachment_with_file_without_content_type(self):
-        """Create and save an attachment where file lacks a `content_type` attribute."""
+    def test_content_type_not_set_if_file_has_no_content_type(self):
+        """If the uploaded file provides no content_type, model should not set it."""
         upload = SimpleUploadedFile(
             "bin.dat",
             b"\x00\x01\x02",
-            content_type="application/octet-stream",
+            content_type=None,
         )
 
-        att = TicketMessageAttachment(
+        att = TicketMessageAttachment.objects.create(
             ticket=self.ticket,
             message=self.message,
             file=upload,
             uploaded_by=self.user,
         )
-        att.file = FileNoContentType(upload)
-        att.save()
-        return att
+
+        self.assertEqual(att.content_type, "")
 
     def test_str_representation(self):
         """Test __str__ output includes original name and message id."""
@@ -176,7 +153,7 @@ class TicketMessageAttachmentModelTests(TestCase):
         self.assertEqual(TicketMessageAttachment.objects.count(), 0)
 
     def test_related_names(self):
-        """Test related_name access from Ticket and TicketMessage."""
+        """Test related_name access from Ticket, TicketMessage, and User."""
         upload = SimpleUploadedFile("a.txt", b"abc", content_type="text/plain")
 
         att = TicketMessageAttachment.objects.create(

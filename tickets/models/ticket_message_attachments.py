@@ -47,20 +47,25 @@ class TicketMessageAttachment(models.Model):
 
     def save(self, *args, **kwargs):
         """Populate metadata automatically from the uploaded file."""
-        if not self.file:
+        file = self.file
+        if not file:
             super().save(*args, **kwargs)
             return
 
         if not self.size_bytes:
-            self.size_bytes = self.file.size
-
+            self.size_bytes = file.size
         if not self.original_name:
-            self.original_name = self.file.name
-
-        if not self.content_type and hasattr(self.file, "content_type"):
-            self.content_type = self.file.content_type
+            self.original_name = file.name.split("/")[-1]
+        if not self.content_type:
+            self.content_type = (
+                getattr(file, "content_type", None)
+                or getattr(getattr(file, "file", None), "content_type", None)
+                or ""
+            )
 
         super().save(*args, **kwargs)
+
+
 
     def __str__(self):
         """String representation of the TicketMessageAttachment instance."""
