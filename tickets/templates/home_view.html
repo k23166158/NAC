@@ -45,18 +45,19 @@
     </div>
   </div>
 
-  <div class="scope-wrap">
-    <label class="scope-label">
-      <span class="scope-text">View:</span>
+  {# Only show scope dropdown to staff/superusers #}
+  {% if user.is_staff or user.is_superuser %}
+    <div class="scope-wrap">
+      <label class="scope-label">
+        <span class="scope-text">View:</span>
 
-      <select id="scopeSelect" class="scope-select">
-        <option value="personal" {% if scope == "personal" %}selected{% endif %}>Personal tickets</option>
-        {% if user.is_staff %}
+        <select id="scopeSelect" class="scope-select">
+          <option value="personal" {% if scope == "personal" %}selected{% endif %}>Personal tickets</option>
           <option value="department" {% if scope == "department" %}selected{% endif %}>Department tickets</option>
-        {% endif %}
-      </select>
-    </label>
-  </div>
+        </select>
+      </label>
+    </div>
+  {% endif %}
 
   <div class="tabs tabs-centered" role="tablist" aria-label="Ticket tabs">
     <button class="tab-btn is-active" type="button" role="tab" aria-selected="true"
@@ -91,6 +92,8 @@
   </section>
 </div>
 
+{# Only staff/superusers need the scope-changing JS #}
+{% if user.is_staff or user.is_superuser %}
 <script>
   (function () {
     const scopeSelect = document.getElementById("scopeSelect");
@@ -99,14 +102,11 @@
     scopeSelect.addEventListener("change", () => {
       const params = new URLSearchParams(window.location.search);
 
-      // keep current tab open if present
       const currentTab = params.get("tab") || "active";
       params.set("tab", currentTab);
 
-      // set the new scope
       params.set("scope", scopeSelect.value);
 
-      // optional: keep "open" ticket expanded if present
       const open = params.get("open");
       if (open) params.set("open", open);
 
@@ -114,7 +114,7 @@
     });
   })();
 </script>
-
+{% endif %}
 
 <script>
   (function () {
