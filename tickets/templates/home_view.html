@@ -45,6 +45,21 @@
     </div>
   </div>
 
+  <div style="margin-top: 12px; display: flex; justify-content: center;">
+    <label style="display:flex; align-items:center; gap:10px;">
+      <span style="color: var(--muted); font-size: 13px; font-weight: 700;">View:</span>
+
+      <select id="scopeSelect"
+              style="padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background:#fff; font-weight: 700;">
+        <option value="personal" {% if scope == "personal" %}selected{% endif %}>Personal tickets</option>
+        {% if user.is_staff %}
+          <option value="department" {% if scope == "department" %}selected{% endif %}>Department tickets</option>
+        {% endif %}
+      </select>
+    </label>
+  </div>
+
+
   <div class="tabs tabs-centered" role="tablist" aria-label="Ticket tabs">
     <button class="tab-btn is-active" type="button" role="tab" aria-selected="true"
             aria-controls="panel-active" data-tab="active">
@@ -77,6 +92,31 @@
     {% endif %}
   </section>
 </div>
+
+<script>
+  (function () {
+    const scopeSelect = document.getElementById("scopeSelect");
+    if (!scopeSelect) return;
+
+    scopeSelect.addEventListener("change", () => {
+      const params = new URLSearchParams(window.location.search);
+
+      // keep current tab open if present
+      const currentTab = params.get("tab") || "active";
+      params.set("tab", currentTab);
+
+      // set the new scope
+      params.set("scope", scopeSelect.value);
+
+      // optional: keep "open" ticket expanded if present
+      const open = params.get("open");
+      if (open) params.set("open", open);
+
+      window.location.search = params.toString();
+    });
+  })();
+</script>
+
 
 <script>
   (function () {
