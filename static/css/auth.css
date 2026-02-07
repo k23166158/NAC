@@ -161,10 +161,6 @@ input[type="file"] {
     text-decoration: underline;
 }
 
-/*#avatarImg {*/
-/*    display: none;*/
-/*}*/
-
 .login-error-msg {
     color: #b91c1c;
     margin-bottom: 12px;
