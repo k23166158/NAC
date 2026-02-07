@@ -51,7 +51,6 @@ class TicketMessageAttachment(models.Model):
         if not file:
             super().save(*args, **kwargs)
             return
-
         if not self.size_bytes:
             self.size_bytes = file.size
         if not self.original_name:
@@ -59,10 +58,8 @@ class TicketMessageAttachment(models.Model):
         if not self.content_type:
             self.content_type = (
                 getattr(file, "content_type", None)
-                or getattr(getattr(file, "file", None), "content_type", None)
-                or ""
+                or getattr(getattr(file, "file", None), "content_type", None) or ""
             )
-
         super().save(*args, **kwargs)
 
 

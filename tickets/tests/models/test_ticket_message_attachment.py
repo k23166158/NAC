@@ -1,4 +1,7 @@
-from django.test import TestCase
+import shutil
+import tempfile
+
+from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -7,9 +10,17 @@ from tickets.models.ticket_message_attachments import TicketMessageAttachment
 
 User = get_user_model()
 
+_TMP_MEDIA = tempfile.mkdtemp()
 
+@override_settings(MEDIA_ROOT=_TMP_MEDIA)
 class TicketMessageAttachmentModelTests(TestCase):
     """Tests for the TicketMessageAttachment model."""
+
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up temporary media files created during tests."""
+        shutil.rmtree(_TMP_MEDIA, ignore_errors=True)
+        super().tearDownClass()
 
     def setUp(self):
         """Create a user, ticket, and message used across tests."""
