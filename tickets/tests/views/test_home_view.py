@@ -36,7 +36,7 @@ class HomeViewTests(TestCase):
         """Anonymous users should see landing page."""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "landing.html")
+        self.assertTemplateUsed(response, "unauthenticated_home.html")
 
     def test_home_view_authenticated_student(self):
         """Student should see home page."""
