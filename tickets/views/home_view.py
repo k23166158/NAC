@@ -13,7 +13,7 @@ class HomeView(View):
     def get(self, request):
         """Handle GET request for home page."""
         if not request.user.is_authenticated:
-            return render(request, "landing.html")
+            return render(request, "unauthenticated_home.html")
 
         qs = self._annotated_tickets(request.user)
         overdue = self._overdue_tickets(qs)
