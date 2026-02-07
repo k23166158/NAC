@@ -13,20 +13,13 @@ class HomeView(View):
 
     def get(self, request):
         """Handle GET request for home page."""
-        if not request.user.is_authenticated:
-            return render(request, "landing.html")
-
+        if not request.user.is_authenticated: return render(request, "landing.html")
         scope = request.GET.get("scope", "personal")
-        if scope not in {"personal", "department"}:
-            scope = "personal"
-
+        if scope not in {"personal", "department"}: scope = "personal"
         # Staff-only: non-staff users can never view department scope
-        if scope == "department" and not request.user.is_staff:
-            scope = "personal"
-
+        if scope == "department" and not request.user.is_staff: scope = "personal"
         qs = self._annotated_tickets(request.user, scope=scope)
         overdue = self._overdue_tickets(qs)
-
         context = {
             "scope": scope,
             "completed_tickets": self._completed_tickets(qs),
@@ -37,18 +30,13 @@ class HomeView(View):
 
     def _base_tickets(self, user, scope="personal"):
         """Tickets visible to this user."""
-        # Department scope = everyone’s tickets (staff-only)
-        if scope == "department" and user.is_staff:
+        if scope == "department" and user.is_staff: # Department scope = everyone’s tickets (staff-only)
             return Ticket.objects.all()
-
-        # Personal scope (existing logic)
-        if not user.is_staff:
+        if not user.is_staff: # Personal scope (existing logic)
             return Ticket.objects.filter(created_by=user)
-
         dept_ids = Department.objects.filter(
             assigned_users__user=user
         ).values_list("id", flat=True)
-
         return Ticket.objects.filter(
             Q(created_by=user)
             | Q(messages__sender=user)
