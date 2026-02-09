@@ -60,7 +60,37 @@
     {% endif %}
   </div>
 
-  <!-- Future section for invites will go here -->
+  <div class="section-wrapper invitation-section">
+    <h2 class="section-title">Pending invitations</h2>
+    {% if invitations %}
+    <ul class="invitation-list">
+      {% for invitation in invitations %}
+      <li class="invitation-item">
+        <div class="invitation-info">
+          <span class="invitation-department">{{ invitation.department.name }}</span>
+          <span class="invitation-sender">Invited by {{ invitation.sender.full_name }}</span>
+        </div>
+        <div class="invitation-actions">
+          <form method="post" action="{% url 'department_manage' %}" class="invitation-form invitation-form-accept">
+            {% csrf_token %}
+            <input type="hidden" name="invite_id" value="{{ invitation.id }}">
+            <input type="hidden" name="action" value="accept">
+            <button type="submit" class="btn-invitation btn-accept" title="Accept">Accept</button>
+          </form>
+          <form method="post" action="{% url 'department_manage' %}" class="invitation-form invitation-form-decline">
+            {% csrf_token %}
+            <input type="hidden" name="invite_id" value="{{ invitation.id }}">
+            <input type="hidden" name="action" value="decline">
+            <button type="submit" class="btn-invitation btn-decline" title="Decline">Decline</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="invitation-empty">No pending invites.</p>
+    {% endif %}
+  </div>
 </div>
 
 <script>
