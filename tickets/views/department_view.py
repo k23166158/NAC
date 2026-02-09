@@ -2,7 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.db.models import OuterRef, Subquery
 from django.contrib.auth import get_user_model
-from ..models import Department, Ticket, TicketMessage, UserDepartments
+from django.contrib import messages
+from ..models import Department, Ticket, TicketMessage, UserDepartments, DepartmentInvitation
 from django.http import HttpResponseForbidden
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -91,15 +92,37 @@ class DepartmentView(LoginRequiredMixin, View):
         action = request.POST.get('action')
 
         if user_id:
-            self.update_staff_assignment(user_id, department, action)
+            self.update_staff_assignment(request, user_id, department, action)
 
-    def update_staff_assignment(self, user_id, department, action):
-        """Add or remove a staff member from the department."""
+    def update_staff_assignment(self, request, user_id, department, action):
+        """Add, remove, or invite a staff member for the department."""
         user = get_object_or_404(User, id=user_id)
-        
+
         if action == 'add':
             UserDepartments.objects.get_or_create(user=user, department=department)
             return
-        
+
         if action == 'remove':
             UserDepartments.objects.filter(user=user, department=department).delete()
+            return
+
+        if action == 'invite':
+            if not user.is_staff:
+                messages.error(request, 'Only staff users can be invited to a department.')
+                return
+            if UserDepartments.objects.filter(user=user, department=department).exists():
+                messages.warning(request, f'{user.get_full_name() or user.username} is already in this department.')
+                return
+            invite, created = DepartmentInvitation.objects.get_or_create(
+                department=department,
+                recipient=user,
+                status='pending',
+                defaults={'sender': request.user},
+            )
+            if created:
+                messages.success(
+                    request,
+                    f'Invitation sent to {user.get_full_name() or user.username}.',
+                )
+            else:
+                messages.info(request, f'{user.get_full_name() or user.username} was already invited.')
