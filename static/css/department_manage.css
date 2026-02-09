@@ -249,6 +249,7 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  margin-top: 16px;
 }
 
 .invitation-item {
@@ -269,6 +270,7 @@
 
 .invitation-empty {
   margin: 0;
+  margin-top: 16px;
   padding: 20px;
   text-align: center;
   color: #9ca3af;
@@ -323,7 +325,7 @@
 }
 
 .btn-decline {
-  background: #fff;
+  background: transparent;
   color: #6b7280;
   border: 1px solid #e5e7eb;
 }
@@ -331,6 +333,7 @@
 .btn-decline:hover {
   background: #f3f4f6;
   color: #374151;
+  border-color: #d1d5db;
 }
 
 @media (max-width: 768px) {
