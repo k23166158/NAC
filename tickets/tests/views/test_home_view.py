@@ -28,9 +28,7 @@ class HomeViewTests(TestCase):
                                          first_name=fname, last_name=lname, is_staff=is_staff)
             setattr(self, attr, u)
 
-    # ------------------------
     # Basic access
-    # ------------------------
 
     def test_home_view_anonymous(self):
         """Anonymous users should see landing page."""
@@ -52,9 +50,7 @@ class HomeViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "home_view.html")
 
-    # ------------------------
     # Student visibility
-    # ------------------------
 
     def test_student_only_sees_own_tickets(self):
         """Non-staff only sees tickets they created."""
@@ -77,22 +73,7 @@ class HomeViewTests(TestCase):
         self.assertIn(my_ticket.id, active_ids)
         self.assertNotIn(other_ticket.id, active_ids)
 
-    # ------------------------
     # Staff visibility rules
-    # ------------------------
-
-    def test_staff_does_not_see_all_tickets_by_default(self):
-        """
-        Staff should NOT automatically see everyone's tickets
-        unless participant or has messaged (or created).
-        """
-        t = Ticket.objects.create(title="Student ticket", created_by=self.user, status=Ticket.Status.OPEN)
-
-        self.client.force_login(self.staff1)
-        response = self.client.get(self.url)
-
-        active_ids = list(response.context["active_tickets"].values_list("id", flat=True))
-        self.assertNotIn(t.id, active_ids)
 
     def test_staff_sees_ticket_if_they_sent_a_message_on_it(self):
         """If staff sent a message in the ticket, it should appear for them."""
@@ -130,9 +111,7 @@ class HomeViewTests(TestCase):
         active_ids = list(response.context["active_tickets"].values_list("id", flat=True))
         self.assertNotIn(t.id, active_ids)
 
-    # ------------------------
     # Ticket status routing
-    # ------------------------
 
     def test_completed_tickets_go_to_completed(self):
         """Closed tickets appear under completed_tickets."""
@@ -149,9 +128,7 @@ class HomeViewTests(TestCase):
         self.assertNotIn(closed.id, active_ids)
         self.assertIn(open_t.id, active_ids)
 
-    # ------------------------
     # Overdue logic
-    # ------------------------
 
     def test_overdue_requires_last_message_older_than_7_days_and_from_non_staff(self):
         """
@@ -207,9 +184,7 @@ class HomeViewTests(TestCase):
         self.assertNotIn(t.id, overdue_ids)
         self.assertIn(t.id, active_ids)
 
-    # ------------------------
     # Annotation checks
-    # ------------------------
 
     def test_ticket_annotations_exist_in_queryset(self):
         """Annotated fields should exist on tickets returned to the template."""
@@ -232,6 +207,76 @@ class HomeViewTests(TestCase):
         self.assertIsNotNone(ticket.last_message_at)
         self.assertEqual(ticket.last_message_body, "Hello")
 
+    def test_ticket_with_no_messages_has_null_annotations(self):
+        """If a ticket has no messages, annotated fields should be None."""
+        t = Ticket.objects.create(title="No messages", created_by=self.user, status=Ticket.Status.OPEN)
+
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+
+        ticket = response.context["active_tickets"].get(id=t.id)
+        self.assertIsNotNone(ticket)
+
+        self.assertIsNone(ticket.last_message_at)
+        self.assertIsNone(ticket.last_message_body)
+        self.assertIsNone(ticket.last_message_sender_id)
+        self.assertIsNone(ticket.last_sender_is_staff)
+        self.assertIsNone(ticket.last_sender_first)
+        self.assertIsNone(ticket.last_sender_last)
+
+    # Personal vs department scope
+
+    def test_staff_department_scope_sees_all_tickets(self):
+        """Staff using scope=department should see all tickets."""
+        t1 = Ticket.objects.create(title="User ticket", created_by=self.user, status=Ticket.Status.OPEN)
+        t2 = Ticket.objects.create(title="Staff ticket", created_by=self.staff2, status=Ticket.Status.OPEN)
+
+        self.client.force_login(self.staff1)
+        response = self.client.get(self.url, {"scope": "department"})
+
+        active_ids = list(response.context["active_tickets"].values_list("id", flat=True))
+        self.assertIn(t1.id, active_ids)
+        self.assertIn(t2.id, active_ids)
+
+    def test_staff_default_scope_is_personal(self):
+        """Staff without scope param should default to personal behaviour."""
+        t = Ticket.objects.create(title="Student ticket", created_by=self.user, status=Ticket.Status.OPEN)
+
+        self.client.force_login(self.staff1)
+        response = self.client.get(self.url)
+
+        active_ids = list(response.context["active_tickets"].values_list("id", flat=True))
+        self.assertNotIn(t.id, active_ids)
+
+    def test_student_department_scope_falls_back_to_personal(self):
+        """Non-staff users requesting department scope should fall back to personal."""
+        t1 = Ticket.objects.create(title="Mine", created_by=self.user, status=Ticket.Status.OPEN)
+        t2 = Ticket.objects.create(title="Not mine", created_by=self.staff1, status=Ticket.Status.OPEN)
+
+        self.client.force_login(self.user)
+        response = self.client.get(self.url, {"scope": "department"})
+
+        active_ids = list(response.context["active_tickets"].values_list("id", flat=True))
+        self.assertIn(t1.id, active_ids)
+        self.assertNotIn(t2.id, active_ids)
+
+    def test_invalid_scope_falls_back_to_personal(self):
+        """Invalid scope values should default to personal."""
+        t = Ticket.objects.create(title="Student ticket", created_by=self.user, status=Ticket.Status.OPEN)
+
+        self.client.force_login(self.staff1)
+        response = self.client.get(self.url, {"scope": "banana"})
+
+        active_ids = list(response.context["active_tickets"].values_list("id", flat=True))
+        self.assertNotIn(t.id, active_ids)
+        self.assertEqual(response.context["scope"], "personal")
+
+    def test_scope_is_passed_to_template(self):
+        """Scope should be present in template context."""
+        self.client.force_login(self.staff1)
+        response = self.client.get(self.url, {"scope": "department"})
+
+        self.assertEqual(response.context["scope"], "department")
     def test_plus_button_present_for_authenticated_user(self):
         """The plus button should be present on the home page for authenticated users."""
         self.client.force_login(self.user)

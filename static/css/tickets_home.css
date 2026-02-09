@@ -135,6 +135,42 @@
     animation: fadeIn .14s ease;
 }
 
+/* Scope dropdown (Personal / Department) */
+.scope-wrap {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+}
+
+.scope-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.scope-text {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.scope-select {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.scope-select:focus {
+    outline: none;
+    border-color: rgba(17, 24, 39, .22);
+    box-shadow: 0 0 0 3px rgba(17, 24, 39, .08);
+}
+
+
 @keyframes fadeIn {
     from {
         opacity: 0;
