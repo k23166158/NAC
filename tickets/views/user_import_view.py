@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render
 from django.views import View
+from django.db import transaction
 
 User = get_user_model()
 
@@ -28,36 +29,58 @@ class BulkUserImportView(LoginRequiredMixin, UserPassesTestMixin, View):
             return False
         return True
 
-    def _validate_unique(self, row, row_number, failed_rows):
-        """Validate username and email uniqueness."""
-        username, email = row['username'].strip(), row['email'].strip()
-        if User.objects.filter(username=username).exists():
-            failed_rows.append({'row': row_number, 'details': f"username: {username}", 'error': 'Username already exists'})
-            return False
-        if User.objects.filter(email=email).exists():
-            failed_rows.append({'row': row_number, 'details': f"email: {email}", 'error': 'Email already exists'})
-            return False
-        return True
+    def _check_email_conflict(self, username, email, row_number, failed_rows):
+        """Check if the email is taken by another username."""
+        existing_email_user = User.objects.filter(email=email).first()
+        if existing_email_user and existing_email_user.username != username:
+            failed_rows.append({'row': row_number, 'details': f"email: {email}", 'error': 'Email is already taken by another user'})
+            return True
+        return False
 
-    def _create_user(self, row):
-        """Create user from validated row."""
-        user = User(
-            username=row['username'].strip(),
-            email=row['email'].strip(),
-            first_name=row['first_name'].strip(),
-            last_name=row['last_name'].strip()
-        )
-        user.set_password(row['password'].strip())
+    def _update_user_fields(self, user, email, first_name, last_name, password):
+        """Helper to assign fields to the user instance."""
+        user.email = email
+        user.first_name = first_name
+        user.last_name = last_name
+        user.set_password(password)
         user.save()
+
+    @transaction.atomic
+    def _save_user_transaction(self, row):
+        """Save or update the user in a transaction."""
+        username = row['username'].strip()
+        email = row['email'].strip()
+        first_name = row['first_name'].strip()
+        last_name = row['last_name'].strip()
+        password = row['password'].strip()
+
+        user, created = User.objects.get_or_create(
+            username=username,
+            defaults={'email': email, 'first_name': first_name, 'last_name': last_name}
+        )
+
+        self._update_user_fields(user, email, first_name, last_name, password)
+
+    def _create_or_update_user(self, row, row_number, failed_rows):
+        """Create or update user from validated row."""
+        username = row['username'].strip()
+        email = row['email'].strip()
+
+        if self._check_email_conflict(username, email, row_number, failed_rows):
+            return False
+
+        try:
+            self._save_user_transaction(row)
+            return True
+        except Exception as e:
+            failed_rows.append({'row': row_number, 'details': str(row), 'error': str(e)})
+            return False
 
     def _try_process_row(self, row, row_number, failed_rows):
         """Try processing a row before catching exceptions."""
         if not self._validate_fields(row, row_number, failed_rows):
             return False
-        if not self._validate_unique(row, row_number, failed_rows):
-            return False
-        self._create_user(row)
-        return True
+        return self._create_or_update_user(row, row_number, failed_rows)
 
     def _process_user_row(self, row, row_number, failed_rows):
         """Process a single user row."""
