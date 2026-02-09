@@ -13,6 +13,9 @@
     <div class="header">
         <h1>User Management</h1>
         <div class="header-actions">
+            <a href="{% url 'bulk_user_import' %}" class="btn-action btn-import" title="Bulk Import Users" >
+                <i class="bi bi-upload"></i> Bulk Import
+            </a>
             <form method="get" class="search-form">
                 <input type="text" name="q" placeholder="Search users..." value="{{ search_query }}" class="search-input">
                 <button type="submit" class="btn-search"><i class="bi bi-search"></i></button>

@@ -236,3 +236,25 @@
 .btn-action i {
     font-size: 14px;
 }
+
+.btn-import {
+    margin-right: 15px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-import:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #212529;
+}
