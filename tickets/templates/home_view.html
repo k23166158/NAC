@@ -57,9 +57,10 @@
       <span class="tab-dot dot-completed"></span>
       Completed <span class="tab-count">{{ completed_tickets|length }}</span>
     </button>
+
+    <a href="{% url 'ticket_create' %}" class="tab-plus" aria-label="Create new ticket" title="Create new ticket">+</a>
   </div>
 
-  <!-- ACTIVE -->
   <section id="panel-active" class="tab-panel" role="tabpanel">
     {% if active_tickets %}
       {% include "partials/ticket_list.html" with tickets=active_tickets %}
@@ -68,7 +69,14 @@
     {% endif %}
   </section>
 
-  <!-- COMPLETED -->
+  <section id="panel-overdue" class="tab-panel" role="tabpanel" hidden>
+    {% if overdue_tickets %}
+      {% include "partials/ticket_list.html" with tickets=overdue_tickets %}
+    {% else %}
+      <div class="empty">Nothing overdue</div>
+    {% endif %}
+  </section>
+
   <section id="panel-completed" class="tab-panel" role="tabpanel" hidden>
     {% if completed_tickets %}
       {% include "partials/ticket_list.html" with tickets=completed_tickets %}
@@ -98,6 +106,10 @@
         else el.setAttribute("hidden", "hidden");
       });
     }
+
+    buttons.forEach(btn =>
+      btn.addEventListener("click", () => openTab(btn.dataset.tab))
+    );
 
     const params = new URLSearchParams(window.location.search);
     const initial = params.get("tab") || "active";
