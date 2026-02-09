@@ -45,6 +45,20 @@
     </div>
   </div>
 
+  {# Only show scope dropdown to staff/superusers #}
+  {% if user.is_staff or user.is_superuser %}
+    <div class="scope-wrap">
+      <label class="scope-label">
+        <span class="scope-text">View:</span>
+
+        <select id="scopeSelect" class="scope-select">
+          <option value="personal" {% if scope == "personal" %}selected{% endif %}>Personal tickets</option>
+          <option value="department" {% if scope == "department" %}selected{% endif %}>Department tickets</option>
+        </select>
+      </label>
+    </div>
+  {% endif %}
+
   <div class="tabs tabs-centered" role="tablist" aria-label="Ticket tabs">
     <button class="tab-btn is-active" type="button" role="tab" aria-selected="true"
             aria-controls="panel-active" data-tab="active">
@@ -57,9 +71,10 @@
       <span class="tab-dot dot-completed"></span>
       Completed <span class="tab-count">{{ completed_tickets|length }}</span>
     </button>
+
+    <a href="{% url 'ticket_create' %}" class="tab-plus" aria-label="Create new ticket" title="Create new ticket">+</a>
   </div>
 
-  <!-- ACTIVE -->
   <section id="panel-active" class="tab-panel" role="tabpanel">
     {% if active_tickets %}
       {% include "partials/ticket_list.html" with tickets=active_tickets %}
@@ -68,7 +83,14 @@
     {% endif %}
   </section>
 
-  <!-- COMPLETED -->
+  <section id="panel-overdue" class="tab-panel" role="tabpanel" hidden>
+    {% if overdue_tickets %}
+      {% include "partials/ticket_list.html" with tickets=overdue_tickets %}
+    {% else %}
+      <div class="empty">Nothing overdue</div>
+    {% endif %}
+  </section>
+
   <section id="panel-completed" class="tab-panel" role="tabpanel" hidden>
     {% if completed_tickets %}
       {% include "partials/ticket_list.html" with tickets=completed_tickets %}
@@ -77,6 +99,30 @@
     {% endif %}
   </section>
 </div>
+
+{# Only staff/superusers need the scope-changing JS #}
+{% if user.is_staff or user.is_superuser %}
+<script>
+  (function () {
+    const scopeSelect = document.getElementById("scopeSelect");
+    if (!scopeSelect) return;
+
+    scopeSelect.addEventListener("change", () => {
+      const params = new URLSearchParams(window.location.search);
+
+      const currentTab = params.get("tab") || "active";
+      params.set("tab", currentTab);
+
+      params.set("scope", scopeSelect.value);
+
+      const open = params.get("open");
+      if (open) params.set("open", open);
+
+      window.location.search = params.toString();
+    });
+  })();
+</script>
+{% endif %}
 
 <script>
   (function () {
@@ -98,6 +144,10 @@
         else el.setAttribute("hidden", "hidden");
       });
     }
+
+    buttons.forEach(btn =>
+      btn.addEventListener("click", () => openTab(btn.dataset.tab))
+    );
 
     const params = new URLSearchParams(window.location.search);
     const initial = params.get("tab") || "active";

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Ticket{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/create_ticket.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <div class="page-header">
+    <a class="btn-back" href="{% url 'home' %}">← Back to tickets</a>
+
+    <div class="page-title">
+      <h1>Create a ticket</h1>
+      <p>Submit your query to one or more departments and we’ll track responses for you.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <form method="post" class="form">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-error">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="field">
+        <label class="label" for="{{ form.title.id_for_label }}">Title</label>
+        {{ form.title }}
+        {% if form.title.errors %}<div class="error">{{ form.title.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label class="label" for="deptSearchInput">Departments</label>
+
+        <div class="dept-search-wrapper">
+          <input
+            type="text"
+            id="deptSearchInput"
+            class="dept-search-input"
+            autocomplete="off"
+            placeholder="Type to search departments..."
+          >
+
+          <div id="deptList" class="dept-search-dropdown">
+            {% for dept in form.fields.departments.queryset %}
+              {% with dept_id=dept.id|stringformat:"s" %}
+              <label class="dept-item" data-name="{{ dept.name|lower }}">
+                <input
+                  class="dept-checkbox"
+                  type="checkbox"
+                  name="departments"
+                  value="{{ dept.id }}"
+                  {% if form.departments.value and dept_id in form.departments.value %}checked{% endif %}
+                >
+                <span class="dept-pill">
+                  <span class="dept-avatar">+</span>
+                  <span class="dept-name">{{ dept.name }}</span>
+                </span>
+              </label>
+              {% endwith %}
+            {% empty %}
+              <div class="empty empty-state-small empty-state-block">No departments available.</div>
+            {% endfor %}
+
+            <div id="deptNoResultsMsg" class="empty-state-small">No departments found.</div>
+          </div>
+        </div>
+
+        <div class="help">Click the box to see all departments. Type to filter. You can pick multiple.</div>
+        {% if form.departments.errors %}<div class="error">{{ form.departments.errors }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label class="label" for="{{ form.body.id_for_label }}">Message</label>
+        {{ form.body }}
+        <div class="help">Tip: include module code, screenshots, and what you’ve tried.</div>
+        {% if form.body.errors %}<div class="error">{{ form.body.errors }}</div>{% endif %}
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">Submit ticket</button>
+        <a class="btn btn-ghost" href="{% url 'home' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const searchInput = document.getElementById('deptSearchInput');
+    const deptList = document.getElementById('deptList');
+    const items = document.querySelectorAll('.dept-item');
+    const noResultsMsg = document.getElementById('deptNoResultsMsg');
+
+    function showAll() {
+      deptList.style.display = 'block';
+      items.forEach(item => item.style.display = 'block');
+      noResultsMsg.style.display = 'none';
+    }
+
+    function filter(query) {
+      const q = query.toLowerCase().trim();
+      deptList.style.display = 'block';
+
+      let hasVisible = false;
+      items.forEach(item => {
+        const name = item.getAttribute('data-name') || '';
+        const visible = name.includes(q);
+        item.style.display = visible ? 'block' : 'none';
+        hasVisible = hasVisible || visible;
+      });
+
+      noResultsMsg.style.display = hasVisible ? 'none' : 'block';
+    }
+
+    searchInput.addEventListener('focus', function () {
+      if (this.value.trim().length === 0) showAll();
+      else filter(this.value);
+    });
+
+    searchInput.addEventListener('click', function () {
+      if (this.value.trim().length === 0) showAll();
+      else filter(this.value);
+    });
+
+    searchInput.addEventListener('input', function () {
+      if (this.value.trim().length === 0) showAll();
+      else filter(this.value);
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!searchInput.contains(e.target) && !deptList.contains(e.target)) {
+        deptList.style.display = 'none';
+      }
+    });
+  })();
+</script>
+{% endblock %}
