@@ -8,7 +8,7 @@ class UnauthenticatedHomeViewTests(TestCase):
     def setUp(self):
         """Set up test client."""
         self.client = Client()
-        self.url = reverse("unauthenticated_home")
+        self.url = reverse("home")
 
     def test_unauthenticated_home_view_returns_200(self):
         """Unauthenticated home view should return 200 status."""

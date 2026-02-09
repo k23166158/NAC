@@ -1,5 +1,4 @@
 from .home_view import HomeView
-from .unauthenticated_home_view import UnauthenticatedHomeView
 from .ticket_thread_view import TicketThreadView
 from .auth import CustomLoginView, SignUpView
 from .department_view import DepartmentView
