@@ -13,7 +13,7 @@ class HomeView(View):
 
     def get(self, request):
         """Handle GET request for home page."""
-        if not request.user.is_authenticated: return render(request, "user_management.html")
+        if not request.user.is_authenticated: return render(request, "unauthenticated_home.html")
         scope = request.GET.get("scope", "personal")
         if scope not in {"personal", "department"}: scope = "personal"
         if scope == "department" and not request.user.is_staff: scope = "personal"
