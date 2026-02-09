@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bulk User Import{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/user_bulk_import.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="import-container">
+    <div class="import-header">
+        <h2>Bulk User Import</h2>
+        <a href="{% url 'manage_users' %}" class="btn-back">
+            <i class="bi bi-arrow-left"></i> Back to User Management
+        </a>
+    </div>
+
+    <div class="instructions">
+        <h4><i class="bi bi-info-circle"></i> CSV Requirements</h4>
+        <p>Your CSV file must include a header row with the following exact column names:</p>
+        <p><code>username</code>, <code>email</code>, <code>first_name</code>, <code>last_name</code>, <code>password</code></p>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-error">
+            <i class="bi bi-exclamation-triangle"></i> {{ error }}
+        </div>
+    {% endif %}
+
+    {% if success_count is not None %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i> Successfully imported {{ success_count }} user(s) out of {{ total_processed }}.
+        </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" id="importForm">
+        {% csrf_token %}
+        <div class="upload-area">
+            <label for="csv_file" class="file-label">
+                <i class="bi bi-cloud-arrow-up upload-icon"></i>
+                <h3>Drag & Drop or Click to Upload</h3>
+                <p>Only .csv files are supported</p>
+                <div id="fileNameDisplay" class="file-name-display"></div>
+            </label>
+            <input type="file" name="csv_file" id="csv_file" class="file-input" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn-submit" id="submitBtn" disabled>
+            <i class="bi bi-upload"></i> Import Users
+        </button>
+    </form>
+
+    {% if failed_rows %}
+    <div class="results-section">
+        <h3 class="results-title">
+            <i class="bi bi-x-circle"></i> Failed Imports ({{ failed_rows|length }})
+        </h3>
+        <div class="results-card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Row #</th>
+                        <th>Error Reason</th>
+                        <th>Row Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in failed_rows %}
+                    <tr>
+                        <td class="font-weight-bold">{{ item.row }}</td>
+                        <td class="text-danger">{{ item.error }}</td>
+                        <td><small class="text-monospace-muted">{{ item.details }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    document.getElementById('csv_file').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name;
+        const displayDiv = document.getElementById('fileNameDisplay');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        if (fileName) {
+            displayDiv.textContent = `Selected file: ${fileName}`;
+            if(fileName.toLowerCase().endsWith('.csv')) {
+                submitBtn.disabled = false;
+            } else {
+                displayDiv.textContent = `Selected file: ${fileName} (Invalid type, must be .csv)`;
+                displayDiv.style.color = '#dc3545';
+                submitBtn.disabled = true;
+            }
+        } else {
+            displayDiv.textContent = '';
+            submitBtn.disabled = true;
+        }
+    });
+</script>
+{% endblock %}
