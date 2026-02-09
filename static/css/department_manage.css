@@ -273,10 +273,20 @@
   margin-top: 16px;
   padding: 20px;
   text-align: center;
-  color: #9ca3af;
   background: #f8fafc;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
+}
+
+.invitation-empty-title {
+  margin: 0 0 6px 0;
+  color: #6b7280;
+}
+
+.invitation-empty-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #9ca3af;
 }
 
 .invitation-info {

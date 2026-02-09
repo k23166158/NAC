@@ -25,7 +25,7 @@
   </div>
 
   <div class="section-wrapper invitation-section">
-    <h2 class="section-title">Pending invitations</h2>
+    <h2 class="section-title">Pending invites</h2>
     {% if invitations %}
     <ul class="invitation-list">
       {% for invitation in invitations %}
@@ -53,7 +53,10 @@
       {% endfor %}
     </ul>
     {% else %}
-    <p class="invitation-empty">No pending invites.</p>
+    <div class="invitation-empty">
+      <p class="invitation-empty-title">No pending invites.</p>
+      <p class="invitation-empty-hint">When someone invites you to a department, it will appear here.</p>
+    </div>
     {% endif %}
   </div>
 
