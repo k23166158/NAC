@@ -94,35 +94,39 @@ class DepartmentView(LoginRequiredMixin, View):
         if user_id:
             self.update_staff_assignment(request, user_id, department, action)
 
+    def _send_department_invite(self, request, user, department):
+        """Create or get pending invite and set success/info message."""
+        invite, created = DepartmentInvitation.objects.get_or_create(
+            department=department,
+            recipient=user,
+            status='pending',
+            defaults={'sender': request.user},
+        )
+        name = user.get_full_name() or user.username
+        if created:
+            messages.success(request, f'Invitation sent to {name}.')
+        else:
+            messages.info(request, f'{name} was already invited.')
+
+    def _invite_staff_to_department(self, request, user, department):
+        """Send or note an existing invite for a staff user to the department."""
+        if not user.is_staff:
+            messages.error(request, 'Only staff users can be invited to a department.')
+            return
+        if UserDepartments.objects.filter(user=user, department=department).exists():
+            name = user.get_full_name() or user.username
+            messages.warning(request, f'{name} is already in this department.')
+            return
+        self._send_department_invite(request, user, department)
+
     def update_staff_assignment(self, request, user_id, department, action):
         """Add, remove, or invite a staff member for the department."""
         user = get_object_or_404(User, id=user_id)
-
         if action == 'add':
             UserDepartments.objects.get_or_create(user=user, department=department)
             return
-
         if action == 'remove':
             UserDepartments.objects.filter(user=user, department=department).delete()
             return
-
         if action == 'invite':
-            if not user.is_staff:
-                messages.error(request, 'Only staff users can be invited to a department.')
-                return
-            if UserDepartments.objects.filter(user=user, department=department).exists():
-                messages.warning(request, f'{user.get_full_name() or user.username} is already in this department.')
-                return
-            invite, created = DepartmentInvitation.objects.get_or_create(
-                department=department,
-                recipient=user,
-                status='pending',
-                defaults={'sender': request.user},
-            )
-            if created:
-                messages.success(
-                    request,
-                    f'Invitation sent to {user.get_full_name() or user.username}.',
-                )
-            else:
-                messages.info(request, f'{user.get_full_name() or user.username} was already invited.')
+            self._invite_staff_to_department(request, user, department)

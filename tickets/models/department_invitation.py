@@ -34,8 +34,10 @@ class DepartmentInvitation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        """Order and uniqueness for department invitations."""
         ordering = ['-created_at']
         unique_together = ('department', 'recipient', 'status')
 
     def __str__(self):
+        """Return a short string description of the invitation."""
         return f"Invite: {self.department.name} -> {self.recipient.username} ({self.status})"
