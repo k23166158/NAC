@@ -5,8 +5,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views import View
 
-from ..models import Ticket, TicketMessage, Department
-
+from tickets.models import Ticket, TicketMessage, Department
 
 class HomeView(View):
     """View for the home page/dashboard."""
