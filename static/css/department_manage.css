@@ -295,6 +295,12 @@
   color: #6b7280;
 }
 
+.invitation-timestamp {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
 .invitation-actions {
   display: flex;
   gap: 8px;

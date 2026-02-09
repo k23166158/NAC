@@ -32,7 +32,8 @@
       <li class="invitation-item">
         <div class="invitation-info">
           <span class="invitation-department">{{ invitation.department.name }}</span>
-          <span class="invitation-sender">Invited by {{ invitation.sender.full_name }}</span>
+          <span class="invitation-sender">Invited by {{ invitation.sender.get_full_name|default:invitation.sender.username }}</span>
+          <span class="invitation-timestamp">{{ invitation.created_at|date:"M j, Y, g:i A" }}</span>
         </div>
         <div class="invitation-actions">
           <form method="post" action="{% url 'department_manage' %}" class="invitation-form invitation-form-accept">
