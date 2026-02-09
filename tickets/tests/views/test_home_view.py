@@ -277,3 +277,42 @@ class HomeViewTests(TestCase):
         response = self.client.get(self.url, {"scope": "department"})
 
         self.assertEqual(response.context["scope"], "department")
+    def test_plus_button_present_for_authenticated_user(self):
+        """The plus button should be present on the home page for authenticated users."""
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+
+        self.assertContains(response, '<a href="')
+        self.assertContains(response, 'class="tab-plus"')
+        self.assertContains(response, 'aria-label="Create new ticket"')
+
+    def test_plus_button_has_correct_href(self):
+        """The plus button should link to the ticket_create URL."""
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+
+        ticket_create_url = reverse("ticket_create")
+        self.assertContains(response, f'href="{ticket_create_url}"')
+
+    def test_plus_button_has_correct_title(self):
+        """The plus button should have a title attribute."""
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'title="Create new ticket"')
+
+    def test_plus_button_content(self):
+        """The plus button should contain a '+' symbol."""
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'aria-label="Create new ticket" title="Create new ticket">+</a>')
+
+    def test_plus_button_visible_to_staff(self):
+        """The plus button should be visible to staff members."""
+        self.client.force_login(self.staff1)
+        response = self.client.get(self.url)
+
+        ticket_create_url = reverse("ticket_create")
+        self.assertContains(response, f'href="{ticket_create_url}"')
+        self.assertContains(response, 'class="tab-plus"')
