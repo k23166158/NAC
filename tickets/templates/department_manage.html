@@ -100,6 +100,10 @@
                 </div>
                 {% endwith %}
               </div>
+              <div class="department-item-tickets">
+                <span class="pill badge-count badge-blue"><span class="ticket-dot dot-active" aria-hidden="true"></span>Active {{ department.active_ticket_count }}</span>
+                <span class="pill badge-count badge-gray"><span class="ticket-dot dot-completed" aria-hidden="true"></span>Closed {{ department.completed_ticket_count }}</span>
+              </div>
               <div class="department-item-footer">
                 <span class="department-item-footer-text">View details</span>
                 <i class="bi bi-arrow-right department-item-arrow"></i>

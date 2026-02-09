@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render, get_object_or_404, redirect
@@ -20,6 +21,18 @@ class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, View):
         departments = (
             Department.objects.filter(assigned_users__user=request.user)
             .distinct()
+            .annotate(
+                active_ticket_count=Count(
+                    'assigned_tickets',
+                    filter=Q(assigned_tickets__ticket__status__in=['open', 'pending']),
+                    distinct=True,
+                ),
+                completed_ticket_count=Count(
+                    'assigned_tickets',
+                    filter=Q(assigned_tickets__ticket__status='closed'),
+                    distinct=True,
+                ),
+            )
             .prefetch_related('assigned_users__user')
             .order_by('name')
         )

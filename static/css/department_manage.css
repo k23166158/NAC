@@ -144,6 +144,46 @@
   margin-top: 12px;
 }
 
+.department-item-tickets {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.department-item-tickets .badge-count {
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.department-item-tickets .ticket-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.department-item-tickets .ticket-dot.dot-active {
+  background: var(--blue, #2563eb);
+}
+
+.department-item-tickets .ticket-dot.dot-completed {
+  background: var(--green, #16a34a);
+}
+
+.department-item-tickets .badge-blue {
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+.department-item-tickets .badge-gray {
+  background: #f5f5f5;
+  color: #666;
+}
+
 .department-facepile {
   display: flex;
   align-items: center;
