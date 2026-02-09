@@ -76,19 +76,11 @@ class BulkUserImportView(LoginRequiredMixin, UserPassesTestMixin, View):
             failed_rows.append({'row': row_number, 'details': str(row), 'error': str(e)})
             return False
 
-    def _try_process_row(self, row, row_number, failed_rows):
-        """Try processing a row before catching exceptions."""
+    def _process_user_row(self, row, row_number, failed_rows):
+        """Process a single user row."""
         if not self._validate_fields(row, row_number, failed_rows):
             return False
         return self._create_or_update_user(row, row_number, failed_rows)
-
-    def _process_user_row(self, row, row_number, failed_rows):
-        """Process a single user row."""
-        try:
-            return self._try_process_row(row, row_number, failed_rows)
-        except Exception as e:
-            failed_rows.append({'row': row_number, 'details': str(row), 'error': str(e)})
-            return False
 
     def _read_csv(self, request, csv_file):
         """Read and decode CSV file."""
