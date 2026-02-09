@@ -82,6 +82,24 @@
               {% else %}
                 <p class="department-item-description department-item-description-empty">No description available</p>
               {% endif %}
+              <div class="department-item-staff">
+                {% with staff_list=department.assigned_users.all %}
+                <div class="department-facepile" aria-label="Department staff">
+                  {% for assignment in staff_list|slice:":3" %}
+                  <div class="facepile-avatar" title="{{ assignment.user.get_full_name|default:assignment.user.username }}">
+                    {% if assignment.user.profile_picture %}
+                      <img src="{{ assignment.user.profile_picture.url }}" alt="" class="avatar">
+                    {% else %}
+                      {% include "partials/empty_avatar.html" with user=assignment.user %}
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                  {% if staff_list|length > 3 %}
+                  <span class="facepile-more">+{{ staff_list|length|add:"-3" }}</span>
+                  {% endif %}
+                </div>
+                {% endwith %}
+              </div>
               <div class="department-item-footer">
                 <span class="department-item-footer-text">View details</span>
                 <i class="bi bi-arrow-right department-item-arrow"></i>

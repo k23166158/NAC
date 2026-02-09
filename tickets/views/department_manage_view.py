@@ -17,9 +17,12 @@ class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, View):
 
     def get(self, request):
         """Handle GET requests for the department manage view."""
-        departments = Department.objects.filter(
-            assigned_users__user=request.user
-        ).distinct().order_by('name')
+        departments = (
+            Department.objects.filter(assigned_users__user=request.user)
+            .distinct()
+            .prefetch_related('assigned_users__user')
+            .order_by('name')
+        )
 
         invitations = DepartmentInvitation.objects.filter(
             recipient=request.user,
