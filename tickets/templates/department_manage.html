@@ -77,6 +77,13 @@
                 </div>
               </div>
               <h3 class="department-item-name">{{ department.name }}</h3>
+              <div class="department-item-role-row">
+                {% if department.created_by_id == user.id %}
+                <span class="department-role role-owner">Owner</span>
+                {% else %}
+                <span class="department-role role-member">Member</span>
+                {% endif %}
+              </div>
               {% if department.description %}
                 <p class="department-item-description">{{ department.description }}</p>
               {% else %}

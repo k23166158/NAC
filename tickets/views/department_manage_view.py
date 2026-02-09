@@ -20,6 +20,7 @@ class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, View):
         """Handle GET requests for the department manage view."""
         departments = (
             Department.objects.filter(assigned_users__user=request.user)
+            .select_related('created_by')
             .distinct()
             .annotate(
                 active_ticket_count=Count(
