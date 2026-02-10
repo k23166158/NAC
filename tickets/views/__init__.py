@@ -11,3 +11,4 @@ from .department_manage_view import DepartmentManageView
 from .forward_ticket_view import ForwardTicketView
 from .user_management import UserManagementView, ToggleUserStatusView
 from .user_import_view import BulkUserImportView
+from .user_export_view import BulkUserExportView
