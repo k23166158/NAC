@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from tickets.models import Department, UserDepartments
+from tickets.models import Department, DepartmentInvitation, UserDepartments, Ticket, TicketAssigned
 
 User = get_user_model()
 
@@ -119,4 +119,105 @@ class DepartmentManageViewTests(TestCase):
         view = DepartmentManageView()
         view.request = type('Request', (), {'user': self.regular_user})()
         self.assertFalse(view.test_func())
+
+    def test_get_includes_pending_invitations_in_context(self):
+        """Test that GET includes pending invitations for the user."""
+        dept = Department.objects.create(name="Invite Dept", created_by=self.other_staff)
+        inv = DepartmentInvitation.objects.create(
+            sender=self.other_staff,
+            recipient=self.staff_user,
+            department=dept,
+            status='pending',
+        )
+        self.client.force_login(self.staff_user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('invitations', response.context)
+        self.assertEqual(list(response.context['invitations']), [inv])
+
+    def test_get_departments_have_ticket_count_annotations(self):
+        """Test that departments in context have active_ticket_count and completed_ticket_count."""
+        dept = Department.objects.create(name="Dept With Tickets", created_by=self.staff_user)
+        UserDepartments.objects.create(user=self.staff_user, department=dept)
+        ticket_open = Ticket.objects.create(
+            title="Open", created_by=self.regular_user, status=Ticket.Status.OPEN
+        )
+        ticket_closed = Ticket.objects.create(
+            title="Closed", created_by=self.regular_user, status=Ticket.Status.CLOSED
+        )
+        TicketAssigned.objects.create(ticket=ticket_open, department=dept)
+        TicketAssigned.objects.create(ticket=ticket_closed, department=dept)
+        self.client.force_login(self.staff_user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        departments = list(response.context['departments'])
+        self.assertEqual(len(departments), 1)
+        self.assertEqual(departments[0].active_ticket_count, 1)
+        self.assertEqual(departments[0].completed_ticket_count, 1)
+
+    def test_post_accept_invitation_success(self):
+        """Test that POST action=accept accepts invite and adds user to department."""
+        dept = Department.objects.create(name="Accept Dept", created_by=self.other_staff)
+        inv = DepartmentInvitation.objects.create(
+            sender=self.other_staff,
+            recipient=self.staff_user,
+            department=dept,
+            status='pending',
+        )
+        self.client.force_login(self.staff_user)
+        response = self.client.post(
+            self.url,
+            {'invite_id': inv.id, 'action': 'accept'},
+        )
+        self.assertRedirects(response, reverse('department_manage'))
+        inv.refresh_from_db()
+        self.assertEqual(inv.status, 'accepted')
+        self.assertTrue(
+            UserDepartments.objects.filter(
+                user=self.staff_user,
+                department=dept,
+            ).exists()
+        )
+
+    def test_post_decline_invitation_success(self):
+        """Test that POST action=decline declines the invite."""
+        dept = Department.objects.create(name="Decline Dept", created_by=self.other_staff)
+        inv = DepartmentInvitation.objects.create(
+            sender=self.other_staff,
+            recipient=self.staff_user,
+            department=dept,
+            status='pending',
+        )
+        self.client.force_login(self.staff_user)
+        response = self.client.post(
+            self.url,
+            {'invite_id': inv.id, 'action': 'decline'},
+        )
+        self.assertRedirects(response, reverse('department_manage'))
+        inv.refresh_from_db()
+        self.assertEqual(inv.status, 'declined')
+
+    def test_post_missing_invite_id_redirects_with_error(self):
+        """Test that POST without invite_id redirects with error message."""
+        self.client.force_login(self.staff_user)
+        response = self.client.post(self.url, {'action': 'accept'})
+        self.assertRedirects(response, reverse('department_manage'))
+
+    def test_post_invalid_action_redirects_with_error(self):
+        """Test that POST with invalid action redirects with error."""
+        dept = Department.objects.create(name="X", created_by=self.other_staff)
+        inv = DepartmentInvitation.objects.create(
+            sender=self.other_staff,
+            recipient=self.staff_user,
+            department=dept,
+            status='pending',
+        )
+        self.client.force_login(self.staff_user)
+        response = self.client.post(
+            self.url,
+            {'invite_id': inv.id, 'action': 'invalid'},
+        )
+        self.assertRedirects(response, reverse('department_manage'))
+        inv.refresh_from_db()
+        self.assertEqual(inv.status, 'pending')
 
