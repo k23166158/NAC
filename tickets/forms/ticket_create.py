@@ -1,5 +1,11 @@
 from django import forms
+from django.forms import ClearableFileInput
 from tickets.models import Department
+
+
+class MultipleFileInput(ClearableFileInput):
+    """Custom widget that allows multiple file uploads."""
+    allow_multiple_selected = True
 
 
 class CreateTicketForm(forms.Form):
@@ -28,6 +34,19 @@ class CreateTicketForm(forms.Form):
             "rows": 10,
         }),
     )
+
+    attachments = forms.FileField(
+        label="Attachments",
+        required=False,
+        widget=MultipleFileInput(attrs={
+            "class": "file-input",
+            "accept": ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.jpg,.jpeg,.png,.gif,.txt",
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        """Initialize form to handle multiple file input."""
+        super().__init__(*args, **kwargs)
 
     def clean_title(self):
         """Normalise and validate ticket title."""
