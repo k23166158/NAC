@@ -151,6 +151,20 @@
     margin-bottom: 1rem;
 }
 
+.instructions ul {
+    margin-top: 0.5rem;
+    padding-left: 20px;
+    margin-bottom: 0;
+}
+
+.instructions li {
+    margin-bottom: 0.5rem;
+}
+
+.instructions li:last-child {
+    margin-bottom: 0;
+}
+
 code {
     background-color: #fff;
     padding: 0.2rem 0.4rem;

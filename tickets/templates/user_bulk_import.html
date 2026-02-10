@@ -20,11 +20,12 @@
     <div class="instructions">
       <h4><i class="bi bi-info-circle"></i> CSV Requirements</h4>
       <p>Your CSV file must include a header row with the following exact column names:</p>
-      <p><code>username</code>, <code>email</code>, <code>first_name</code>, <code>last_name</code>,
-        <code>password</code></p>
-      <br>
-      <p><strong>Note:</strong> If you re-upload a CSV file containing an existing <code>username</code>, that user's
-        information (including password) will be <strong>updated</strong>.</p>
+      <p><code>username</code>, <code>email</code>, <code>first_name</code>, <code>last_name</code>, <code>password</code>, <code>is_staff</code>, <code>is_superuser</code>, <code>is_active</code></p>
+      <ul>
+        <li><strong>Role Flags:</strong> <code>is_staff</code>, <code>is_superuser</code>, and <code>is_active</code> accept values <code>true/false</code>.</li>
+        <li><strong>Passwords:</strong> Set to <code>********</code> to keep the existing password unchanged during an update.</li>
+        <li><strong>Updates:</strong> If you upload a row with an existing <code>username</code>, that user's information will be <strong>updated</strong>.</li>
+      </ul>
     </div>
 
     {% if error %}
@@ -99,6 +100,7 @@
           displayDiv.style.color = '#0d6efd';
           submitBtn.disabled = false;
 
+          // Assign file to input if triggered by drop
           const dataTransfer = new DataTransfer();
           dataTransfer.items.add(file);
           fileInput.files = dataTransfer.files;
@@ -119,6 +121,7 @@
       handleFile(e.target.files[0]);
     });
 
+    // Drag and drop events
     uploadArea.addEventListener('dragover', (e) => {
       e.preventDefault();
       uploadArea.style.borderColor = '#0d6efd';
