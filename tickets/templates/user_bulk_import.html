@@ -86,23 +86,58 @@
   </div>
 
   <script>
-    document.getElementById('csv_file').addEventListener('change', function (e) {
-      const fileName = e.target.files[0]?.name;
-      const displayDiv = document.getElementById('fileNameDisplay');
-      const submitBtn = document.getElementById('submitBtn');
+    const fileInput = document.getElementById('csv_file');
+    const displayDiv = document.getElementById('fileNameDisplay');
+    const submitBtn = document.getElementById('submitBtn');
+    const uploadArea = document.querySelector('.upload-area');
 
-      if (fileName) {
-        displayDiv.textContent = `Selected file: ${fileName}`;
+    function handleFile(file) {
+      if (file) {
+        const fileName = file.name;
         if (fileName.toLowerCase().endsWith('.csv')) {
+          displayDiv.textContent = `Selected file: ${fileName}`;
+          displayDiv.style.color = '#0d6efd';
           submitBtn.disabled = false;
+
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          fileInput.files = dataTransfer.files;
         } else {
           displayDiv.textContent = `Selected file: ${fileName} (Invalid type, must be .csv)`;
           displayDiv.style.color = '#dc3545';
           submitBtn.disabled = true;
+          fileInput.value = '';
         }
       } else {
         displayDiv.textContent = '';
         submitBtn.disabled = true;
+        fileInput.value = '';
+      }
+    }
+
+    fileInput.addEventListener('change', function (e) {
+      handleFile(e.target.files[0]);
+    });
+
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = '#0d6efd';
+      uploadArea.style.backgroundColor = '#f1f8ff';
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = '#dee2e6';
+      uploadArea.style.backgroundColor = '#f8f9fa';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = '#dee2e6';
+      uploadArea.style.backgroundColor = '#f8f9fa';
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFile(e.dataTransfer.files[0]);
       }
     });
   </script>
