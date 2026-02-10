@@ -6,7 +6,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 User = get_user_model()
 
 class BulkUserImportViewTests(TestCase):
+    """Tests for BulkUserImportViewTests."""
     def setUp(self):
+        """Test for setUp."""
         self.client = Client()
         self.admin_user = User.objects.create_superuser('admin', 'admin@example.com', 'password')
         self.staff_user = User.objects.create_user('staff', 'staff@example.com', 'password', is_staff=True)
@@ -14,31 +16,37 @@ class BulkUserImportViewTests(TestCase):
         self.url = reverse('bulk_user_import')
 
     def test_view_access_admin(self):
+        """Test for test_view_access_admin."""
         self.client.login(username='admin', password='password')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
 
     def test_view_access_staff(self):
+        """Test for test_view_access_staff."""
         self.client.login(username='staff', password='password')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
 
     def test_view_access_regular_user(self):
+        """Test for test_view_access_regular_user."""
         self.client.login(username='regular', password='password')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 403)
 
     def test_view_access_unauthenticated(self):
+        """Test for test_view_access_unauthenticated."""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 302)
 
     def test_post_no_file(self):
+        """Test for test_post_no_file."""
         self.client.login(username='admin', password='password')
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Please upload a CSV file.')
 
     def test_post_invalid_file_type(self):
+        """Test for test_post_invalid_file_type."""
         self.client.login(username='admin', password='password')
         invalid_file = SimpleUploadedFile("file.txt", b"file_content")
         response = self.client.post(self.url, {'csv_file': invalid_file})
@@ -46,6 +54,7 @@ class BulkUserImportViewTests(TestCase):
         self.assertContains(response, 'Please upload a valid CSV file.')
 
     def test_post_invalid_csv_data(self):
+        """Test for test_post_invalid_csv_data."""
         self.client.login(username='admin', password='password')
         invalid_csv = SimpleUploadedFile("file.csv", b"invalid_content\x80")
         response = self.client.post(self.url, {'csv_file': invalid_csv})
@@ -53,6 +62,7 @@ class BulkUserImportViewTests(TestCase):
         self.assertContains(response, 'Error reading CSV file')
 
     def test_post_missing_headers(self):
+        """Test for test_post_missing_headers."""
         self.client.login(username='admin', password='password')
         csv_data = "username,email\nuser1,user1@example.com"
         csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
@@ -61,6 +71,7 @@ class BulkUserImportViewTests(TestCase):
         self.assertContains(response, 'CSV must contain the following columns')
 
     def test_post_successful_import(self):
+        """Test for test_post_successful_import."""
         self.client.login(username='admin', password='password')
         csv_data = "username,email,first_name,last_name,password\nnewuser,newuser@example.com,New,User,pass123"
         csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
@@ -70,6 +81,7 @@ class BulkUserImportViewTests(TestCase):
         self.assertTrue(User.objects.filter(username='newuser').exists())
 
     def test_post_update_existing_user(self):
+        """Test for test_post_update_existing_user."""
         self.client.login(username='admin', password='password')
         User.objects.create_user('existinguser', 'old@example.com', 'oldpass')
         csv_data = "username,email,first_name,last_name,password\nexistinguser,new@example.com,New,Name,newpass"
@@ -82,6 +94,7 @@ class BulkUserImportViewTests(TestCase):
         self.assertEqual(user.first_name, 'New')
 
     def test_post_missing_fields_in_row(self):
+        """Test for test_post_missing_fields_in_row."""
         self.client.login(username='admin', password='password')
         csv_data = "username,email,first_name,last_name,password\nnewuser,,New,User,pass123"
         csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
@@ -91,6 +104,7 @@ class BulkUserImportViewTests(TestCase):
         self.assertContains(response, 'Missing required fields')
 
     def test_post_email_conflict(self):
+        """Test for test_post_email_conflict."""
         self.client.login(username='admin', password='password')
         User.objects.create_user('otheruser', 'conflict@example.com', 'pass')
         csv_data = "username,email,first_name,last_name,password\nnewuser,conflict@example.com,New,User,pass123"
@@ -104,6 +118,7 @@ class BulkUserImportViewTests(TestCase):
     from unittest.mock import patch
     @patch('tickets.views.user_import_view.BulkUserImportView._save_user_transaction')
     def test_post_database_error(self, mock_save):
+        """Test for test_post_database_error."""
         mock_save.side_effect = Exception("Simulated DB Error")
         self.client.login(username='admin', password='password')
         csv_data = "username,email,first_name,last_name,password\nerruser,err@example.com,Err,User,pass123"

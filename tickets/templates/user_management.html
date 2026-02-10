@@ -13,6 +13,9 @@
     <div class="header">
       <h1>User Management</h1>
       <div class="header-actions">
+        <a href="{% url 'bulk_user_export' %}" class="btn-action btn-import" title="Export Users">
+          <i class="bi bi-download"></i> Export Users
+        </a>
         <a href="{% url 'bulk_user_import' %}" class="btn-action btn-import" title="Bulk Import Users">
           <i class="bi bi-upload"></i> Bulk Import
         </a>
