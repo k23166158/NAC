@@ -22,25 +22,24 @@ def build_assignments(ticket, departments):
     return [TicketAssigned(ticket=ticket, department=dept) for dept in departments]
 
 
+def _build_attachment(ticket, message, file, user):
+    """Build a TicketMessageAttachment object from an uploaded file."""
+    return TicketMessageAttachment(
+        ticket=ticket,
+        message=message,
+        file=file,
+        original_name=file.name,
+        content_type=file.content_type or "",
+        size_bytes=file.size,
+        uploaded_by=user,
+    )
+
+
 def create_attachments(ticket, message, files, user):
     """Create attachments for the given message from uploaded files."""
     if not files:
         return
-    
-    attachments = []
-    for file in files:
-        if file:
-            attachment = TicketMessageAttachment(
-                ticket=ticket,
-                message=message,
-                file=file,
-                original_name=file.name,
-                content_type=file.content_type or "",
-                size_bytes=file.size,
-                uploaded_by=user,
-            )
-            attachments.append(attachment)
-    
+    attachments = [_build_attachment(ticket, message, f, user) for f in files if f]
     if attachments:
         TicketMessageAttachment.objects.bulk_create(attachments)
 
