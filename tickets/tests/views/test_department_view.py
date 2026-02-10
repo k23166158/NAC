@@ -196,28 +196,22 @@ class DepartmentViewTests(TestCase):
     def test_post_invite_already_invited_shows_info(self):
         """Test that inviting again when pending invite exists does not duplicate."""
         staff = User.objects.create_user(
-            username="staff2",
-            email="s2@example.com",
-            password="pw",
-            is_staff=True,
+            username="staff2", email="s2@example.com", password="pw", is_staff=True
         )
         DepartmentInvitation.objects.create(
             sender=self.owner,
             recipient=staff,
             department=self.department,
-            status='pending',
+            status="pending",
         )
         self.client.force_login(self.owner)
         response = self.client.post(
-            self.url,
-            {'action': 'invite', 'user_id': staff.id},
+            self.url, {"action": "invite", "user_id": staff.id}
         )
         self.assertRedirects(response, self.url)
         self.assertEqual(
             DepartmentInvitation.objects.filter(
-                recipient=staff,
-                department=self.department,
-                status='pending',
+                recipient=staff, department=self.department, status="pending"
             ).count(),
             1,
         )
