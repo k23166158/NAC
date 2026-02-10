@@ -58,15 +58,13 @@ class ToggleUserStatusView(LoginRequiredMixin, UserPassesTestMixin, View):
     def post(self, request, pk):
         """Toggle the active status of the user."""
         user_to_toggle = get_object_or_404(User, pk=pk)
-
         # Prevent deactivating yourself
         if user_to_toggle == request.user:
             return redirect('manage_users')
-
-        # Prevent staff from deactivating superusers
-        if user_to_toggle.is_superuser and not request.user.is_superuser:
-            return redirect('manage_users')
-
+        # Staff can only toggle *regular* users (not staff/superuser)
+        if (request.user.is_staff and not request.user.is_superuser 
+            and (user_to_toggle.is_staff or user_to_toggle.is_superuser)):
+            return redirect("manage_users")
         user_to_toggle.is_active = not user_to_toggle.is_active
         user_to_toggle.save()
         return redirect('manage_users')
