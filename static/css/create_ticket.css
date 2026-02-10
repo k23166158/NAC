@@ -346,11 +346,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
+  padding: 10px 12px;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.file-list-item:hover {
+  border-color: rgba(9, 105, 218, .3);
+  background: #f9fbfd;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .file-name {
@@ -358,11 +372,43 @@
   font-weight: 500;
   word-break: break-all;
   flex: 1;
+  min-width: 0;
 }
 
 .file-size {
   color: var(--muted);
   font-size: 12px;
   white-space: nowrap;
-  margin-left: 8px;
+  flex: 0 0 auto;
 }
+
+.file-delete-btn {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #f6f8fa;
+  color: #cb2431;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.file-delete-btn:hover {
+  background: #fff;
+  border-color: #cb2431;
+  color: #a5181b;
+}
+
+.file-delete-btn:active {
+  background: #ffeef0;
+}
+
