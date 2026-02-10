@@ -1,10 +1,12 @@
 import csv
-from django.http import HttpResponse
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.http import HttpResponse
 from django.views import View
 
 User = get_user_model()
+
 
 class BulkUserExportView(LoginRequiredMixin, UserPassesTestMixin, View):
     """View to export all users to a CSV file."""
@@ -22,7 +24,10 @@ class BulkUserExportView(LoginRequiredMixin, UserPassesTestMixin, View):
                 user.email,
                 user.first_name,
                 user.last_name,
-                '********'
+                '********',
+                user.is_staff,
+                user.is_superuser,
+                user.is_active
             ])
 
     def get(self, request):
@@ -31,7 +36,10 @@ class BulkUserExportView(LoginRequiredMixin, UserPassesTestMixin, View):
         response['Content-Disposition'] = 'attachment; filename="users_export.csv"'
 
         writer = csv.writer(response)
-        writer.writerow(['username', 'email', 'first_name', 'last_name', 'password'])
+        writer.writerow([
+            'username', 'email', 'first_name', 'last_name', 'password',
+            'is_staff', 'is_superuser', 'is_active'
+        ])
 
         self._write_users(writer)
 

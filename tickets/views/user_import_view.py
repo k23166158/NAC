@@ -1,18 +1,21 @@
 import csv
 from io import StringIO
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db import transaction
 from django.shortcuts import render
 from django.views import View
-from django.db import transaction
 
 User = get_user_model()
 
+
 class BulkUserImportView(LoginRequiredMixin, UserPassesTestMixin, View):
     """View to handle bulk import of users via CSV upload."""
-    
+
     template_name = 'user_bulk_import.html'
-    required_fields = ['username', 'email', 'first_name', 'last_name', 'password']
+    required_fields = ['username', 'email', 'first_name', 'last_name', 'password', 'is_staff', 'is_superuser',
+                       'is_active']
 
     def test_func(self):
         """Check if user is staff or superuser."""
@@ -33,33 +36,62 @@ class BulkUserImportView(LoginRequiredMixin, UserPassesTestMixin, View):
         """Check if the email is taken by another username."""
         existing_email_user = User.objects.filter(email=email).first()
         if existing_email_user and existing_email_user.username != username:
-            failed_rows.append({'row': row_number, 'details': f"email: {email}", 'error': 'Email is already taken by another user'})
+            failed_rows.append(
+                {'row': row_number, 'details': f"email: {email}", 'error': 'Email is already taken by another user'})
             return True
         return False
 
-    def _update_user_fields(self, user, email, first_name, last_name, password):
+    def _parse_boolean(self, value):
+        """Parse boolean string value."""
+        val_str = str(value).strip().lower()
+        if val_str in ['true', '1', 't', 'y', 'yes']:
+            return True
+        if val_str in ['false', '0', 'f', 'n', 'no']:
+            return False
+        return None
+
+    def _update_user_flags(self, user, row):
+        """Update boolean flags for user."""
+        is_staff = self._parse_boolean(row.get('is_staff', ''))
+        if is_staff is not None:
+            user.is_staff = is_staff
+
+        is_superuser = self._parse_boolean(row.get('is_superuser', ''))
+        if is_superuser is not None:
+            user.is_superuser = is_superuser
+
+        is_active = self._parse_boolean(row.get('is_active', ''))
+        if is_active is not None:
+            user.is_active = is_active
+
+    def _update_user_fields(self, user, row):
         """Helper to assign fields to the user instance."""
-        user.email = email
-        user.first_name = first_name
-        user.last_name = last_name
-        user.set_password(password)
+        user.email = row['email'].strip()
+        user.first_name = row['first_name'].strip()
+        user.last_name = row['last_name'].strip()
+
+        self._update_user_flags(user, row)
+
+        password = row['password'].strip()
+        if password and password != '********':
+            user.set_password(password)
         user.save()
 
     @transaction.atomic
     def _save_user_transaction(self, row):
         """Save or update the user in a transaction."""
         username = row['username'].strip()
-        email = row['email'].strip()
-        first_name = row['first_name'].strip()
-        last_name = row['last_name'].strip()
-        password = row['password'].strip()
 
         user, created = User.objects.get_or_create(
             username=username,
-            defaults={'email': email, 'first_name': first_name, 'last_name': last_name}
+            defaults={
+                'email': row['email'].strip(),
+                'first_name': row['first_name'].strip(),
+                'last_name': row['last_name'].strip()
+            }
         )
 
-        self._update_user_fields(user, email, first_name, last_name, password)
+        self._update_user_fields(user, row)
 
     def _create_or_update_user(self, row, row_number, failed_rows):
         """Create or update user from validated row."""
@@ -76,11 +108,19 @@ class BulkUserImportView(LoginRequiredMixin, UserPassesTestMixin, View):
             failed_rows.append({'row': row_number, 'details': str(row), 'error': str(e)})
             return False
 
-    def _process_user_row(self, row, row_number, failed_rows):
-        """Process a single user row."""
+    def _try_process_row(self, row, row_number, failed_rows):
+        """Try processing a row before catching exceptions."""
         if not self._validate_fields(row, row_number, failed_rows):
             return False
         return self._create_or_update_user(row, row_number, failed_rows)
+
+    def _process_user_row(self, row, row_number, failed_rows):
+        """Process a single user row."""
+        try:
+            return self._try_process_row(row, row_number, failed_rows)
+        except Exception as e:
+            failed_rows.append({'row': row_number, 'details': str(row), 'error': str(e)})
+            return False
 
     def _read_csv(self, request, csv_file):
         """Read and decode CSV file."""
@@ -94,7 +134,7 @@ class BulkUserImportView(LoginRequiredMixin, UserPassesTestMixin, View):
         """Validate CSV header."""
         if csv_reader.fieldnames and not all(field in csv_reader.fieldnames for field in self.required_fields):
             return render(request, self.template_name, {
-                'error': f'CSV must contain the following columns: {", ".join(self.required_fields)}'
+                'error': f'CSV must contain columns: {", ".join(self.required_fields)}'
             })
         return None
 
@@ -139,10 +179,10 @@ class BulkUserImportView(LoginRequiredMixin, UserPassesTestMixin, View):
     def post(self, request):
         """Handle the uploaded CSV file."""
         csv_file = request.FILES.get('csv_file')
-        
+
         if not csv_file:
             return render(request, self.template_name, {'error': 'Please upload a CSV file.'})
-            
+
         if not csv_file.name.endswith('.csv'):
             return render(request, self.template_name, {'error': 'Please upload a valid CSV file.'})
 

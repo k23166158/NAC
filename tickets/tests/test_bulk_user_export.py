@@ -1,13 +1,16 @@
 import csv
 from io import StringIO
+
+from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.urls import reverse
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
 class BulkUserExportViewTests(TestCase):
     """Tests for BulkUserExportViewTests."""
+
     def setUp(self):
         """Test for setUp."""
         self.client = Client()
@@ -51,7 +54,9 @@ class BulkUserExportViewTests(TestCase):
         rows = list(csv_reader)
 
         # Check headers
-        self.assertEqual(rows[0], ['username', 'email', 'first_name', 'last_name', 'password'])
+        self.assertEqual(rows[0],
+                         ['username', 'email', 'first_name', 'last_name', 'password', 'is_staff', 'is_superuser',
+                          'is_active'])
 
         # Find our admin user in the export (there might be others like staff, regular)
         admin_row = None
@@ -63,3 +68,6 @@ class BulkUserExportViewTests(TestCase):
         self.assertIsNotNone(admin_row)
         self.assertEqual(admin_row[1], 'admin@example.com')
         self.assertEqual(admin_row[4], '********')
+        self.assertEqual(admin_row[5], 'True')
+        self.assertEqual(admin_row[6], 'True')
+        self.assertEqual(admin_row[7], 'True')

@@ -1,12 +1,14 @@
-from django.test import TestCase, Client
-from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, Client
+from django.urls import reverse
 
 User = get_user_model()
 
+
 class BulkUserImportViewTests(TestCase):
     """Tests for BulkUserImportViewTests."""
+
     def setUp(self):
         """Test for setUp."""
         self.client = Client()
@@ -68,12 +70,12 @@ class BulkUserImportViewTests(TestCase):
         csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
         response = self.client.post(self.url, {'csv_file': csv_file})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'CSV must contain the following columns')
+        self.assertContains(response, 'CSV must contain columns: ')
 
     def test_post_successful_import(self):
         """Test for test_post_successful_import."""
         self.client.login(username='admin', password='password')
-        csv_data = "username,email,first_name,last_name,password\nnewuser,newuser@example.com,New,User,pass123"
+        csv_data = "username,email,first_name,last_name,password,is_staff,is_superuser,is_active\nnewuser,newuser@example.com,New,User,pass123,False,False,True"
         csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
         response = self.client.post(self.url, {'csv_file': csv_file})
         self.assertEqual(response.status_code, 200)
@@ -84,11 +86,11 @@ class BulkUserImportViewTests(TestCase):
         """Test for test_post_update_existing_user."""
         self.client.login(username='admin', password='password')
         User.objects.create_user('existinguser', 'old@example.com', 'oldpass')
-        csv_data = "username,email,first_name,last_name,password\nexistinguser,new@example.com,New,Name,newpass"
+        csv_data = "username,email,first_name,last_name,password,is_staff,is_superuser,is_active\nexistinguser,new@example.com,New,Name,newpass,False,False,True"
         csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
         response = self.client.post(self.url, {'csv_file': csv_file})
         self.assertEqual(response.status_code, 200)
-        
+
         user = User.objects.get(username='existinguser')
         self.assertEqual(user.email, 'new@example.com')
         self.assertEqual(user.first_name, 'New')
@@ -96,7 +98,7 @@ class BulkUserImportViewTests(TestCase):
     def test_post_missing_fields_in_row(self):
         """Test for test_post_missing_fields_in_row."""
         self.client.login(username='admin', password='password')
-        csv_data = "username,email,first_name,last_name,password\nnewuser,,New,User,pass123"
+        csv_data = "username,email,first_name,last_name,password,is_staff,is_superuser,is_active\nnewuser,,New,User,pass123,False,False,True"
         csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
         response = self.client.post(self.url, {'csv_file': csv_file})
         self.assertEqual(response.status_code, 200)
@@ -107,13 +109,37 @@ class BulkUserImportViewTests(TestCase):
         """Test for test_post_email_conflict."""
         self.client.login(username='admin', password='password')
         User.objects.create_user('otheruser', 'conflict@example.com', 'pass')
-        csv_data = "username,email,first_name,last_name,password\nnewuser,conflict@example.com,New,User,pass123"
+        csv_data = "username,email,first_name,last_name,password,is_staff,is_superuser,is_active\nnewuser,conflict@example.com,New,User,pass123,False,False,True"
         csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
         response = self.client.post(self.url, {'csv_file': csv_file})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Failed Imports (1)')
         self.assertContains(response, 'Email is already taken by another user')
 
+    def test_boolean_parsing(self):
+        """Test boolean string parsing edge cases."""
+        self.client.login(username='admin', password='password')
+        csv_data = "username,email,first_name,last_name,password,is_staff,is_superuser,is_active\ntestbool,bool@example.com,B,B,pass,true,FALSE,y"
+        csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
+        response = self.client.post(self.url, {'csv_file': csv_file})
+        self.assertEqual(response.status_code, 200)
+        user = User.objects.get(username='testbool')
+        self.assertTrue(user.is_staff)
+        self.assertFalse(user.is_superuser)
+        self.assertTrue(user.is_active)
+
+    from unittest.mock import patch
+    @patch('tickets.views.user_import_view.BulkUserImportView._try_process_row')
+    def test_post_process_row_exception(self, mock_try_process):
+        """Test process row exception."""
+        mock_try_process.side_effect = Exception("Row processing exception")
+        self.client.login(username='admin', password='password')
+        csv_data = "username,email,first_name,last_name,password,is_staff,is_superuser,is_active\nerruser,err@example.com,Err,User,pass123,False,False,True"
+        csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
+        response = self.client.post(self.url, {'csv_file': csv_file})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Failed Imports (1)')
+        self.assertContains(response, 'Row processing exception')
 
     from unittest.mock import patch
     @patch('tickets.views.user_import_view.BulkUserImportView._save_user_transaction')
@@ -121,12 +147,9 @@ class BulkUserImportViewTests(TestCase):
         """Test for test_post_database_error."""
         mock_save.side_effect = Exception("Simulated DB Error")
         self.client.login(username='admin', password='password')
-        csv_data = "username,email,first_name,last_name,password\nerruser,err@example.com,Err,User,pass123"
+        csv_data = "username,email,first_name,last_name,password,is_staff,is_superuser,is_active\nerruser,err@example.com,Err,User,pass123,False,False,True"
         csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
         response = self.client.post(self.url, {'csv_file': csv_file})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Failed Imports (1)')
         self.assertContains(response, 'Simulated DB Error')
-
-
-
