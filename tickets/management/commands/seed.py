@@ -225,26 +225,29 @@ class Command(BaseCommand):
             body = self.faker.paragraph(nb_sentences=3)
             TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
 
+    def _create_single_attachment(self, message):
+        """Create one attachment for a message."""
+        content = self.faker.paragraph(nb_sentences=5)
+        filename = f"{self.faker.word()}.txt"
+        file_content = ContentFile(content.encode(), name=filename)
+        TicketMessageAttachment.objects.create(
+            ticket=message.ticket,
+            message=message,
+            file=file_content,
+            original_name=filename,
+            content_type="text/plain",
+            size_bytes=len(content.encode()),
+            uploaded_by=message.sender or message.ticket.created_by,
+        )
+
     def _create_message_attachments(self, message):
         """Create random attachments for a single message."""
         if randint(0, 100) >= 30:
             return 0
-        attachment_count = 0
-        for _ in range(randint(1, 3)):
-            filename = f"{self.faker.word()}.txt"
-            content = self.faker.paragraph(nb_sentences=5)
-            file_content = ContentFile(content.encode(), name=filename)
-            TicketMessageAttachment.objects.create(
-                ticket=message.ticket,
-                message=message,
-                file=file_content,
-                original_name=filename,
-                content_type="text/plain",
-                size_bytes=len(content.encode()),
-                uploaded_by=message.sender or message.ticket.created_by,
-            )
-            attachment_count += 1
-        return attachment_count
+        count = randint(1, 3)
+        for _ in range(count):
+            self._create_single_attachment(message)
+        return count
 
     def create_ticket_attachments(self):
         """Create random attachments for ticket messages."""
