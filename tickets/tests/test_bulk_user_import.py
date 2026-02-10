@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
 from django.urls import reverse
+from unittest.mock import patch
 
 User = get_user_model()
 
@@ -127,8 +128,26 @@ class BulkUserImportViewTests(TestCase):
         self.assertTrue(user.is_staff)
         self.assertFalse(user.is_superuser)
         self.assertTrue(user.is_active)
+        
+    def test_boolean_parsing_edge_cases(self):
+        """Test boolean string parsing invalid edge cases."""
+        self.client.login(username='admin', password='password')
+        csv_data = "username,email,first_name,last_name,password,is_staff,is_superuser,is_active\ntestbool2,bool2@example.com,B,B,,invalid,0,1\ntestbool3,bool3@example.com,C,C,pass,false,invalid,1\ntestbool4,bool4@example.com,D,D,pass,false,false,invalid\ntestbool5,bool5@example.com,E,E,********,false,false,false\ntestbool6,bool6@example.com,F,F,, , , "
+        csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
+        response = self.client.post(self.url, {'csv_file': csv_file})
+        self.assertEqual(response.status_code, 200)
 
-    from unittest.mock import patch
+    def test_boolean_parsing_is_staff_none(self):
+        """Test boolean string parsing when is_staff is invalid."""
+        self.client.login(username='admin', password='password')
+        User.objects.create_user('teststaff', 'teststaff@example.com', 'pass', is_staff=True)
+        csv_data = "username,email,first_name,last_name,password,is_staff,is_superuser,is_active\nteststaff,teststaff@example.com,S,S,pass,invalid,true,true"
+        csv_file = SimpleUploadedFile("file.csv", csv_data.encode('utf-8'))
+        response = self.client.post(self.url, {'csv_file': csv_file})
+        self.assertEqual(response.status_code, 200)
+        user = User.objects.get(username='teststaff')
+        self.assertTrue(user.is_staff) # Should still be true since invalid is_staff returns None
+
     @patch('tickets.views.user_import_view.BulkUserImportView._try_process_row')
     def test_post_process_row_exception(self, mock_try_process):
         """Test process row exception."""
@@ -141,7 +160,6 @@ class BulkUserImportViewTests(TestCase):
         self.assertContains(response, 'Failed Imports (1)')
         self.assertContains(response, 'Row processing exception')
 
-    from unittest.mock import patch
     @patch('tickets.views.user_import_view.BulkUserImportView._save_user_transaction')
     def test_post_database_error(self, mock_save):
         """Test for test_post_database_error."""

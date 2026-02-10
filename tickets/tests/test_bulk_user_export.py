@@ -43,6 +43,13 @@ class BulkUserExportViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 302)
 
+    def _get_admin_row(self, rows):
+        """Helper to get the admin row from CSV."""
+        for row in rows[1:]:
+            if row[0] == 'admin':
+                return row
+        return None
+
     def test_csv_content(self):
         """Test for test_csv_content."""
         self.client.login(username='admin', password='password')
@@ -53,21 +60,13 @@ class BulkUserExportViewTests(TestCase):
         csv_reader = csv.reader(StringIO(content))
         rows = list(csv_reader)
 
-        # Check headers
-        self.assertEqual(rows[0],
-                         ['username', 'email', 'first_name', 'last_name', 'password', 'is_staff', 'is_superuser',
-                          'is_active'])
+        self.assertEqual(rows[0], ['username', 'email', 'first_name', 'last_name', 'password', 'is_staff', 'is_superuser', 'is_active'])
 
-        # Find our admin user in the export (there might be others like staff, regular)
-        admin_row = None
-        for row in rows[1:]:
-            if row[0] == 'admin':
-                admin_row = row
-                break
-
+        admin_row = self._get_admin_row(rows)
         self.assertIsNotNone(admin_row)
         self.assertEqual(admin_row[1], 'admin@example.com')
         self.assertEqual(admin_row[4], '********')
         self.assertEqual(admin_row[5], 'True')
         self.assertEqual(admin_row[6], 'True')
         self.assertEqual(admin_row[7], 'True')
+
