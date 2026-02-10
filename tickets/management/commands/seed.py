@@ -43,6 +43,7 @@ class Command(BaseCommand):
         self.create_tickets()
         self.assign_tickets_to_departments()
         self.create_ticket_messages()
+        self.create_ticket_attachments()
         self.assign_staff_to_tickets()
         self.create_department_invitations()
     
@@ -222,6 +223,36 @@ class Command(BaseCommand):
             sender = ticket.created_by
             body = self.faker.paragraph(nb_sentences=3)
             TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
+
+    def create_ticket_attachments(self):
+        """Create random attachments for ticket messages."""
+        from io import BytesIO
+        from django.core.files.base import ContentFile
+        
+        print("Creating ticket attachments...")
+        attachment_count = 0
+        
+        messages = TicketMessage.objects.all()
+        for message in messages:
+            if randint(0, 100) < 30:
+                num_attachments = randint(1, 3)
+                for _ in range(num_attachments):
+                    filename = f"{self.faker.word()}.txt"
+                    content = self.faker.paragraph(nb_sentences=5)
+                    file_content = ContentFile(content.encode(), name=filename)
+                    
+                    attachment = TicketMessageAttachment.objects.create(
+                        ticket=message.ticket,
+                        message=message,
+                        file=file_content,
+                        original_name=filename,
+                        content_type="text/plain",
+                        size_bytes=len(content.encode()),
+                        uploaded_by=message.sender or message.ticket.created_by,
+                    )
+                    attachment_count += 1
+        
+        print(f"{attachment_count} Attachments created.")
 
     def assign_staff_to_tickets(self):
         """Randomly assign staff members as participants to tickets."""
