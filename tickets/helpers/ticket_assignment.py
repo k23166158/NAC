@@ -19,3 +19,26 @@ def assign_staff_to_ticket(ticket, staff_user, *, added_by=None):
     )
     Ticket.objects.filter(id=ticket.id).update(updated_at=timezone.now())
     return True
+
+from tickets.models import TicketParticipant, TicketMessage
+from tickets.models.ticket_department import TicketDepartment
+
+
+def assign_department_to_ticket(ticket, department, added_by):
+    TicketDepartment.objects.get_or_create(
+        ticket=ticket,
+        department=department,
+    )
+
+    # auto-assign staff in department
+    for user in department.members.all():
+        TicketParticipant.objects.get_or_create(
+            ticket=ticket,
+            user=user,
+        )
+
+    TicketMessage.objects.create(
+        ticket=ticket,
+        sender=None,
+        body=f"{department.name} department was added to the ticket by {added_by.get_full_name()}."
+    )

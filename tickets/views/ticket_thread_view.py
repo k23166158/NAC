@@ -8,6 +8,10 @@ from tickets.helpers.ticket_assignment import assign_staff_to_ticket
 
 from tickets.models.ticket_participant import TicketParticipant
 from ..models import Ticket, TicketMessage
+from ..models.ticket_department import TicketDepartment
+from ..models.department import Department
+from tickets.helpers.ticket_assignment import assign_department_to_ticket
+
 
 User = get_user_model()
 
@@ -59,6 +63,13 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         context["messages"] = self.get_reply_messages(messages)
         context["last_user_message_id"] = self.get_last_user_message_id(messages)
         context["edit_message"] = self.get_edit_message()
+        context["ticket_departments"] = Department.objects.filter(
+            ticket_departments__ticket=self.object
+        )
+
+        context["available_departments"] = Department.objects.exclude(
+            ticket_departments__ticket=self.object
+        )
         return context
     
     def touch_ticket(self):
@@ -162,11 +173,39 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         action = request.POST.get("action")
 
         if action in {"add", "remove"}:
-            self.handle_staff_change(request)
+            self.handle_assignment_change(request)
             return self.get(request, *args, **kwargs)
 
         self.dispatch_post_action(action, request)
         return self.get(request, *args, **kwargs)
+    
+    def _add_department(self, department, added_by):
+        assign_department_to_ticket(
+            ticket=self.object,
+            department=department,
+            added_by=added_by,
+        )
+
+    def handle_assignment_change(self, request):
+        target_id = request.POST.get("target_id")
+        target_type = request.POST.get("target_type")
+        action = request.POST.get("action")
+
+        if not target_id or not target_type:
+            return
+
+        if target_type == "staff":
+            user = get_object_or_404(User, id=target_id, is_staff=True)
+            if action == "add":
+                self._add_staff(user, request.user)
+            elif action == "remove":
+                self._remove_staff(user)
+
+        elif target_type == "department":
+            department = get_object_or_404(Department, id=target_id)
+            if action == "add":
+                self._add_department(department, request.user)
+
 
     def handle_close_ticket_action(self):
         """Close the ticket."""

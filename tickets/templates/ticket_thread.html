@@ -207,6 +207,61 @@
 
                 </div>
             </div>
+            <div class="section-wrapper">
+            <h2 class="section-title">Departments</h2>
+
+            <div class="staff-grid">
+
+                <!-- Assigned departments -->
+                <div class="staff-card">
+                    <h3 class="staff-card-header">Assigned</h3>
+
+                    <div class="staff-list">
+                        {% for department in ticket_departments %}
+                            <div class="pill staff-row">
+                                <span class="staff-name">
+                                    {{ department.name }}
+                                </span>
+
+                                <form method="post" class="remove-department-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="remove">
+                                    <input type="hidden" name="target_type" value="department">
+                                    <input type="hidden" name="target_id" value="{{ department.id }}">
+                                    <button type="submit" class="btn-icon-remove" title="Remove department">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        {% empty %}
+                            <div class="empty empty-state">No departments assigned.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Add department -->
+                <div class="staff-card">
+                    <h3 class="staff-card-header">Add department</h3>
+
+                    <div class="staff-list">
+                        {% for department in available_departments %}
+                            <form method="post" class="add-department-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="add">
+                                <input type="hidden" name="target_type" value="department">
+                                <input type="hidden" name="target_id" value="{{ department.id }}">
+                                <button type="submit" class="pill">
+                                    {{ department.name }}
+                                </button>
+                            </form>
+                        {% empty %}
+                            <div class="empty empty-state">All departments added.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
         {% endif %}
 
     {% else %}
@@ -215,5 +270,6 @@
         </div>
     {% endif %}
 
+    
 </div>
 {% endblock %}
