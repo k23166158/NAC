@@ -246,9 +246,6 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
 
         self.apply_assignment_action(handler, target, request.user)
 
-
-
-
     def handle_close_ticket_action(self):
         """Close the ticket."""
         if self.object.status != Ticket.Status.CLOSED:

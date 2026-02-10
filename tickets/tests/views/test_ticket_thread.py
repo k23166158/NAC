@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from tickets.models.department import Department
 from tickets.views.ticket_thread_view import TicketThreadView
 
 from tickets.models import Ticket, TicketMessage
@@ -552,3 +553,141 @@ class TicketThreadViewTests(TestCase):
         self.assertFalse(
             TicketMessage.objects.filter(ticket=self.ticket, body__contains="was removed").exists()
         )
+
+    def test_get_ticket_staff_returns_assigned_staff(self):
+        """get_ticket_staff returns users assigned as participants."""
+        staff_user = make_user("staff1", is_staff=True)
+        self.ticket.participants.create(user=staff_user)
+
+        self.client.force_login(self.user)
+        response = self.client.get(self._url())
+
+        self.assertIn(staff_user, response.context["staff"])
+
+    def test_get_available_staff_excludes_current_staff(self):
+        """get_available_staff excludes already assigned staff."""
+        staff1 = make_user("staff1", is_staff=True)
+        staff2 = make_user("staff2", is_staff=True)
+
+        self.ticket.participants.create(user=staff1)
+
+        self.client.force_login(self.user)
+        response = self.client.get(self._url())
+
+        available = list(response.context["available_staff"])
+        self.assertIn(staff2, available)
+        self.assertNotIn(staff1, available)
+
+    def test_get_assignment_target_staff(self):
+        """get_assignment_target returns staff user."""
+        staff_user = make_user("staff_target", is_staff=True)
+        view = TicketThreadView()
+
+        target = TicketThreadView.get_assignment_target("staff", staff_user.id)
+        self.assertEqual(target, staff_user)
+
+    def test_apply_assignment_action_add_staff(self):
+        """apply_assignment_action(add) calls handler.add."""
+        staff_user = make_user("applystaff", is_staff=True)
+        view = TicketThreadView()
+        view.object = self.ticket
+
+        handler = TicketThreadView.StaffAssignmentHandler(view, "add")
+        TicketThreadView.apply_assignment_action(handler, staff_user, self.user)
+
+        self.assertTrue(self.ticket.participants.filter(user=staff_user).exists())
+
+    def test_apply_assignment_action_remove_staff(self):
+        """apply_assignment_action(remove) calls handler.remove."""
+        staff_user = make_user("applystaff", is_staff=True)
+        self.ticket.participants.create(user=staff_user)
+
+        view = TicketThreadView()
+        view.object = self.ticket
+
+        handler = TicketThreadView.StaffAssignmentHandler(view, "remove")
+        TicketThreadView.apply_assignment_action(handler, staff_user, self.user)
+
+        self.assertFalse(self.ticket.participants.filter(user=staff_user).exists())
+
+    def test_apply_assignment_action_unknown_does_nothing(self):
+        """apply_assignment_action with unknown action is a no-op."""
+        staff_user = make_user("noopstaff", is_staff=True)
+
+        view = TicketThreadView()
+        view.object = self.ticket
+
+        handler = TicketThreadView.StaffAssignmentHandler(view, "unknown")
+        TicketThreadView.apply_assignment_action(handler, staff_user, self.user)
+
+        self.assertFalse(self.ticket.participants.filter(user=staff_user).exists())
+
+    def test_handle_assignment_change_missing_target_id(self):
+        """handle_assignment_change returns early if target_id missing."""
+        self.client.force_login(self.user)
+
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.post(self._url(), data={"action": "add", "target_type": "staff"})
+        request.user = self.user
+
+        view = TicketThreadView()
+        view.object = self.ticket
+        view.handle_assignment_change(request)
+
+        self.assertEqual(self.ticket.participants.count(), 0)
+
+    def test_handle_assignment_change_missing_target_type(self):
+        """handle_assignment_change returns early if target_type missing."""
+        self.client.force_login(self.user)
+
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.post(self._url(), data={"action": "add", "target_id": "1"})
+        request.user = self.user
+
+        view = TicketThreadView()
+        view.object = self.ticket
+        view.handle_assignment_change(request)
+
+        self.assertEqual(self.ticket.participants.count(), 0)
+
+    def test_handle_assignment_change_missing_action(self):
+        """handle_assignment_change returns early if action missing."""
+        staff_user = make_user("staffx", is_staff=True)
+
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.post(
+            self._url(),
+            data={"target_id": staff_user.id, "target_type": "staff"},
+        )
+        request.user = self.user
+
+        view = TicketThreadView()
+        view.object = self.ticket
+        view.handle_assignment_change(request)
+
+        self.assertFalse(self.ticket.participants.filter(user=staff_user).exists())
+
+    def test_post_add_department_assigns_department(self):
+        """POST action=add with target_type=department assigns department."""
+        dept = Department.objects.create(name="Support")
+
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="add",
+                target_type="department",
+                target_id=str(dept.id),
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            Department.objects.filter(ticket_departments__ticket=self.ticket, id=dept.id).exists()
+        )
+
