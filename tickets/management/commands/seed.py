@@ -44,6 +44,7 @@ class Command(BaseCommand):
         self.assign_tickets_to_departments()
         self.create_ticket_messages()
         self.assign_staff_to_tickets()
+        self.create_department_invitations()
     
     def create_users(self):
         """Create users in the database."""
@@ -239,3 +240,31 @@ class Command(BaseCommand):
         """Assign multiple staff members as participants to a ticket."""
         for user in participants:
             TicketParticipant.objects.get_or_create(ticket=ticket, user=user)
+
+    def _create_invites_for_staff(self, staff, departments):
+        """Create 1-3 pending department invites for one staff user."""
+        staff_dept_ids = set(
+            UserDepartments.objects.filter(user=staff).values_list('department_id', flat=True)
+        )
+        available = [d for d in departments if d.id not in staff_dept_ids]
+        num_invitations = min(randint(1, 3), len(available))
+        if num_invitations == 0:
+            return
+        for department in random.sample(available, num_invitations):
+            DepartmentInvitation.objects.get_or_create(
+                department=department,
+                recipient=staff,
+                status='pending',
+                defaults={'sender': department.created_by},
+            )
+
+    def create_department_invitations(self):
+        """Creates a random amount of department invitations between 1 and 3 for staff users."""
+        print("Creating department invitations...")
+        staff_users = list(User.objects.filter(is_staff=True))
+        departments = list(Department.objects.all())
+        for staff in staff_users:
+            self._create_invites_for_staff(staff, departments)
+        print("Department invitations created.")
+
+

@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from tickets.models import Department, UserDepartments
+from tickets.models import Department, UserDepartments, DepartmentInvitation, Ticket, TicketAssigned
 
 User = get_user_model()
 
@@ -42,6 +42,24 @@ class DepartmentViewTests(TestCase):
         self.assertTemplateUsed(response, "department.html")
         self.assertIn("active_tickets", response.context)
         self.assertIn("available_staff", response.context)
+
+    def test_get_context_includes_active_and_closed_tickets(self):
+        """Test that build_context includes active and closed tickets with annotations."""
+        open_ticket = Ticket.objects.create(
+            title="Open", created_by=self.member, status=Ticket.Status.OPEN
+        )
+        closed_ticket = Ticket.objects.create(
+            title="Closed", created_by=self.member, status=Ticket.Status.CLOSED
+        )
+        TicketAssigned.objects.create(ticket=open_ticket, department=self.department)
+        TicketAssigned.objects.create(ticket=closed_ticket, department=self.department)
+        self.client.force_login(self.member)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["active_tickets"]), 1)
+        self.assertEqual(len(response.context["closed_tickets"]), 1)
+        self.assertIn("staff", response.context)
+        self.assertIn("department", response.context)
 
     def test_post_add_staff_success(self):
         """Test that the owner can add staff."""
@@ -114,4 +132,86 @@ class DepartmentViewTests(TestCase):
             UserDepartments.objects.filter(
                 user=self.outsider, department=self.department
             ).exists()
+        )
+
+    def test_post_invite_staff_success(self):
+        """Test that owner can invite a staff user to the department."""
+        staff = User.objects.create_user(
+            username="staffinvite",
+            email="si@example.com",
+            password="pw",
+            is_staff=True,
+        )
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            {'action': 'invite', 'user_id': staff.id},
+        )
+        self.assertRedirects(response, self.url)
+        self.assertTrue(
+            DepartmentInvitation.objects.filter(
+                recipient=staff,
+                department=self.department,
+                status='pending',
+            ).exists()
+        )
+
+    def test_post_invite_already_in_department_shows_warning(self):
+        """Test that inviting a staff user already in the department shows warning."""
+        staff_in_dept = User.objects.create_user(
+            username="staffindept",
+            email="sid@example.com",
+            password="pw",
+            is_staff=True,
+        )
+        UserDepartments.objects.create(user=staff_in_dept, department=self.department)
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            {'action': 'invite', 'user_id': staff_in_dept.id},
+        )
+        self.assertRedirects(response, self.url)
+        self.assertFalse(
+            DepartmentInvitation.objects.filter(
+                recipient=staff_in_dept,
+                department=self.department,
+            ).exists()
+        )
+
+    def test_post_invite_non_staff_shows_error(self):
+        """Test that inviting a non-staff user shows error and does not create invite."""
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url,
+            {'action': 'invite', 'user_id': self.outsider.id},
+        )
+        self.assertRedirects(response, self.url)
+        self.assertFalse(
+            DepartmentInvitation.objects.filter(
+                recipient=self.outsider,
+                department=self.department,
+            ).exists()
+        )
+
+    def test_post_invite_already_invited_shows_info(self):
+        """Test that inviting again when pending invite exists does not duplicate."""
+        staff = User.objects.create_user(
+            username="staff2", email="s2@example.com", password="pw", is_staff=True
+        )
+        DepartmentInvitation.objects.create(
+            sender=self.owner,
+            recipient=staff,
+            department=self.department,
+            status="pending",
+        )
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.url, {"action": "invite", "user_id": staff.id}
+        )
+        self.assertRedirects(response, self.url)
+        self.assertEqual(
+            DepartmentInvitation.objects.filter(
+                recipient=staff, department=self.department, status="pending"
+            ).count(),
+            1,
         )
