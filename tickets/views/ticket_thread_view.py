@@ -17,6 +17,38 @@ User = get_user_model()
 
 class TicketThreadView(LoginRequiredMixin, DetailView):
     """View to display the thread of messages of tickets."""
+
+    class StaffAssignmentHandler:
+        """Handler for adding or removing staff assignments to a ticket."""
+        def __init__(self, view, action):
+            """Initialize the handler with the view and action type."""
+            self.view = view
+            self.action = action
+
+        def add(self, user, actor):
+            """Add a staff user to the ticket."""
+            self.view._add_staff(user, actor)
+
+        def remove(self, user):
+            """Remove a staff user from the ticket and log the action."""
+            self.view._remove_staff(user)
+            
+
+    class DepartmentAssignmentHandler:
+        """Handler for adding or removing department assignments to a ticket."""
+        def __init__(self, view, action):
+            """Initialize the handler with the view and action type."""
+            self.view = view
+            self.action = action
+
+        def add(self, department, actor):
+            """Add a department to the ticket."""
+            self.view._add_department(department, actor)
+
+        def remove(self, department):
+            """Remove a department from the ticket and log the action."""
+            self.view._remove_department(department)
+
     model = Ticket
     template_name = 'ticket_thread.html'
     context_object_name = 'ticket'
@@ -63,13 +95,8 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         context["messages"] = self.get_reply_messages(messages)
         context["last_user_message_id"] = self.get_last_user_message_id(messages)
         context["edit_message"] = self.get_edit_message()
-        context["ticket_departments"] = Department.objects.filter(
-            ticket_departments__ticket=self.object
-        )
-
-        context["available_departments"] = Department.objects.exclude(
-            ticket_departments__ticket=self.object
-        )
+        context["ticket_departments"] = Department.objects.filter(ticket_departments__ticket=self.object)
+        context["available_departments"] = Department.objects.exclude(ticket_departments__ticket=self.object)
         return context
     
     def touch_ticket(self):
@@ -180,31 +207,46 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
         return self.get(request, *args, **kwargs)
     
     def _add_department(self, department, added_by):
+        """Assign a department to the ticket."""
         assign_department_to_ticket(
             ticket=self.object,
             department=department,
             added_by=added_by,
         )
 
+    def get_assignment_target(target_type, target_id):
+        """Helper method to get the target user or department based on type and ID."""
+        if target_type == "staff":
+            return get_object_or_404(User, id=target_id, is_staff=True)
+        if target_type == "department":
+            return get_object_or_404(Department, id=target_id)
+    
+    def apply_assignment_action(handler, target, actor):
+        """Apply the add or remove action for staff or department assignments."""
+        actions = {
+            "add": lambda: handler.add(target, actor),
+            "remove": lambda: handler.remove(target),
+        }
+        action = actions.get(handler.action)
+        if action:
+            action()
+
     def handle_assignment_change(self, request):
+        """Handle adding or removing staff or department assignments based on POST data."""
         target_id = request.POST.get("target_id")
         target_type = request.POST.get("target_type")
         action = request.POST.get("action")
+        if not target_id or not target_type or not action: return
+        
+        target = self.get_assignment_target(target_type, target_id)
+        handler = {
+            "staff": TicketThreadView.StaffAssignmentHandler,
+            "department": TicketThreadView.DepartmentAssignmentHandler,
+        }[target_type](self, action)
 
-        if not target_id or not target_type:
-            return
+        self.apply_assignment_action(handler, target, request.user)
 
-        if target_type == "staff":
-            user = get_object_or_404(User, id=target_id, is_staff=True)
-            if action == "add":
-                self._add_staff(user, request.user)
-            elif action == "remove":
-                self._remove_staff(user)
 
-        elif target_type == "department":
-            department = get_object_or_404(Department, id=target_id)
-            if action == "add":
-                self._add_department(department, request.user)
 
 
     def handle_close_ticket_action(self):

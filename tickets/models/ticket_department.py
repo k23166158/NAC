@@ -5,6 +5,7 @@ from .department import Department
 
 
 class TicketDepartment(models.Model):
+    """Model representing the assignment of a ticket to a department."""
     ticket = models.ForeignKey(
         Ticket,
         on_delete=models.CASCADE,
@@ -19,4 +20,5 @@ class TicketDepartment(models.Model):
     added_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        """Meta options for the TicketDepartment model."""
         unique_together = ("ticket", "department")

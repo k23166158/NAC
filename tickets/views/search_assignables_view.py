@@ -5,15 +5,22 @@ from tickets.models import Department
 
 User = get_user_model()
 
-
 @login_required
 def search_assignables(request):
-    """
-    Search staff users and departments for ticket assignment.
-    Used via AJAX from the ticket thread page.
-    """
+    """View to search for assignable staff and departments based on a query parameter 'q'."""
     q = request.GET.get("q", "").strip()
 
+    staff, departments = get_assignables(q, User, Department)
+    results = (
+        format_staff_results(staff)
+        + format_department_results(departments)
+    )
+
+    return JsonResponse(results, safe=False)
+
+
+def get_assignables(q, User, Department):
+    """Helper function to get assignable staff and departments based on a search query."""
     staff = User.objects.filter(
         is_staff=True,
         username__icontains=q,
@@ -23,20 +30,28 @@ def search_assignables(request):
         name__icontains=q,
     )[:5]
 
-    results = []
+    return staff, departments
 
-    for user in staff:
-        results.append({
-            "id": user.id,
+
+def format_staff_results(staff):
+    """Format staff user results for the search assignables endpoint."""
+    return [
+        {
+            "id": u.id,
             "type": "staff",
-            "label": f"{user.get_full_name()} (@{user.username})",
-        })
+            "label": f"{u.get_full_name()} (@{u.username})",
+        }
+        for u in staff
+    ]
 
-    for dept in departments:
-        results.append({
-            "id": dept.id,
+
+def format_department_results(departments):
+    """Get department results formatted for the search assignables endpoint."""
+    return [
+        {
+            "id": d.id,
             "type": "department",
-            "label": f"{dept.name} (Department)",
-        })
-
-    return JsonResponse(results, safe=False)
+            "label": f"{d.name} (Department)",
+        }
+        for d in departments
+    ]
