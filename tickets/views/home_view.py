@@ -5,18 +5,16 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views import View
 
-from ..models import Ticket, TicketMessage, Department
-
+from tickets.models import Ticket, TicketMessage, Department
 
 class HomeView(View):
     """View for the home page/dashboard."""
 
     def get(self, request):
         """Handle GET request for home page."""
-        if not request.user.is_authenticated: return render(request, "landing.html")
+        if not request.user.is_authenticated: return render(request, "unauthenticated_home.html")
         scope = request.GET.get("scope", "personal")
         if scope not in {"personal", "department"}: scope = "personal"
-        # Staff-only: non-staff users can never view department scope
         if scope == "department" and not request.user.is_staff: scope = "personal"
         qs = self._annotated_tickets(request.user, scope=scope)
         overdue = self._overdue_tickets(qs)
@@ -30,9 +28,9 @@ class HomeView(View):
 
     def _base_tickets(self, user, scope="personal"):
         """Tickets visible to this user."""
-        if scope == "department" and user.is_staff: # Department scope = everyone’s tickets (staff-only)
+        if scope == "department" and user.is_staff:
             return Ticket.objects.all()
-        if not user.is_staff: # Personal scope (existing logic)
+        if not user.is_staff:
             return Ticket.objects.filter(created_by=user)
         dept_ids = Department.objects.filter(
             assigned_users__user=user
