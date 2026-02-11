@@ -4,8 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 
-from ..models import Department, DepartmentInvitation, UserDepartments
-
+from tickets.models import Department, DepartmentInvitation, UserDepartments
 
 class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, View):
     """View for managing departments. Only accessible to staff members."""
@@ -14,7 +13,7 @@ class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, View):
 
     def test_func(self):
         """Check if the user is a staff member."""
-        return self.request.user.is_staff
+        return self.request.user.is_staff or self.request.user.is_superuser
 
     def _base_departments_queryset(self, user):
         """Return departments the user is in (filtered, distinct)."""

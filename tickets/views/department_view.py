@@ -9,7 +9,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 
 User = get_user_model()
 
-
 class DepartmentView(LoginRequiredMixin, View):
     """View for displaying department details."""
 
@@ -17,7 +16,7 @@ class DepartmentView(LoginRequiredMixin, View):
         """Handle GET requests for the department view."""
         department = get_object_or_404(Department, slug=department_slug)
 
-        if not self.is_member(request.user, department):
+        if not self.is_member(request.user, department) and not request.user.is_superuser:
             return HttpResponseForbidden("You are not allowed to access this.")
 
         context = self.build_context(department)
