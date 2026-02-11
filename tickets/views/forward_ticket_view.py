@@ -1,20 +1,19 @@
 from urllib.parse import quote
 
 from django.http import HttpResponseForbidden
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.utils import timezone
 
-from ..forms import ForwardTicketForm
-from ..models import Ticket
-from ..models.ticket_participant import TicketParticipant
-from ..models.ticket_message import TicketMessage
-
+from tickets.forms import ForwardTicketForm
+from tickets.models import Ticket
+from tickets.models.ticket_participant import TicketParticipant
+from tickets.models.ticket_message import TicketMessage
 
 def _q(value):
     """URL-encode a value as a string."""
     return quote(str(value))
-
 
 def _ticket_redirect(return_tab, ticket_uuid, **params):
     """Redirect to ticket thread with query params."""
@@ -23,18 +22,15 @@ def _ticket_redirect(return_tab, ticket_uuid, **params):
     extra = "&".join(f"{k}={_q(v)}" for k, v in params_with_tab.items())
     return redirect(f"{base}?{extra}")
 
-
 def _has_field(model, field_name):
     """Return True if model has a field with the given name."""
     return any(f.name == field_name for f in model._meta.fields)
-
 
 def _err(form):
     """Return best-effort email error message from a form."""
     return form.errors.get("email", ["Email failed to forward."])[0]
 
-
-class ForwardTicketView(View):
+class ForwardTicketView(LoginRequiredMixin, View):
     """Forward a ticket to another staff member (POST-only)."""
 
     def _forbidden(self):
