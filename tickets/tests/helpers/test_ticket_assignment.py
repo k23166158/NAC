@@ -7,6 +7,9 @@ from datetime import timedelta
 # Adjust this import to match where your function is located
 from tickets.helpers.ticket_assignment import assign_staff_to_ticket
 from tickets.models import Ticket, TicketParticipant, TicketMessage
+from tickets.helpers.ticket_assignment import assign_department_to_ticket, assign_staff_to_ticket
+from tickets.models import TicketDepartment
+from tickets.models import Department
 
 User = get_user_model()
 
@@ -124,3 +127,121 @@ class AssignStaffToTicketTests(TestCase):
         # Verify defaults={} because hasattr failed
         call_kwargs = MockParticipant.objects.get_or_create.call_args[1]
         self.assertEqual(call_kwargs['defaults'], {})
+
+
+class AssignDepartmentToTicketTests(TestCase):
+    """Test cases for the assign_department_to_ticket helper function."""
+
+    def setUp(self):
+        self.creator = User.objects.create_user(
+            username="creator",
+            email="creator@example.com",
+            password="password",
+            first_name="Alice",
+            last_name="Smith",
+        )
+
+        self.staff1 = User.objects.create_user(
+            username="staff1",
+            email="staff1@example.com",
+            password="password",
+        )
+
+        self.staff2 = User.objects.create_user(
+            username="staff2",
+            email="staff2@example.com",
+            password="password",
+        )
+
+        self.ticket = Ticket.objects.create(
+            title="Department Test Ticket",
+            created_by=self.creator,
+        )
+
+        # ✅ FIX: include created_by
+        self.department = Department.objects.create(
+            name="Support",
+            created_by=self.creator,
+        )
+
+        self.department.members.add(self.staff1, self.staff2)
+    def test_assign_department_creates_ticket_department_relation(self):
+        """Department is linked to the ticket."""
+        assign_department_to_ticket(
+            self.ticket,
+            self.department,
+            added_by=self.creator,
+        )
+
+        self.assertTrue(
+            TicketDepartment.objects.filter(
+                ticket=self.ticket,
+                department=self.department,
+            ).exists()
+        )
+
+    def test_assign_department_adds_all_members_as_participants(self):
+        """All department members become ticket participants."""
+        assign_department_to_ticket(
+            self.ticket,
+            self.department,
+            added_by=self.creator,
+        )
+
+        self.assertTrue(
+            TicketParticipant.objects.filter(
+                ticket=self.ticket,
+                user=self.staff1,
+            ).exists()
+        )
+
+        self.assertTrue(
+            TicketParticipant.objects.filter(
+                ticket=self.ticket,
+                user=self.staff2,
+            ).exists()
+        )
+
+    def test_assign_department_creates_log_message(self):
+        """A system message is created when department is added."""
+        assign_department_to_ticket(
+            self.ticket,
+            self.department,
+            added_by=self.creator,
+        )
+
+        expected_body = (
+            f"{self.department.name} department was added to the ticket by "
+            f"{self.creator.get_full_name()}."
+        )
+
+        self.assertTrue(
+            TicketMessage.objects.filter(
+                ticket=self.ticket,
+                body=expected_body,
+            ).exists()
+        )
+
+    def test_assign_department_does_not_duplicate_participants(self):
+        """
+        If a department member is already a participant,
+        get_or_create should prevent duplication.
+        """
+        TicketParticipant.objects.create(
+            ticket=self.ticket,
+            user=self.staff1,
+        )
+
+        assign_department_to_ticket(
+            self.ticket,
+            self.department,
+            added_by=self.creator,
+        )
+
+        self.assertEqual(
+            TicketParticipant.objects.filter(
+                ticket=self.ticket,
+                user=self.staff1,
+            ).count(),
+            1,
+        )

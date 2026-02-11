@@ -430,7 +430,8 @@ class TicketThreadViewTests(TestCase):
             self._url(),
             data=self._csrf_data(
                 action="add",
-                user_id=str(self.staff_user.id)
+                target_type="staff",
+                target_id=str(self.staff_user.id),
             ),
         )
         
@@ -455,7 +456,8 @@ class TicketThreadViewTests(TestCase):
             self._url(),
             data=self._csrf_data(
                 action="remove",
-                user_id=str(self.staff_user.id)
+                target_type="staff",
+                target_id=str(self.staff_user.id),
             ),
         )
         
@@ -477,7 +479,8 @@ class TicketThreadViewTests(TestCase):
             self._url(),
             data=self._csrf_data(
                 action="add",
-                user_id=""
+                target_type="staff",
+                target_id=""
             ),
         )
         
@@ -583,7 +586,7 @@ class TicketThreadViewTests(TestCase):
         staff_user = make_user("staff_target", is_staff=True)
         view = TicketThreadView()
 
-        target = TicketThreadView.get_assignment_target("staff", staff_user.id)
+        target = view.get_assignment_target("staff", staff_user.id)
         self.assertEqual(target, staff_user)
 
     def test_apply_assignment_action_add_staff(self):
@@ -593,7 +596,7 @@ class TicketThreadViewTests(TestCase):
         view.object = self.ticket
 
         handler = TicketThreadView.StaffAssignmentHandler(view, "add")
-        TicketThreadView.apply_assignment_action(handler, staff_user, self.user)
+        view.apply_assignment_action(handler, staff_user, self.user)
 
         self.assertTrue(self.ticket.participants.filter(user=staff_user).exists())
 
@@ -606,7 +609,7 @@ class TicketThreadViewTests(TestCase):
         view.object = self.ticket
 
         handler = TicketThreadView.StaffAssignmentHandler(view, "remove")
-        TicketThreadView.apply_assignment_action(handler, staff_user, self.user)
+        view.apply_assignment_action(handler, staff_user, self.user)
 
         self.assertFalse(self.ticket.participants.filter(user=staff_user).exists())
 
@@ -618,7 +621,7 @@ class TicketThreadViewTests(TestCase):
         view.object = self.ticket
 
         handler = TicketThreadView.StaffAssignmentHandler(view, "unknown")
-        TicketThreadView.apply_assignment_action(handler, staff_user, self.user)
+        view.apply_assignment_action(handler, staff_user, self.user)
 
         self.assertFalse(self.ticket.participants.filter(user=staff_user).exists())
 
@@ -672,7 +675,10 @@ class TicketThreadViewTests(TestCase):
 
     def test_post_add_department_assigns_department(self):
         """POST action=add with target_type=department assigns department."""
-        dept = Department.objects.create(name="Support")
+        dept = Department.objects.create(
+                name="Support",
+                created_by=self.user
+            )
 
         self.client.force_login(self.user)
         self.client.get(self._url())
@@ -691,3 +697,170 @@ class TicketThreadViewTests(TestCase):
             Department.objects.filter(ticket_departments__ticket=self.ticket, id=dept.id).exists()
         )
 
+    def test_remove_department_direct_call(self):
+        """Direct call to _remove_department removes department and logs message."""
+        dept = Department.objects.create(name="Legal", created_by=self.user)
+
+        # First assign it
+        self.ticket.ticket_departments.create(department=dept)
+
+        view = TicketThreadView()
+        view.object = self.ticket
+
+        view._remove_department(dept)
+
+        # Relationship removed
+        self.assertFalse(
+            Department.objects.filter(
+                ticket_departments__ticket=self.ticket,
+                id=dept.id
+            ).exists()
+        )
+
+        # System message created
+        self.assertTrue(
+            TicketMessage.objects.filter(
+                ticket=self.ticket,
+                body__contains="was removed"
+            ).exists()
+        )
+
+    def test_get_assignment_target_department(self):
+        """get_assignment_target returns department when target_type='department'."""
+        dept = Department.objects.create(name="IT", created_by=self.user)
+        view = TicketThreadView()
+        target = view.get_assignment_target("department", dept.id)
+        self.assertEqual(target, dept)
+
+    def test_get_assignment_target_invalid_type_returns_none(self):
+        """Invalid target_type returns None."""
+        view = TicketThreadView()
+        target = view.get_assignment_target("invalid", 1)
+        self.assertIsNone(target)
+
+    def test_handle_staff_change_missing_user_id(self):
+        """handle_staff_change returns early when user_id missing."""
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.post(self._url(), data={"action": "add"})
+        request.user = self.user
+
+        view = TicketThreadView()
+        view.object = self.ticket
+        view.handle_staff_change(request)
+
+        self.assertEqual(self.ticket.participants.count(), 0)
+
+
+    def test_handle_staff_change_add(self):
+        """handle_staff_change directly adds staff."""
+        staff = make_user("staff_direct_add", is_staff=True)
+
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.post(
+            self._url(),
+            data={"action": "add", "user_id": staff.id},
+        )
+        request.user = self.user
+
+        view = TicketThreadView()
+        view.object = self.ticket
+        view.handle_staff_change(request)
+
+        self.assertTrue(self.ticket.participants.filter(user=staff).exists())
+    
+    def test_handle_staff_change_remove(self):
+        """handle_staff_change directly removes staff."""
+        staff = make_user("staff_direct_remove", is_staff=True)
+        self.ticket.participants.create(user=staff)
+
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.post(
+            self._url(),
+            data={"action": "remove", "user_id": staff.id},
+        )
+        request.user = self.user
+
+        view = TicketThreadView()
+        view.object = self.ticket
+        view.handle_staff_change(request)
+
+        self.assertFalse(self.ticket.participants.filter(user=staff).exists())
+
+    def test_add_department_direct_call(self):
+        """Direct call to _add_department assigns department."""
+        dept = Department.objects.create(name="HR", created_by=self.user)
+
+        view = TicketThreadView()
+        view.object = self.ticket
+        view._add_department(dept, self.user)
+
+        self.assertTrue(
+            Department.objects.filter(ticket_departments__ticket=self.ticket, id=dept.id).exists()
+        )
+
+    def test_apply_assignment_action_add_department(self):
+        """apply_assignment_action works for department handler."""
+        dept = Department.objects.create(name="Finance", created_by=self.user)
+
+        view = TicketThreadView()
+        view.object = self.ticket
+
+        handler = TicketThreadView.DepartmentAssignmentHandler(view, "add")
+        view.apply_assignment_action(handler, dept, self.user)
+
+        self.assertTrue(
+            Department.objects.filter(ticket_departments__ticket=self.ticket, id=dept.id).exists()
+        )
+
+    def test_get_reply_messages_single_message_returns_empty_list(self):
+        """get_reply_messages returns empty list if only one message."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="Only one",
+        )
+
+        view = TicketThreadView()
+        view.object = self.ticket
+        messages = TicketMessage.objects.filter(ticket=self.ticket)
+
+        replies = view.get_reply_messages(messages)
+        self.assertEqual(list(replies), [])
+
+    def test_get_first_message_direct_call(self):
+        """get_first_message returns first message."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="First message",
+        )
+
+        view = TicketThreadView()
+        view.object = self.ticket
+        messages = TicketMessage.objects.filter(ticket=self.ticket)
+
+        first = view.get_first_message(messages)
+        self.assertEqual(first, msg)
+
+    def test_dispatch_post_action_delete_direct(self):
+        """dispatch_post_action('delete') executes delete lambda."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="To delete",
+        )
+
+        view = TicketThreadView()
+        view.object = self.ticket
+
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.post(self._url(), data={"message_id": msg.id})
+        request.user = self.user
+
+        view.dispatch_post_action("delete", request)
+        msg.refresh_from_db()
+        self.assertTrue(msg.hidden)

@@ -11,7 +11,8 @@ from ..models import Ticket, TicketMessage
 from ..models.ticket_department import TicketDepartment
 from ..models.department import Department
 from tickets.helpers.ticket_assignment import assign_department_to_ticket
-
+from django.http import Http404
+from django.test import RequestFactory
 
 User = get_user_model()
 
@@ -213,15 +214,28 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
             department=department,
             added_by=added_by,
         )
+    
+    def _remove_department(self, department):
+        """Remove a department from the ticket and log it."""
+        TicketDepartment.objects.filter(
+            ticket=self.object,
+            department=department
+        ).delete()
 
-    def get_assignment_target(target_type, target_id):
+        TicketMessage.objects.create(
+            ticket=self.object,
+            sender=None,
+            body=f"{department.name} was removed from the ticket."
+        )
+
+    def get_assignment_target(self, target_type, target_id):
         """Helper method to get the target user or department based on type and ID."""
         if target_type == "staff":
             return get_object_or_404(User, id=target_id, is_staff=True)
         if target_type == "department":
             return get_object_or_404(Department, id=target_id)
     
-    def apply_assignment_action(handler, target, actor):
+    def apply_assignment_action(self, handler, target, actor):
         """Apply the add or remove action for staff or department assignments."""
         actions = {
             "add": lambda: handler.add(target, actor),
@@ -253,3 +267,72 @@ class TicketThreadView(LoginRequiredMixin, DetailView):
             self.object.closed_at = timezone.now()
             self.object.save()
             self.touch_ticket()
+
+    def test_get_assignment_target_department_invalid_id_raises_404(self):
+        """Invalid department id raises 404."""
+        view = TicketThreadView()
+
+        with self.assertRaises(Http404):
+            view.get_assignment_target("department", 999999)
+
+    def test_handle_assignment_change_invalid_target_type_raises_keyerror(self):
+        factory = RequestFactory()
+
+        request = factory.post(
+            self._url(),
+            data={
+                "action": "add",
+                "target_type": "invalid_type",
+                "target_id": "1",
+            },
+        )
+        request.user = self.user
+
+        view = TicketThreadView()
+        view.object = self.ticket
+
+        with self.assertRaises(KeyError):
+            view.handle_assignment_change(request)
+
+    def test_handle_staff_change_invalid_user_raises_404(self):
+        factory = RequestFactory()
+        request = factory.post(
+            self._url(),
+            data={"action": "add", "user_id": 999999},
+        )
+        request.user = self.user
+
+        view = TicketThreadView()
+        view.object = self.ticket
+
+        with self.assertRaises(Http404):
+            view.handle_staff_change(request)
+
+    def test_remove_department_when_not_assigned(self):
+        """Removing department that is not assigned still logs message."""
+        dept = Department.objects.create(name="GhostDept", created_by=self.user)
+
+        view = TicketThreadView()
+        view.object = self.ticket
+
+        view._remove_department(dept)
+
+        # No crash
+        self.assertTrue(
+            TicketMessage.objects.filter(
+                ticket=self.ticket,
+                body__contains="GhostDept was removed"
+            ).exists()
+        )
+    def test_handle_close_ticket_action_already_closed_direct(self):
+        self.ticket.status = Ticket.Status.CLOSED
+        self.ticket.closed_at = timezone.now()
+        self.ticket.save()
+
+        view = TicketThreadView()
+        view.object = self.ticket
+
+        view.handle_close_ticket_action()
+
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
