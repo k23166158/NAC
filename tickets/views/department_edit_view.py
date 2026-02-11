@@ -11,7 +11,7 @@ class EditDepartmentView(DepartmentFormView):
         department = get_object_or_404(Department, slug=department_slug)
 
         if department.created_by != request.user and not request.user.is_superuser:
-            return HttpResponseForbidden("You are not allowed to delete this department.")
+            return HttpResponseForbidden("You are not allowed to edit this department.")
         
         return super().get(request, instance=department)
     
@@ -20,14 +20,10 @@ class EditDepartmentView(DepartmentFormView):
         department = get_object_or_404(Department, slug=department_slug)
 
         if department.created_by != request.user and not request.user.is_superuser:
-            return HttpResponseForbidden("You are not allowed to delete this department.")
+            return HttpResponseForbidden("You are not allowed to edit this department.")
 
         return super().post(request, instance=department)
 
     def render_form(self, request, form):
         """Helper method to render the form template."""
-
-        if form.instance.created_by != request.user and not request.user.is_superuser:
-            return HttpResponseForbidden("You are not allowed to delete this department.")
-
         return render(request, 'department_form.html', {'form': form, 'type': 'edit', 'department': form.instance})

@@ -17,7 +17,7 @@ class HomeView(View):
             return render(request, "unauthenticated_home.html")
     
         scope = request.GET.get("scope", "personal")
-        qs = self.handle_scope(request.user, scope)
+        qs, scope = self.handle_scope(request.user, scope)
         overdue = self.overdue_tickets(qs)
         context = {
             "scope": scope,
@@ -30,12 +30,12 @@ class HomeView(View):
     def handle_scope(self, user, scope):
         """Handles the tickets to display depending on the scope selected by the user"""
         if not user.is_staff:
-            return self.annotated_tickets(user, scope="personal")
+            return self.annotated_tickets(user, scope="personal"), "personal"
 
         if scope not in ("personal", "department", "assigned"):
             scope = "personal"
 
-        return self.annotated_tickets(user, scope=scope)
+        return self.annotated_tickets(user, scope=scope), scope
 
     def base_tickets(self, user, scope="personal"):
         """Tickets visible to this user."""

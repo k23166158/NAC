@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from tickets.views.ticket_thread_view import TicketThreadView
 
-from tickets.models import Ticket, TicketMessage
+from tickets.models import Ticket, TicketMessage, Department, UserDepartments, TicketAssigned
 
 User = get_user_model()
 
@@ -501,6 +501,7 @@ class TicketThreadViewTests(TestCase):
         staff_user = make_user("directstaff", is_staff=True)
         self.client.force_login(self.user)
         view = TicketThreadView()
+        view.ticket = self.ticket # Fix: Set ticket on view
         view.object = self.ticket
         view._add_staff(staff_user, self.user)
         self.assertTrue(self.ticket.participants.filter(user=staff_user).exists())
@@ -511,6 +512,7 @@ class TicketThreadViewTests(TestCase):
         self.ticket.participants.create(user=staff_user)
         self.client.force_login(self.user)
         view = TicketThreadView()
+        view.ticket = self.ticket # Fix: Set ticket on view
         view.object = self.ticket
         view._remove_staff(staff_user)
         self.assertFalse(self.ticket.participants.filter(user=staff_user).exists())
@@ -552,3 +554,46 @@ class TicketThreadViewTests(TestCase):
         self.assertFalse(
             TicketMessage.objects.filter(ticket=self.ticket, body__contains="was removed").exists()
         )
+
+    # --- Permissions and Access Control ---
+
+    def test_post_no_permission_returns_403(self):
+        """POST by a user with no permissions returns 403 Forbidden."""
+        # Create a user who is not staff, not creator, not participant
+        no_perm_user = make_user("noperm")
+        self.client.force_login(no_perm_user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(body="I shouldn't be here"),
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_has_edit_permission_superuser(self):
+        """Superusers have edit permission."""
+        superuser = make_user("admin", is_superuser=True)
+        self.client.force_login(superuser)
+        response = self.client.get(self._url())
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["permission"])
+
+    def test_has_edit_permission_ticket_staff(self):
+        """Assigned staff have edit permission."""
+        staff = make_user("ticketstaff", is_staff=True)
+        self.ticket.participants.create(user=staff)
+        self.client.force_login(staff)
+        response = self.client.get(self._url())
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["permission"])
+    
+    def test_has_edit_permission_dept_staff(self):
+        """Staff in the department assigned to the ticket have edit permission."""
+        staff = make_user("deptstaff", is_staff=True)
+        dept = Department.objects.create(name="Test Dept", created_by=self.user)
+        UserDepartments.objects.create(user=staff, department=dept)
+        TicketAssigned.objects.create(ticket=self.ticket, department=dept)
+        
+        self.client.force_login(staff)
+        response = self.client.get(self._url())
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["permission"])
