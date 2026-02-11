@@ -5,48 +5,55 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views import View
 
-from tickets.models import Ticket, TicketMessage, Department
+from tickets.models import Ticket, TicketMessage, Department, TicketAssigned, UserDepartments, TicketParticipant
+from django.db.models import Exists, OuterRef
 
 class HomeView(View):
     """View for the home page/dashboard."""
 
     def get(self, request):
         """Handle GET request for home page."""
-        if not request.user.is_authenticated: return render(request, "unauthenticated_home.html")
+        if not request.user.is_authenticated: 
+            return render(request, "unauthenticated_home.html")
+    
         scope = request.GET.get("scope", "personal")
-        if scope not in {"personal", "department"}: scope = "personal"
-        if scope == "department" and not request.user.is_staff: scope = "personal"
-        qs = self._annotated_tickets(request.user, scope=scope)
-        overdue = self._overdue_tickets(qs)
+        qs = self.handle_scope(request.user, scope)
+        overdue = self.overdue_tickets(qs)
         context = {
             "scope": scope,
-            "completed_tickets": self._completed_tickets(qs),
+            "completed_tickets": self.completed_tickets(qs),
             "overdue_tickets": overdue,
-            "active_tickets": self._active_tickets(qs, overdue),
+            "active_tickets": self.active_tickets(qs, overdue),
         }
         return render(request, "home_view.html", context)
-
-    def _base_tickets(self, user, scope="personal"):
-        """Tickets visible to this user."""
-        if scope == "department" and user.is_staff:
-            return Ticket.objects.all()
+    
+    def handle_scope(self, user, scope):
+        """Handles the tickets to display depending on the scope selected by the user"""
         if not user.is_staff:
-            return Ticket.objects.filter(created_by=user)
-        dept_ids = Department.objects.filter(
-            assigned_users__user=user
-        ).values_list("id", flat=True)
-        return Ticket.objects.filter(
-            Q(created_by=user)
-            | Q(messages__sender=user)
-            | Q(participants__user=user)
-            | Q(assignments__department_id__in=dept_ids)
-        ).distinct()
+            return self.annotated_tickets(user, scope="personal")
 
-    def _annotated_tickets(self, user, scope="personal"):
+        if scope not in ("personal", "department", "assigned"):
+            scope = "personal"
+
+        return self.annotated_tickets(user, scope=scope)
+
+    def base_tickets(self, user, scope="personal"):
+        """Tickets visible to this user."""
+
+        if scope == "personal":
+            return Ticket.objects.filter(created_by=user).distinct()
+
+        if scope == "department":         
+            return Ticket.objects.filter(assignments__department__assigned_users__user=user).distinct()
+        
+        if scope == 'assigned':
+            return Ticket.objects.filter(participants__user=user).distinct()
+
+    def annotated_tickets(self, user, scope="personal"):
         """Tickets with last message info annotated."""
         last_msg = TicketMessage.objects.filter(ticket_id=OuterRef("pk")).order_by("-edited_at")
         return (
-            self._base_tickets(user, scope=scope)
+            self.base_tickets(user, scope=scope)
             .annotate(
                 last_message_at=Subquery(last_msg.values("edited_at")[:1]),
                 last_message_body=Subquery(last_msg.values("body")[:1]),
@@ -57,11 +64,11 @@ class HomeView(View):
             )
         )
 
-    def _completed_tickets(self, qs):
+    def completed_tickets(self, qs):
         """Tickets that are completed/closed."""
         return qs.filter(status=Ticket.Status.CLOSED).order_by("-updated_at")
 
-    def _overdue_tickets(self, qs):
+    def overdue_tickets(self, qs):
         """Tickets that are overdue for a response."""
         cutoff = timezone.now() - timedelta(days=7)
         return qs.filter(
@@ -71,7 +78,7 @@ class HomeView(View):
             last_sender_is_staff=False,
         ).order_by("-last_message_at")
 
-    def _active_tickets(self, qs, overdue):
+    def active_tickets(self, qs, overdue):
         """Tickets that are active and not overdue."""
         return qs.filter(
             status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING],
