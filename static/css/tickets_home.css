@@ -49,6 +49,7 @@
 }
 
 .tabs[role="tablist"] {
+    position: relative;
     background: #fff;
     border: 1px solid var(--border);
     border-radius: 999px;
@@ -200,8 +201,9 @@
     width: 38px;
     padding: 0;
     line-height: 1;
-    margin-left: auto;
     flex-shrink: 0;
+    position: absolute;
+    right: 10px;
 }
 
 .tab-plus:hover {
