@@ -1,7 +1,9 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from io import BytesIO
+from django.core.files.uploadedfile import SimpleUploadedFile
 
-from tickets.forms.ticket_create import CreateTicketForm
+from tickets.forms.ticket_create import CreateTicketForm, MultipleFileInput
 from tickets.models import Department
 
 
@@ -51,3 +53,36 @@ class CreateTicketFormTests(TestCase):
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data["title"], "Need help")
         self.assertEqual(form.cleaned_data["body"], "Hello there")
+
+    def test_form_accepts_no_attachments(self):
+        """Form should be valid with no attachments (optional field)."""
+        form = CreateTicketForm(data={
+            "title": "Valid title",
+            "body": "Valid message",
+            "departments": [self.department.id],
+        })
+        self.assertTrue(form.is_valid())
+
+    def test_form_accepts_single_attachment(self):
+        """Form should accept a single file attachment."""
+        file = SimpleUploadedFile("test.txt", b"file content", content_type="text/plain")
+        form = CreateTicketForm(
+            data={
+                "title": "Valid title",
+                "body": "Valid message",
+                "departments": [self.department.id],
+            },
+            files={"attachments": file},
+        )
+        self.assertTrue(form.is_valid())
+
+    def test_form_accepts_multiple_attachments(self):
+        """Form field is defined and allows multiple files via its widget."""
+        form = CreateTicketForm()
+        self.assertIn('attachments', form.fields)
+        self.assertTrue(form.fields['attachments'].widget.allow_multiple_selected)
+
+    def test_multiple_file_input_widget_allows_multiple(self):
+        """MultipleFileInput widget should support multiple file uploads."""
+        widget = MultipleFileInput()
+        self.assertTrue(widget.allow_multiple_selected)

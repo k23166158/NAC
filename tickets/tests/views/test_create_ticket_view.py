@@ -1,8 +1,9 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 
-from tickets.models import Department, Ticket, TicketMessage, TicketAssigned
+from tickets.models import Department, Ticket, TicketMessage, TicketAssigned, TicketMessageAttachment
 
 
 class CreateTicketViewTests(TestCase):
@@ -102,3 +103,19 @@ class CreateTicketViewTests(TestCase):
         self._assert_ticket_details(ticket)
         self._assert_message_details(msg, ticket)
         self._assert_assignment_details(assignment, ticket)
+
+    def test_post_with_file_attachment_processes_successfully(self):
+        """Test that POST request can process file attachments without errors."""
+        self._login_student()
+        file = SimpleUploadedFile("test.txt", b"content", content_type="text/plain")
+        response = self.client.post(
+            reverse("ticket_create"),
+            data={
+                "title": "Need help",
+                "departments": [self.department.id],
+                "body": "I need support with my module.",
+            },
+            files={"attachments": file},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Ticket.objects.count(), 1)

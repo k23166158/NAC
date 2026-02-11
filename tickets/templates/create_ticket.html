@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/create_ticket.css' %}">
+<link rel="stylesheet" href="{% static 'css/attachments.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -20,7 +21,7 @@
   </div>
 
   <div class="card">
-    <form method="post" class="form">
+    <form method="post" class="form" enctype="multipart/form-data">
       {% csrf_token %}
 
       {% if form.non_field_errors %}
@@ -80,7 +81,24 @@
         <div class="help">Tip: include module code, screenshots, and what you’ve tried.</div>
         {% if form.body.errors %}<div class="error">{{ form.body.errors }}</div>{% endif %}
       </div>
-
+      <div class="field">
+        <label class="label" for="{{ form.attachments.id_for_label }}">Attachments</label>
+        <div class="file-upload-wrapper">
+          <label class="file-upload-label" for="{{ form.attachments.id_for_label }}">
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 16 12 12 8 16"></polyline>
+              <line x1="12" y1="12" x2="12" y2="21"></line>
+              <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+            </svg>
+            <span class="upload-text">Click to upload or drag files here</span>
+            <span class="upload-info">PDF, DOC, DOCX, XLS, XLSX, ZIP, Images, TXT (Max individual file size: varies)</span>
+          </label>
+          <input type="file" id="{{ form.attachments.id_for_label }}" name="attachments" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt,.png,.jpg,.jpeg,.gif,.bmp,.webp" multiple>
+          <div id="fileList" class="file-list"></div>
+        </div>
+        <div class="help">Optional: You can attach files to support your query.</div>
+        {% if form.attachments.errors %}<div class="error">{{ form.attachments.errors }}</div>{% endif %}
+      </div>
       <div class="actions">
         <button class="btn btn-primary" type="submit">Submit ticket</button>
         <a class="btn btn-ghost" href="{% url 'home' %}">Cancel</a>
@@ -136,6 +154,107 @@
       if (!searchInput.contains(e.target) && !deptList.contains(e.target)) {
         deptList.style.display = 'none';
       }
+    });
+  })();
+
+  (function () {
+    const fileInput = document.getElementById('id_attachments');
+    const fileList = document.getElementById('fileList');
+    const fileUploadWrapper = document.querySelector('.file-upload-wrapper');
+    const selectedFiles = [];
+
+    function updateFileInput() {
+      const dt = new DataTransfer();
+      for (let file of selectedFiles) {
+        dt.items.add(file);
+      }
+      fileInput.files = dt.files;
+    }
+
+    function updateFileListDisplay() {
+      fileList.innerHTML = '';
+
+      if (selectedFiles.length === 0) {
+        return;
+      }
+
+      const ul = document.createElement('ul');
+      ul.className = 'file-list-items';
+
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const li = document.createElement('li');
+        li.className = 'file-list-item';
+        li.setAttribute('data-file-index', i);
+
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'file-info';
+
+        const filename = document.createElement('span');
+        filename.className = 'file-name';
+        filename.textContent = file.name;
+
+        const filesize = document.createElement('span');
+        filesize.className = 'file-size';
+        filesize.textContent = (file.size / 1024).toFixed(2) + ' KB';
+
+        fileInfo.appendChild(filename);
+        fileInfo.appendChild(filesize);
+        li.appendChild(fileInfo);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'file-delete-btn';
+        deleteBtn.type = 'button';
+        deleteBtn.textContent = '✕';
+        deleteBtn.setAttribute('aria-label', `Delete ${file.name}`);
+
+        li.appendChild(deleteBtn);
+        ul.appendChild(li);
+      }
+
+      fileList.appendChild(ul);
+    }
+
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      updateFileInput();
+      updateFileListDisplay();
+    }
+
+    function addFiles(newFiles) {
+      for (let i = 0; i < newFiles.length; i++) {
+        selectedFiles.push(newFiles[i]);
+      }
+      updateFileInput();
+      updateFileListDisplay();
+    }
+
+    fileList.addEventListener('click', (e) => {
+      if (e.target.classList.contains('file-delete-btn')) {
+        e.preventDefault();
+        const li = e.target.closest('.file-list-item');
+        const index = parseInt(li.getAttribute('data-file-index'), 10);
+        removeFile(index);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      addFiles(e.target.files);
+    });
+
+    fileUploadWrapper.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      fileUploadWrapper.classList.add('dragover');
+    });
+
+    fileUploadWrapper.addEventListener('dragleave', () => {
+      fileUploadWrapper.classList.remove('dragover');
+    });
+
+    fileUploadWrapper.addEventListener('drop', (e) => {
+      e.preventDefault();
+      fileUploadWrapper.classList.remove('dragover');
+      addFiles(e.dataTransfer.files);
     });
   })();
 </script>
