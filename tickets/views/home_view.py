@@ -25,9 +25,18 @@ class HomeView(View):
             "overdue_tickets": overdue,
             "active_tickets": self.active_tickets(qs, overdue),
             "total_tickets": Ticket.objects.count() if request.user.is_superuser or request.user.is_staff else None,
+            "tickets_by_status": self.tickets_by_status() if request.user.is_superuser or request.user.is_staff else None,
         }
         return render(request, "home_view.html", context)
     
+    def tickets_by_status(self):
+        """Returns a count of tickets by status."""
+        return {
+            "open": Ticket.objects.filter(status=Ticket.Status.OPEN).count(),
+            "pending": Ticket.objects.filter(status=Ticket.Status.PENDING).count(),
+            "closed": Ticket.objects.filter(status=Ticket.Status.CLOSED).count(),
+        }
+
     def handle_scope(self, user, scope):
         """Handles the tickets to display depending on the scope selected by the user"""
         if not user.is_staff:
