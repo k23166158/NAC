@@ -24,12 +24,15 @@ class HomeView(View):
             "completed_tickets": self.completed_tickets(qs),
             "overdue_tickets": overdue,
             "active_tickets": self.active_tickets(qs, overdue),
-            "total_tickets": Ticket.objects.count() if request.user.is_superuser or request.user.is_staff else None,
-            "tickets_by_status": self.tickets_by_status() if request.user.is_superuser or request.user.is_staff else None,
-            "total_users": User.objects.count() if request.user.is_superuser or request.user.is_staff else None,
+            "total_tickets": Ticket.objects.count() if self.is_admin(request.user) else None,
+            "tickets_by_status": self.tickets_by_status() if self.is_admin(request.user) else None,
+            "total_users": User.objects.count() if self.is_admin(request.user) else None,
         }
         return render(request, "home_view.html", context)
-    
+
+    def is_admin(self, user):
+        return user.is_superuser or user.is_staff
+
     def tickets_by_status(self):
         """Returns a count of tickets by status."""
         return {
