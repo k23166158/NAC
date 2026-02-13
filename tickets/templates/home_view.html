@@ -25,23 +25,23 @@
         </div>
     </div>
     <div class="admin-body">
-        <div class="admin-stats" style="margin-bottom: 20px; text-align: center;">
-            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px;">
-                <div class="stat-item">
-                    <span class="stat-label">Total Tickets</span>
-                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #0d6efd;">{{ total_tickets }}</span>
+        <div class="admin-stats" style="margin-bottom: 20px;">
+            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; align-items: center;">
+                <div class="stat-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                    <span class="stat-label" style="margin-bottom: 5px; display: block;">Total Tickets</span>
+                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #0d6efd; line-height: 1;">{{ total_tickets }}</span>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Open</span>
-                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #dc3545;">{{ tickets_by_status.open }}</span>
+                <div class="stat-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                    <span class="stat-label" style="margin-bottom: 5px; display: block;">Open</span>
+                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #dc3545; line-height: 1;">{{ tickets_by_status.open }}</span>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Pending</span>
-                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #ffc107;">{{ tickets_by_status.pending }}</span>
+                <div class="stat-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                    <span class="stat-label" style="margin-bottom: 5px; display: block;">Pending</span>
+                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #ffc107; line-height: 1;">{{ tickets_by_status.pending }}</span>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Closed</span>
-                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #198754;">{{ tickets_by_status.closed }}</span>
+                <div class="stat-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                    <span class="stat-label" style="margin-bottom: 5px; display: block;">Closed</span>
+                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #198754; line-height: 1;">{{ tickets_by_status.closed }}</span>
                 </div>
             </div>
         </div>
