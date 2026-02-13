@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views import View
 
-from tickets.models import Ticket, TicketMessage, Department, TicketAssigned, UserDepartments, TicketParticipant
+from tickets.models import Ticket, TicketMessage, Department, TicketAssigned, UserDepartments, TicketParticipant, User
 from django.db.models import Exists, OuterRef
 
 class HomeView(View):
@@ -26,6 +26,7 @@ class HomeView(View):
             "active_tickets": self.active_tickets(qs, overdue),
             "total_tickets": Ticket.objects.count() if request.user.is_superuser or request.user.is_staff else None,
             "tickets_by_status": self.tickets_by_status() if request.user.is_superuser or request.user.is_staff else None,
+            "total_users": User.objects.count() if request.user.is_superuser or request.user.is_staff else None,
         }
         return render(request, "home_view.html", context)
     
