@@ -25,11 +25,24 @@
         </div>
     </div>
     <div class="admin-body">
+        <div class="admin-stats" style="margin-bottom: 20px; text-align: center;">
+            <div class="stat-item">
+                <span class="stat-label">Total Tickets</span>
+                <span class="stat-value" style="font-size: 2rem; font-weight: bold; color: #0d6efd; display: block;">{{ total_tickets }}</span>
+            </div>
+        </div>
         <p>Quick Actions:</p>
         <div class="admin-actions">
-            <a href="{% url 'manage_users' %}" class="btn-admin">Manage Users</a>
+            <a href="{% url 'manage_users' %}" class="btn-admin">
+                <i class="bi bi-people-fill"></i> Manage Users
+            </a>
+            <a href="{% url 'department_manage' %}" class="btn-admin">
+                <i class="bi bi-building-fill"></i> Manage Departments
+            </a>
             {% if user.is_superuser %}
-            <a href="/admin/" class="btn-admin">Site Administration</a>
+            <a href="/admin/" class="btn-admin">
+                <i class="bi bi-shield-lock-fill"></i> Site Administration
+            </a>
             {% endif %}
         </div>
     </div>
