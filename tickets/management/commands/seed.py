@@ -17,6 +17,39 @@ department_fixtures = [
     {'name': 'Informatics', 'description': 'Handles all issues related to Informatics', 'created_by': 'janedoe'},
 ]
 
+kcl_department_pool = [
+    "IT Service Desk",
+    "Registry Services",
+    "Student Records",
+    "Timetabling Office",
+    "Assessment and Examinations",
+    "Library Services",
+    "Student Funding",
+    "Wellbeing and Counselling",
+    "Disability Support and Inclusion",
+    "King's Language Centre",
+    "Careers and Employability",
+    "Accommodation Services",
+    "Visa and International Advice",
+    "Campus Operations",
+    "Estates and Facilities",
+    "King's Business School Administration",
+    "Faculty of Arts and Humanities Office",
+    "Faculty of Natural, Mathematical & Engineering Sciences Office",
+    "Faculty of Life Sciences and Medicine Office",
+    "Dickson Poon School of Law Administration",
+    "Nursing and Midwifery Student Office",
+    "Research Student Support",
+    "Graduation Office",
+    "Student Conduct and Appeals",
+    "Digital Education",
+    "King's Online Support",
+    "Global Mobility Team",
+    "Personal Tutoring Support",
+    "Module Registration Team",
+    "Academic Skills Centre",
+]
+
 faq_tickets = [
     {'title': 'How do I access my course materials and lecture recordings?', 'body': 'I\'m trying to find the recorded lectures from last week\'s lectures. Could you help me understand where to access them on the university portal?'},
     {'title': 'How can I request an extension on my assignment?', 'body': 'I have a deadline approaching and I need to request an extension due to unexpected circumstances. What\'s the process and who should I contact?'},
@@ -82,6 +115,44 @@ faq_responses = [
     "Thanks for bringing this to our attention. This is actually a common concern amongst students. The best solution is to speak with your personal tutor or module leader.",
     "Great question - this is something many students need clarification on. The university provides 24/7 support through multiple channels: email, phone, and in-person.",
     "I understand this might be frustrating. Let\'s get this resolved for you. I\'ve submitted a support ticket to our technical team who typically respond within one business day.",
+]
+
+faq_bodies_by_title = {ticket['title']: ticket['body'] for ticket in faq_tickets}
+
+fallback_ticket_bodies = [
+    "I am writing to request advice on this issue. I have reviewed the guidance online but I am still unsure of the correct process.",
+    "Please could you advise on the next step for this query? I would appreciate clarification at your earliest convenience.",
+    "I would be grateful if your team could confirm who should handle this request and what information you need from me.",
+    "I have attached the relevant details and would appreciate support in resolving this matter.",
+]
+
+follow_up_responses = [
+    "Thank you for the response, this was very helpful!",
+    "I appreciate the help. This has clarified things for me.",
+    "Thanks for the quick response. I'll proceed with that approach.",
+    "Perfect, I'll follow those steps and let you know if I need further assistance.",
+    "This is exactly what I needed. Thank you!",
+    "Great, I understand now. Much appreciated!",
+]
+
+realistic_filenames = [
+    "Course_Schedule.pdf",
+    "Assignment_Guidelines.docx",
+    "Student_Handbook.pdf",
+    "Support_Resources.txt",
+    "Accommodation_Info.pdf",
+    "IT_Setup_Guide.docx",
+    "Financial_Aid_Application.pdf",
+    "Course_Notes.pdf",
+    "Lab_Report_Template.docx",
+    "Exam_Timetable.pdf",
+    "Module_Syllabus.pdf",
+    "Research_References.docx",
+    "Appeal_Form.pdf",
+    "Evidence_Document.pdf",
+    "Transcript.pdf",
+    "Recommendation_Letter.docx",
+    "Supporting_Evidence.pdf",
 ]
 
 class Command(BaseCommand):
@@ -183,14 +254,24 @@ class Command(BaseCommand):
             )
 
     def create_random_departments(self):
-        """Create random departments using Faker library."""
+        """Create KCL-style department names and descriptions."""
         staff = list(User.objects.filter(is_staff=True))
-        for _ in range(self.DEPARTMENT_COUNT - len(department_fixtures)):
-            name = self.faker.unique.company()
-            description = self.faker.text(max_nb_chars=200)
+        existing_names = {dept.name for dept in Department.objects.all()}
+        available_names = [name for name in kcl_department_pool if name not in existing_names]
+        for index in range(self.DEPARTMENT_COUNT - len(department_fixtures)):
+            name = self._department_name_for_index(index, available_names)
+            description = (
+                "Provides support for students and staff with administrative and academic service requests."
+            )
             created_by = choice(staff)
 
             Department.objects.create(name=name, description=description, created_by=created_by)
+
+    def _department_name_for_index(self, index, available_names):
+        """Return the most suitable seeded department name for an index."""
+        if index < len(available_names):
+            return available_names[index]
+        return f"Student Services Unit {index + 1}"
 
     def try_create_department(self, **kwargs):
         """Attempt to create a department, handling any errors."""
@@ -222,20 +303,28 @@ class Command(BaseCommand):
         """Create tickets in the database using FAQ-style content."""
         print("Creating tickets...")
         users = list(User.objects.all())
-        
+        self._create_seeded_faq_tickets(users)
+        self._create_remaining_tickets(users)
+        print(f"{Ticket.objects.count()} Tickets created.")
+
+    def _create_seeded_faq_tickets(self, users):
+        """Create one ticket per FAQ entry."""
         for faq in faq_tickets:
-            status = choice(['open', 'closed'])
-            created_by = choice(users)
-            Ticket.objects.create(title=faq['title'], status=status, created_by=created_by)
-        
+            self._create_ticket_with_title(faq['title'], users)
+
+    def _create_remaining_tickets(self, users):
+        """Fill up ticket count using FAQ-style titles."""
         remaining = self.TICKET_COUNT - len(faq_tickets)
         for _ in range(max(0, remaining)):
-            title = self.faker.sentence(nb_words=6)
-            status = choice(['open', 'closed'])
-            created_by = choice(users)
-            Ticket.objects.create(title=title, status=status, created_by=created_by)
+            self._create_ticket_with_title(choice(faq_tickets)['title'], users)
 
-        print(f"{Ticket.objects.count()} Tickets created.")
+    def _create_ticket_with_title(self, title, users):
+        """Create a single ticket with a realistic title."""
+        Ticket.objects.create(
+            title=title,
+            status=choice(['open', 'closed']),
+            created_by=choice(users),
+        )
 
     def assign_tickets_to_departments(self):
         """Randomly assign tickets to departments."""
@@ -262,7 +351,7 @@ class Command(BaseCommand):
         tickets = list(Ticket.objects.all())
         
         for ticket in tickets:
-            initial_body = ticket.title
+            initial_body = faq_bodies_by_title.get(ticket.title, choice(fallback_ticket_bodies))
             TicketMessage.objects.get_or_create(
                 ticket=ticket,
                 body=initial_body,
@@ -295,51 +384,37 @@ class Command(BaseCommand):
         """Randomly create follow-up messages from users for a ticket."""
         if randint(0, 1):
             sender = ticket.created_by
-            follow_up_responses = [
-                "Thank you for the response, this was very helpful!",
-                "I appreciate the help. This has clarified things for me.",
-                "Thanks for the quick response. I\'ll proceed with that approach.",
-                "Perfect, I\'ll follow those steps and let you know if I need further assistance.",
-                "This is exactly what I needed. Thank you!",
-                "Great, I understand now. Much appreciated!",
-            ]
             body = choice(follow_up_responses)
             TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
 
     def _create_single_attachment(self, message):
         """Create one attachment for a message with realistic document names."""
-        realistic_filenames = [
-            "Course_Schedule.pdf",
-            "Assignment_Guidelines.docx",
-            "Student_Handbook.pdf",
-            "Support_Resources.txt",
-            "Accommodation_Info.pdf",
-            "IT_Setup_Guide.docx",
-            "Financial_Aid_Application.pdf",
-            "Course_Notes.pdf",
-            "Lab_Report_Template.docx",
-            "Exam_Timetable.pdf",
-            "Module_Syllabus.pdf",
-            "Research_References.docx",
-            "Appeal_Form.pdf",
-            "Evidence_Document.pdf",
-            "Transcript.pdf",
-            "Recommendation_Letter.docx",
-            "Supporting_Evidence.pdf",
-        ]
-        
         filename = choice(realistic_filenames)
-        content = f"This is a document: {filename}. Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+        content = self._attachment_content(filename)
         file_content = ContentFile(content.encode(), name=filename)
         TicketMessageAttachment.objects.create(
             ticket=message.ticket,
             message=message,
             file=file_content,
             original_name=filename,
-            content_type="application/pdf" if filename.endswith('.pdf') else "text/plain",
+            content_type=self._attachment_content_type(filename),
             size_bytes=len(content.encode()),
             uploaded_by=message.sender or message.ticket.created_by,
         )
+
+    def _attachment_content(self, filename):
+        """Create deterministic readable content for an attached file."""
+        return (
+            f"{filename}\n\n"
+            "This supporting document was uploaded with the ticket to provide relevant evidence "
+            "for review by the assigned department."
+        )
+
+    def _attachment_content_type(self, filename):
+        """Return a basic content type based on file extension."""
+        if filename.endswith('.pdf'):
+            return "application/pdf"
+        return "text/plain"
 
     def _create_message_attachments(self, message):
         """Create random attachments for a single message."""
@@ -399,5 +474,3 @@ class Command(BaseCommand):
         for staff in staff_users:
             self._create_invites_for_staff(staff, departments)
         print("Department invitations created.")
-
-
