@@ -37,7 +37,11 @@
 }
 
 .btn-secondary {
-    background: #767171;
+    background: #0969da;
+}
+
+.btn-secondary:hover {
+    background: #0860ca;
 }
 
 .btn-danger {
