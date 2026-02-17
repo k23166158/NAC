@@ -24,6 +24,42 @@
     </div>
   </div>
 
+  <div class="section-wrapper invitation-section">
+    <h2 class="section-title">Pending invites</h2>
+    {% if invitations %}
+    <ul class="invitation-list">
+      {% for invitation in invitations %}
+      <li class="invitation-item">
+        <div class="invitation-info">
+          <span class="invitation-department">{{ invitation.department.name }}</span>
+          <span class="invitation-sender">Invited by {{ invitation.sender.get_full_name|default:invitation.sender.username }}</span>
+          <span class="invitation-timestamp">{{ invitation.created_at|date:"M j, Y, g:i A" }}</span>
+        </div>
+        <div class="invitation-actions">
+          <form method="post" action="{% url 'department_manage' %}" class="invitation-form invitation-form-accept">
+            {% csrf_token %}
+            <input type="hidden" name="invite_id" value="{{ invitation.id }}">
+            <input type="hidden" name="action" value="accept">
+            <button type="submit" class="btn-invitation btn-accept" title="Accept">Accept</button>
+          </form>
+          <form method="post" action="{% url 'department_manage' %}" class="invitation-form invitation-form-decline">
+            {% csrf_token %}
+            <input type="hidden" name="invite_id" value="{{ invitation.id }}">
+            <input type="hidden" name="action" value="decline">
+            <button type="submit" class="btn-invitation btn-decline" title="Decline">Decline</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="invitation-empty">
+      <p class="invitation-empty-title">No pending invites.</p>
+      <p class="invitation-empty-hint">When someone invites you to a department, it will appear here.</p>
+    </div>
+    {% endif %}
+  </div>
+
   <div class="section-wrapper">
     <h2 class="section-title">Your Departments</h2>
     {% if departments %}
@@ -41,11 +77,40 @@
                 </div>
               </div>
               <h3 class="department-item-name">{{ department.name }}</h3>
+              <div class="department-item-role-row">
+                {% if department.created_by_id == user.id %}
+                <span class="department-role role-owner">Owner</span>
+                {% else %}
+                <span class="department-role role-member">Member</span>
+                {% endif %}
+              </div>
               {% if department.description %}
                 <p class="department-item-description">{{ department.description }}</p>
               {% else %}
                 <p class="department-item-description department-item-description-empty">No description available</p>
               {% endif %}
+              <div class="department-item-staff">
+                {% with staff_list=department.assigned_users.all %}
+                <div class="department-facepile" aria-label="Department staff">
+                  {% for assignment in staff_list|slice:":3" %}
+                  <div class="facepile-avatar" title="{{ assignment.user.get_full_name|default:assignment.user.username }}">
+                    {% if assignment.user.profile_picture %}
+                      <img src="{{ assignment.user.profile_picture.url }}" alt="" class="avatar">
+                    {% else %}
+                      {% include "partials/empty_avatar.html" with user=assignment.user %}
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                  {% if staff_list|length > 3 %}
+                  <span class="facepile-more">+{{ staff_list|length|add:"-3" }}</span>
+                  {% endif %}
+                </div>
+                {% endwith %}
+              </div>
+              <div class="department-item-tickets">
+                <span class="pill badge-count badge-blue"><span class="ticket-dot dot-active" aria-hidden="true"></span>Active {{ department.active_ticket_count }}</span>
+                <span class="pill badge-count badge-gray"><span class="ticket-dot dot-completed" aria-hidden="true"></span>Closed {{ department.completed_ticket_count }}</span>
+              </div>
               <div class="department-item-footer">
                 <span class="department-item-footer-text">View details</span>
                 <i class="bi bi-arrow-right department-item-arrow"></i>
@@ -59,8 +124,6 @@
       <div class="empty empty-state">No departments found.</div>
     {% endif %}
   </div>
-
-  <!-- Future section for invites will go here -->
 </div>
 
 <script>

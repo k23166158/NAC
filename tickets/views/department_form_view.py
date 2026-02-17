@@ -12,7 +12,7 @@ class DepartmentFormView(LoginRequiredMixin, UserPassesTestMixin, View):
 
     def test_func(self):
         """Check if the user is a staff member."""
-        return self.request.user.is_staff
+        return self.request.user.is_staff or self.request.user.is_superuser
 
     def get(self, request, instance=None):
         """Handle GET requests - display the department form."""

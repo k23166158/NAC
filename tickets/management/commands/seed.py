@@ -2,6 +2,7 @@ import random
 from faker import Faker
 from random import randint, choice
 from django.core.management.base import BaseCommand
+from django.core.files.base import ContentFile
 from tickets.models import *
 
 user_fixtures = [
@@ -43,7 +44,9 @@ class Command(BaseCommand):
         self.create_tickets()
         self.assign_tickets_to_departments()
         self.create_ticket_messages()
+        self.create_ticket_attachments()
         self.assign_staff_to_tickets()
+        self.create_department_invitations()
     
     def create_users(self):
         """Create users in the database."""
@@ -222,6 +225,36 @@ class Command(BaseCommand):
             body = self.faker.paragraph(nb_sentences=3)
             TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
 
+    def _create_single_attachment(self, message):
+        """Create one attachment for a message."""
+        content = self.faker.paragraph(nb_sentences=5)
+        filename = f"{self.faker.word()}.txt"
+        file_content = ContentFile(content.encode(), name=filename)
+        TicketMessageAttachment.objects.create(
+            ticket=message.ticket,
+            message=message,
+            file=file_content,
+            original_name=filename,
+            content_type="text/plain",
+            size_bytes=len(content.encode()),
+            uploaded_by=message.sender or message.ticket.created_by,
+        )
+
+    def _create_message_attachments(self, message):
+        """Create random attachments for a single message."""
+        if randint(0, 100) >= 30:
+            return 0
+        count = randint(1, 3)
+        for _ in range(count):
+            self._create_single_attachment(message)
+        return count
+
+    def create_ticket_attachments(self):
+        """Create random attachments for ticket messages."""
+        print("Creating ticket attachments...")
+        total = sum(self._create_message_attachments(m) for m in TicketMessage.objects.all())
+        print(f"{total} Attachments created.")
+
     def assign_staff_to_tickets(self):
         """Randomly assign staff members as participants to tickets."""
         print("Assigning staff to tickets...")
@@ -239,3 +272,31 @@ class Command(BaseCommand):
         """Assign multiple staff members as participants to a ticket."""
         for user in participants:
             TicketParticipant.objects.get_or_create(ticket=ticket, user=user)
+
+    def _create_invites_for_staff(self, staff, departments):
+        """Create 1-3 pending department invites for one staff user."""
+        staff_dept_ids = set(
+            UserDepartments.objects.filter(user=staff).values_list('department_id', flat=True)
+        )
+        available = [d for d in departments if d.id not in staff_dept_ids]
+        num_invitations = min(randint(1, 3), len(available))
+        if num_invitations == 0:
+            return
+        for department in random.sample(available, num_invitations):
+            DepartmentInvitation.objects.get_or_create(
+                department=department,
+                recipient=staff,
+                status='pending',
+                defaults={'sender': department.created_by},
+            )
+
+    def create_department_invitations(self):
+        """Creates a random amount of department invitations between 1 and 3 for staff users."""
+        print("Creating department invitations...")
+        staff_users = list(User.objects.filter(is_staff=True))
+        departments = list(Department.objects.all())
+        for staff in staff_users:
+            self._create_invites_for_staff(staff, departments)
+        print("Department invitations created.")
+
+

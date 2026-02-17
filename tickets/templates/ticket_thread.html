@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Ticket #{{ ticket.id }}{% endblock %}
+{% block title %}Ticket #{{ ticket.uuid }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/ticket_style.css' %}">
@@ -116,158 +116,159 @@
 
     <div class="line-break"></div>
 
-    {% if ticket.status != 'closed' %}
+    {% if ticket.status == 'closed' %}
+        <div class="ticket-closed-notice">
+            This ticket is closed.
+        </div>
+    
+    {% else %}
 
-        <div class="reply-container">
-            <div class="col-head">
-                <h3 class="col-title">
-                    {% if edit_message %}Edit Message{% else %}Reply{% endif %}
-                </h3>
-            </div>
+        {% if permission %}
+            <div class="reply-container">
+                <div class="col-head">
+                    <h3 class="col-title">
+                        {% if edit_message %}Edit Message{% else %}Reply{% endif %}
+                    </h3>
+                </div>
 
-            <div class="col-body">
-                <form method="post">
-                    {% csrf_token %}
-
-                    {% if edit_message %}
-                        <input type="hidden" name="action" value="update">
-                        <input type="hidden" name="message_id" value="{{ edit_message.id }}">
-                    {% endif %}
-
-                    <textarea name="body"
-                              rows="4"
-                              class="reply-textarea"
-                              required>{{ edit_message.body|default_if_none:"" }}</textarea>
-
-                    <div class="reply-actions">
-                        <button type="submit" class="btn-submit">
-                            {% if edit_message %}Update{% else %}Send reply{% endif %}
-                        </button>
+                <div class="col-body">
+                    <form method="post">
+                        {% csrf_token %}
 
                         {% if edit_message %}
-                            <button type="submit" class="btn-cancel">Cancel</button>
+                            <input type="hidden" name="action" value="update">
+                            <input type="hidden" name="message_id" value="{{ edit_message.id }}">
                         {% endif %}
-                    </div>
+
+                        <textarea name="body"
+                                rows="4"
+                                class="reply-textarea"
+                                required>{{ edit_message.body|default_if_none:"" }}</textarea>
+
+                        <div class="reply-actions">
+                            <button type="submit" class="btn-submit">
+                                {% if edit_message %}Update{% else %}Send reply{% endif %}
+                            </button>
+
+                            {% if edit_message %}
+                                <button type="submit" class="btn-cancel">Cancel</button>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="ticket-actions">
+                <form method="post" onsubmit="return confirm('Are you sure you want to close this ticket?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="close_ticket">
+                    <button type="submit" class="btn-close-ticket">Close Ticket</button>
                 </form>
             </div>
-        </div>
 
-        <div class="ticket-actions">
-            <form method="post" onsubmit="return confirm('Are you sure you want to close this ticket?');">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="close_ticket">
-                <button type="submit" class="btn-close-ticket">Close Ticket</button>
-            </form>
-        </div>
+            {% if user.is_staff %}
+                <div class="section-wrapper">
+                    <h2 class="section-title">Staff Members</h2>
 
-        {% if user.is_staff %}
-            <div class="section-wrapper">
-                <h2 class="section-title">Staff Members</h2>
+                    <div class="staff-grid">
 
-                <div class="staff-grid">
+                        <div class="staff-card">
+                            <h3 class="staff-card-header">Assigned</h3>
 
-                    <div class="staff-card">
-                        <h3 class="staff-card-header">Assigned</h3>
+                            <div class="staff-list">
+                                {% for staff_user in staff %}
+                                    <div class="pill staff-row">
+                                        <div class="staff-info">
+                                            {% if staff_user.profile_picture %}
+                                                <img src="{{ staff_user.profile_picture.url }}"
+                                                    alt="{{ staff_user.first_name }}"
+                                                    class="avatar">
+                                            {% else %}
+                                                {% include "partials/empty_avatar.html" with user=staff_user %}
+                                            {% endif %}
+                                            <span class="staff-name">{{ staff_user.full_name }}</span>
+                                        </div>
 
-                        <div class="staff-list">
-                            {% for staff_user in staff %}
-                                <div class="pill staff-row">
-                                    <div class="staff-info">
-                                        {% if staff_user.profile_picture %}
-                                            <img src="{{ staff_user.profile_picture.url }}"
-                                                 alt="{{ staff_user.first_name }}"
-                                                 class="avatar">
-                                        {% else %}
-                                            {% include "partials/empty_avatar.html" with user=staff_user %}
+                                        {% if department.created_by != staff_user %}
+                                            <form method="post" class="remove-staff-form">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="remove">
+                                                <input type="hidden" name="user_id" value="{{ staff_user.id }}">
+                                                <button type="submit" class="btn-icon-remove" title="Remove staff">
+                                                    <i class="bi bi-trash3"></i>
+                                                </button>
+                                            </form>
                                         {% endif %}
-                                        <span class="staff-name">{{ staff_user.full_name }}</span>
                                     </div>
+                                {% empty %}
+                                    <div class="empty empty-state">No staff assigned yet.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
 
-                                    {% if department.created_by != staff_user %}
-                                        <form method="post" class="remove-staff-form">
+                        <div class="staff-card">
+                            <h3 class="staff-card-header">Forward ticket to staff</h3>
+                            {% include 'partials/user_search_bar.html' with staff=available_staff %}
+                        </div>
+
+                    </div>
+                </div>
+                <div class="section-wrapper">
+                    <h2 class="section-title">Departments</h2>
+                    <div class="staff-grid">
+                        <div class="staff-card">
+                            <h3 class="staff-card-header">Assigned</h3>
+
+                            <div class="staff-list">
+                                {% for department in ticket_departments %}
+                                    <div class="pill staff-row">
+                                        <span class="staff-name">
+                                            {{ department.name }}
+                                        </span>
+
+                                        <form method="post" class="remove-department-form">
                                             {% csrf_token %}
                                             <input type="hidden" name="action" value="remove">
-                                            <input type="hidden" name="user_id" value="{{ staff_user.id }}">
-                                            <button type="submit" class="btn-icon-remove" title="Remove staff">
+                                            <input type="hidden" name="target_type" value="department">
+                                            <input type="hidden" name="target_id" value="{{ department.id }}">
+                                            <button type="submit" class="btn-icon-remove" title="Remove department">
                                                 <i class="bi bi-trash3"></i>
                                             </button>
                                         </form>
-                                    {% endif %}
-                                </div>
-                            {% empty %}
-                                <div class="empty empty-state">No staff assigned yet.</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="staff-card">
-                        <h3 class="staff-card-header">Forward ticket to staff</h3>
-                        {% include 'partials/user_search_bar.html' with staff=available_staff %}
-                    </div>
-
-                </div>
-            </div>
-            <div class="section-wrapper">
-            <h2 class="section-title">Departments</h2>
-
-            <div class="staff-grid">
-
-                <!-- Assigned departments -->
-                <div class="staff-card">
-                    <h3 class="staff-card-header">Assigned</h3>
-
-                    <div class="staff-list">
-                        {% for department in ticket_departments %}
-                            <div class="pill staff-row">
-                                <span class="staff-name">
-                                    {{ department.name }}
-                                </span>
-
-                                <form method="post" class="remove-department-form">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="remove">
-                                    <input type="hidden" name="target_type" value="department">
-                                    <input type="hidden" name="target_id" value="{{ department.id }}">
-                                    <button type="submit" class="btn-icon-remove" title="Remove department">
-                                        <i class="bi bi-trash3"></i>
-                                    </button>
-                                </form>
+                                    </div>
+                                {% empty %}
+                                    <div class="empty empty-state">No departments assigned.</div>
+                                {% endfor %}
                             </div>
-                        {% empty %}
-                            <div class="empty empty-state">No departments assigned.</div>
-                        {% endfor %}
+                        </div>
+
+                        <div class="staff-card">
+                            <h3 class="staff-card-header">Add department</h3>
+
+                            <div class="staff-list">
+                                {% for department in available_departments %}
+                                    <form method="post" class="add-department-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="add">
+                                        <input type="hidden" name="target_type" value="department">
+                                        <input type="hidden" name="target_id" value="{{ department.id }}">
+                                        <button type="submit" class="pill">
+                                            {{ department.name }}
+                                        </button>
+                                    </form>
+                                {% empty %}
+                                    <div class="empty empty-state">All departments added.</div>
+                                {% endfor %}
+                            </div>
                     </div>
                 </div>
+            {% endif %}
 
-                <!-- Add department -->
-                <div class="staff-card">
-                    <h3 class="staff-card-header">Add department</h3>
-
-                    <div class="staff-list">
-                        {% for department in available_departments %}
-                            <form method="post" class="add-department-form">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="add">
-                                <input type="hidden" name="target_type" value="department">
-                                <input type="hidden" name="target_id" value="{{ department.id }}">
-                                <button type="submit" class="pill">
-                                    {{ department.name }}
-                                </button>
-                            </form>
-                        {% empty %}
-                            <div class="empty empty-state">All departments added.</div>
-                        {% endfor %}
-                    </div>
-                </div>
-
+        {% else %}
+            <div class="ticket-closed-notice">
+                You do not have permission to make changes to this ticket.
             </div>
-        </div>
         {% endif %}
-
-    {% else %}
-        <div class="ticket-closed-notice">
-            This ticket is now closed.
-        </div>
     {% endif %}
 </div>
 {% endblock %}

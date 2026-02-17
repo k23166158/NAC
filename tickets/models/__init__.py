@@ -7,3 +7,4 @@ from .user_departments import UserDepartments
 from .ticket_participant import TicketParticipant
 from .ticket_message_attachments import TicketMessageAttachment
 from .ticket_department import TicketDepartment
+from .department_invitation import DepartmentInvitation

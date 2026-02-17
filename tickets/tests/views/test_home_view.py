@@ -5,8 +5,9 @@ from django.urls import reverse
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 
-from tickets.models import Ticket, TicketMessage  # adjust import if needed
-from tickets.models.ticket_participant import TicketParticipant  # adjust import if needed
+from tickets.models import Ticket, TicketMessage, Department, TicketAssigned, UserDepartments
+from tickets.views import HomeView
+from tickets.models.ticket_participant import TicketParticipant
 
 User = get_user_model()
 
@@ -34,7 +35,7 @@ class HomeViewTests(TestCase):
         """Anonymous users should see landing page."""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "landing.html")
+        self.assertTemplateUsed(response, "unauthenticated_home.html")
 
     def test_home_view_authenticated_student(self):
         """Student should see home page."""
@@ -75,30 +76,49 @@ class HomeViewTests(TestCase):
 
     # Staff visibility rules
 
-    def test_staff_sees_ticket_if_they_sent_a_message_on_it(self):
-        """If staff sent a message in the ticket, it should appear for them."""
+    def test_staff_does_not_see_uncreated_ticket_in_personal_even_if_messaged(self):
+        """Staff should NOT see tickets they didn't create in 'personal' scope, even if they messaged."""
         t = Ticket.objects.create(title="Needs staff reply", created_by=self.user, status=Ticket.Status.OPEN)
-
-        # staff message links staff to ticket (via ticketmessage__sender=user)
         TicketMessage.objects.create(ticket=t, sender=self.staff1, body="Staff reply")
 
         self.client.force_login(self.staff1)
+        # Default scope is personal
         response = self.client.get(self.url)
 
         active_ids = list(response.context["active_tickets"].values_list("id", flat=True))
-        self.assertIn(t.id, active_ids)
+        self.assertNotIn(t.id, active_ids)
 
-    def test_staff_sees_ticket_if_forwarded_as_participant(self):
-        """If staff is a TicketParticipant, they should see it."""
+    def test_staff_does_not_see_participant_ticket_in_personal_scope(self):
+        """Staff should NOT see tickets they are participants of in 'personal' scope."""
         t = Ticket.objects.create(title="Forwarded ticket", created_by=self.user, status=Ticket.Status.OPEN)
-
         TicketParticipant.objects.create(ticket=t, user=self.staff2)
 
         self.client.force_login(self.staff2)
+        # Default scope is personal
         response = self.client.get(self.url)
 
         active_ids = list(response.context["active_tickets"].values_list("id", flat=True))
+        self.assertNotIn(t.id, active_ids)
+
+    def test_staff_sees_participant_ticket_in_assigned_scope(self):
+        """Staff should see tickets they are participants of in 'assigned' scope."""
+        t = Ticket.objects.create(title="Forwarded ticket", created_by=self.user, status=Ticket.Status.OPEN)
+        TicketParticipant.objects.create(ticket=t, user=self.staff2)
+
+        self.client.force_login(self.staff2)
+        response = self.client.get(self.url, {"scope": "assigned"})
+
+        active_ids = list(response.context["active_tickets"].values_list("id", flat=True))
         self.assertIn(t.id, active_ids)
+
+    def test_base_tickets_direct_call_invalid_scope(self):
+        """
+        Directly test base_tickets with an invalid scope to cover the 
+        implicit fall-through/else branch of the final if statement.
+        """
+        view = HomeView()
+        result = view.base_tickets(self.user, scope="invalid_scope")
+        self.assertIsNone(result)
 
     def test_forwarded_staff_does_not_make_other_staff_see_it(self):
         """Forwarding to staff2 should not automatically expose to staff1."""
@@ -227,9 +247,15 @@ class HomeViewTests(TestCase):
     # Personal vs department scope
 
     def test_staff_department_scope_sees_all_tickets(self):
-        """Staff using scope=department should see all tickets."""
+        """Staff using scope=department should see all tickets in their department."""
+        dept = Department.objects.create(name="Support", created_by=self.staff1)
+        UserDepartments.objects.create(user=self.staff1, department=dept)
+        
         t1 = Ticket.objects.create(title="User ticket", created_by=self.user, status=Ticket.Status.OPEN)
+        TicketAssigned.objects.create(ticket=t1, department=dept)
+        
         t2 = Ticket.objects.create(title="Staff ticket", created_by=self.staff2, status=Ticket.Status.OPEN)
+        TicketAssigned.objects.create(ticket=t2, department=dept)
 
         self.client.force_login(self.staff1)
         response = self.client.get(self.url, {"scope": "department"})
@@ -277,6 +303,7 @@ class HomeViewTests(TestCase):
         response = self.client.get(self.url, {"scope": "department"})
 
         self.assertEqual(response.context["scope"], "department")
+
     def test_plus_button_present_for_authenticated_user(self):
         """The plus button should be present on the home page for authenticated users."""
         self.client.force_login(self.user)
