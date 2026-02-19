@@ -55,13 +55,14 @@
   border-radius: 50%;
   background: linear-gradient(135deg, #f8fafc, #e5e7eb);
   color: #374151;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 30px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
 }
 
 .profile-headings {
@@ -138,6 +139,56 @@
   grid-column: 1 / -1;
 }
 
+/* Reusable utility for JS toggles */
+.hidden {
+  display: none !important;
+}
+
+/* =========================
+   Edit Profile (avatar inside auth form)
+   Works when initials element is a DIV with class="profile-initials"
+   ========================= */
+/* Universal initials block (works inside any avatar container) */
+.profile-initials {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f8fafc, #e5e7eb);
+  color: #374151;
+  font-weight: 800;
+  font-size: 32px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+
+.profile-upload .avatar > .profile-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #374151;
+  background: linear-gradient(135deg, #f8fafc, #e5e7eb);
+}
+
+.profile-upload .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Responsive */
 @media (max-width: 720px) {
   .profile-card {
     padding: 20px 18px;
@@ -150,18 +201,4 @@
   .profile-details {
     grid-template-columns: 1fr;
   }
-
-  .profile-avatar--edit {
-    width: 96px;
-    height: 96px;
-  }
-
 }
-.hidden {
-    display: none;
-  }
-
-.avatar img {
-  display: block;
-}
-
