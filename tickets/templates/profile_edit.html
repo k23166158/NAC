@@ -24,12 +24,12 @@
 
       <div class="profile-upload">
         <div class="avatar">
-          <span
+          <div
             id="avatarInitials"
             class="profile-initials {% if user.profile_picture %}hidden{% endif %}"
           >
-            {{ user.first_name|first }}{{ user.last_name|first }}
-          </span>
+            {{ user.first_name|default:user.username|first }}{{ user.last_name|default:""|first }}
+          </div>
 
           <img
             id="avatarImg"
@@ -76,7 +76,7 @@
       <button type="submit">Save changes</button>
 
       <div class="small-link">
-        <a href="{% url 'my_profile' %}">Cancel</a>
+        <a href="{% url 'profile' request.user.profile_slug %}">Cancel</a>
       </div>
     </form>
 
