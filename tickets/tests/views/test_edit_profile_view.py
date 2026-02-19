@@ -1,19 +1,20 @@
 """
-Tests for EditProfileView.
+Tests for ProfileEditView.
 
 Ensures:
 - Anonymous users are redirected to login
 - GET renders for authenticated users
-- POST updates profile fields2
+- POST updates profile fields
 - POST updates password when provided
 - POST saves profile picture upload
+- Duplicate email/username shows error
 """
 
 import tempfile
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.contrib.auth import get_user_model
 
 
 @override_settings(MEDIA_ROOT=tempfile.gettempdir())
@@ -30,11 +31,12 @@ class EditProfileViewTests(TestCase):
             first_name="John",
             last_name="Doe",
         )
+        self.user.refresh_from_db()
         self.url = reverse("profile_edit")
 
     def login(self):
-        """Log in the test user."""
-        self.client.login(username="john", password="Pass12345!")
+        """Force login for reliability."""
+        self.client.force_login(self.user)
 
     def base_payload(self):
         """Return a minimal valid payload for editing profile."""
@@ -44,6 +46,10 @@ class EditProfileViewTests(TestCase):
             "username": "john",
             "email": "john@example.com",
         }
+
+    def profile_url(self):
+        """Return expected redirect URL after save."""
+        return reverse("profile", kwargs={"profile_slug": self.user.profile_slug})
 
     def test_get_redirects_when_logged_out(self):
         """Anonymous users should be redirected to login."""
@@ -56,51 +62,31 @@ class EditProfileViewTests(TestCase):
         self.login()
         r = self.client.get(self.url)
         self.assertEqual(r.status_code, 200)
-        self.assertIn("user", r.context)
         self.assertEqual(r.context["user"].pk, self.user.pk)
 
     def test_post_updates_basic_fields(self):
         """POST should update first/last/username/email."""
         self.login()
         data = self.base_payload() | {"first_name": "Jon", "username": "john2", "email": "john2@ex.com"}
-        r = self.client.post(self.url, data, follow=True)
+        r = self.client.post(self.url, data)
         self.user.refresh_from_db()
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 302)
         self.assertEqual(self.user.first_name, "Jon")
         self.assertEqual(self.user.username, "john2")
+
+    def test_post_redirects_to_profile(self):
+        """POST should redirect to own profile."""
+        self.login()
+        r = self.client.post(self.url, self.base_payload())
+        self.assertRedirects(r, self.profile_url())
 
     def test_post_updates_password_if_provided(self):
         """POST should change password if password field is set."""
         self.login()
-        data = self.base_payload() | {"password": "NewPass123!"}
-        r = self.client.post(self.url, data, follow=True)
+        r = self.client.post(self.url, self.base_payload() | {"password": "NewPass123!"})
         self.user.refresh_from_db()
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 302)
         self.assertTrue(self.user.check_password("NewPass123!"))
-
-    def test_post_saves_profile_picture(self):
-        """POST should save an uploaded profile picture."""
-        self.login()
-        img = SimpleUploadedFile("a.jpg", b"\xff\xd8\xff\xe0" + b"0" * 20, content_type="image/jpeg")
-        data = self.base_payload() | {"profile_picture": img}
-        r = self.client.post(self.url, data, follow=True)
-        self.user.refresh_from_db()
-        self.assertEqual(r.status_code, 200)
-        self.assertTrue(bool(self.user.profile_picture))
-
-    def test_post_duplicate_username_shows_error(self):
-        """Duplicate username should render form with error message."""
-        User = get_user_model()
-        User.objects.create_user(
-            username="taken",
-            email="taken@example.com",
-            password="Pass12345!",
-        )
-        self.login()
-        data = self.base_payload() | {"username": "taken"}
-        r = self.client.post(self.url, data)
-        self.assertEqual(r.status_code, 200)
-        self.assertIn("error", r.context)
 
     def test_post_blank_password_does_not_change_password(self):
         """Blank password should not update the stored password."""
@@ -111,23 +97,28 @@ class EditProfileViewTests(TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertEqual(self.user.password, old_hash)
 
-    def test_post_with_picture_(self):
-        """Posting a file should execute the profile_picture branch."""
+    def test_post_saves_profile_picture(self):
+        """POST should save an uploaded profile picture."""
         self.login()
         img = SimpleUploadedFile("a.jpg", b"\xff\xd8\xff\xe0" + b"0" * 20, content_type="image/jpeg")
-        data = self.base_payload() | {"profile_picture": img}
-        r = self.client.post(self.url, data)
+        r = self.client.post(self.url, self.base_payload() | {"profile_picture": img})
         self.user.refresh_from_db()
         self.assertEqual(r.status_code, 302)
         self.assertTrue(bool(self.user.profile_picture))
 
+    def test_post_duplicate_username_shows_error(self):
+        """Duplicate username should render form with error message."""
+        get_user_model().objects.create_user(username="taken", email="taken@example.com", password="Pass12345!")
+        self.login()
+        r = self.client.post(self.url, self.base_payload() | {"username": "taken"})
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("error", r.context)
+
     def test_post_duplicate_email_renders_error(self):
         """Duplicate email should execute IntegrityError branch."""
-        User = get_user_model()
-        User.objects.create_user(username="x", email="dup@example.com", password="Pass12345!")
+        get_user_model().objects.create_user(username="x", email="dup@example.com", password="Pass12345!")
         self.login()
-        data = self.base_payload() | {"email": "dup@example.com"}
-        r = self.client.post(self.url, data)
+        r = self.client.post(self.url, self.base_payload() | {"email": "dup@example.com"})
         self.assertEqual(r.status_code, 200)
         self.assertIn("error", r.context)
 
