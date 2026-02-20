@@ -13,37 +13,13 @@ class SearchAssignablesViewTests(TestCase):
         """Set up test data including users and departments for testing the search assignables view."""
         self.url = reverse("search_assignables")
 
-        self.creator = User.objects.create_user(
-            username="creator",
-            email="creator@example.com",
-            password="password123",
-            is_staff=True,
-        )
+        self.creator = User.objects.create_user(username="creator",email="creator@example.com",password="password123",is_staff=True)
 
-        self.staff_user = User.objects.create_user(
-            username="staff1",
-            email="staff1@example.com",
-            password="password123",
-            is_staff=True,
-            first_name="Staff",
-            last_name="User",
-        )
+        self.staff_user = User.objects.create_user(username="staff1",email="staff1@example.com",password="password123",is_staff=True,first_name="Staff",last_name="User")
 
-        self.other_staff = User.objects.create_user(
-            username="helpdesk",
-            email="helpdesk@example.com",
-            password="password123",
-            is_staff=True,
-            first_name="Help",
-            last_name="Desk",
-        )
+        self.other_staff = User.objects.create_user(username="helpdesk",email="helpdesk@example.com",password="password123",is_staff=True,first_name="Help",last_name="Desk")
 
-        self.non_staff = User.objects.create_user(
-            username="customer",
-            email="customer@example.com",
-            password="password123",
-            is_staff=False,
-        )
+        self.non_staff = User.objects.create_user(username="customer",email="customer@example.com",password="password123",is_staff=False)
 
         self.department = Department.objects.create(
             name="IT Support",

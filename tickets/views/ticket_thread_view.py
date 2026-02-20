@@ -3,17 +3,16 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from tickets.helpers.ticket_assignment import assign_staff_to_ticket
 from django.http import HttpResponseForbidden
 
 from tickets.models.ticket_participant import TicketParticipant
-from ..models import Ticket, TicketMessage
-from ..models.ticket_department import TicketDepartment
-from ..models.department import Department
-from tickets.helpers.ticket_assignment import assign_department_to_ticket
-from django.http import Http404
-from django.test import RequestFactory
 from tickets.models import Ticket, TicketMessage
+from tickets.models.ticket_department import TicketDepartment
+from tickets.models.department import Department
+from tickets.helpers.ticket_assignment import (
+    assign_staff_to_ticket,
+    assign_department_to_ticket,
+)
 
 User = get_user_model()
 
@@ -57,28 +56,38 @@ class TicketThreadView(LoginRequiredMixin, View):
     def get(self, request, uuid):
         """Handle GET requests: render the ticket thread."""
         self.ticket = get_object_or_404(Ticket, uuid=uuid)
+        self.object = self.ticket
+        self.request = request
         context = self.get_context_data()
-        context["permission"] = self.has_edit_permissions(self.ticket, request.user)
+        context["permission"] = self.has_edit_permissions(self.object, request.user)
         return render(request, self.template_name, context)
 
     def post(self, request, uuid):
         """Handle POST actions for the ticket thread."""
         self.ticket = get_object_or_404(Ticket, uuid=uuid)
-        action = request.POST.get("action")
-
-        if not self.has_edit_permissions(self.ticket, request.user):
+        self.object = self.ticket
+        self.request = request
+        if not self.has_edit_permissions(self.object, request.user):
             return HttpResponseForbidden("You don't have permission to do this.")
-
+        action = request.POST.get("action")
+        target_type = request.POST.get("target_type")
         if action in {"add", "remove"}:
-            self.handle_staff_change(request)
-        else:
-            self.dispatch_post_action(action, request)
-        
+            return self._handle_add_remove(request, target_type)
+        self.dispatch_post_action(action, request)
         return self.get(request, uuid)
+
+    def _handle_add_remove(self, request, target_type):
+        """Handle add/remove actions for staff or department assignments."""
+        if target_type:
+            self.handle_assignment_change(request)
+            return self.get(request, self.object.uuid)
+
+        self.handle_staff_change(request)
+        return self.get(request, self.object.uuid)
 
     def get_messages_queryset(self):
         """Get the queryset for ticket messages."""
-        return TicketMessage.objects.filter(ticket=self.ticket).order_by("created_at")
+        return TicketMessage.objects.filter(ticket=self.object).order_by("created_at")
 
     def get_first_message(self, messages):
         """Extract the first message."""
@@ -96,13 +105,13 @@ class TicketThreadView(LoginRequiredMixin, View):
     def get_ticket_staff(self):
         """Get the staff users assigned to the ticket."""
         return [
-            p.user for p in self.ticket.participants.select_related("user")
+            p.user for p in self.object.participants.select_related("user")
         ]
 
     def get_department_staff(self):
         """Gets all the staff in a department"""
         return User.objects.filter(
-            user__department__assigned_tickets__ticket=self.ticket
+            user__department__assigned_tickets__ticket=self.object
         ).distinct()
 
     def has_edit_permissions(self, ticket, user):
@@ -119,25 +128,35 @@ class TicketThreadView(LoginRequiredMixin, View):
         current_ids = [u.id for u in current_staff]
         return User.objects.filter(is_staff=True).exclude(id__in=current_ids)
 
+    def get_ticket_departments(self):
+        """Get departments assigned to the ticket."""
+        return Department.objects.filter(ticket_departments__ticket=self.object)
+
+    def get_available_departments(self, current_departments):
+        """Get departments that are not yet assigned to the ticket."""
+        current_ids = [d.id for d in current_departments]
+        return Department.objects.exclude(id__in=current_ids)
+
     def get_context_data(self):
         """Add ticket messages to the context."""
         messages = self.get_messages_queryset()
-        current_staff = self.get_ticket_staff()
-        
-        context = {
-            "ticket": self.ticket,
-            "staff": current_staff,
-            "available_staff": self.get_available_staff(current_staff),
+        staff = self.get_ticket_staff()
+        departments = self.get_ticket_departments()
+        return {
+            "ticket": self.object,
+            "staff": staff,
+            "available_staff": self.get_available_staff(staff),
+            "ticket_departments": departments,
+            "available_departments": self.get_available_departments(departments),
             "first_message": self.get_first_message(messages),
             "messages": self.get_reply_messages(messages),
             "last_user_message_id": self.get_last_user_message_id(messages),
             "edit_message": self.get_edit_message(),
         }
-        return context
     
     def touch_ticket(self):
         """Update the ticket's updated_at timestamp."""
-        Ticket.objects.filter(id=self.ticket.id).update(updated_at=timezone.now())
+        Ticket.objects.filter(id=self.object.id).update(updated_at=timezone.now())
 
     def get_edit_message(self):
         """Return the message being edited, if any."""
@@ -146,7 +165,7 @@ class TicketThreadView(LoginRequiredMixin, View):
             return get_object_or_404(
                 TicketMessage,
                 id=message_id,
-                ticket=self.ticket,
+                ticket=self.object,
                 sender=self.request.user,
                 hidden=False,
             )
@@ -158,7 +177,7 @@ class TicketThreadView(LoginRequiredMixin, View):
         message = get_object_or_404(
             TicketMessage,
             id=message_id,
-            ticket=self.ticket,
+            ticket=self.object,
             sender=request.user,
         )
         message.hidden = True
@@ -171,7 +190,7 @@ class TicketThreadView(LoginRequiredMixin, View):
         message = get_object_or_404(
             TicketMessage,
             id=message_id,
-            ticket=self.ticket,
+            ticket=self.object,
             sender=request.user,
             hidden=False,
         )
@@ -187,7 +206,7 @@ class TicketThreadView(LoginRequiredMixin, View):
         body = request.POST.get('body')
         if body:
             TicketMessage.objects.create(
-                ticket=self.ticket,
+                ticket=self.object,
                 sender=request.user,
                 body=body
             )
@@ -195,13 +214,13 @@ class TicketThreadView(LoginRequiredMixin, View):
 
     def _add_staff(self, user, added_by):
         """Assign a staff member to the ticket."""
-        assign_staff_to_ticket(ticket=self.ticket, staff_user=user, added_by=added_by)
+        assign_staff_to_ticket(ticket=self.object, staff_user=user, added_by=added_by)
 
     def _remove_staff(self, user):
         """Remove a staff member from the ticket and log it."""
-        TicketParticipant.objects.filter(ticket=self.ticket, user=user).delete()
+        TicketParticipant.objects.filter(ticket=self.object, user=user).delete()
         TicketMessage.objects.create(
-            ticket=self.ticket,
+            ticket=self.object,
             sender=None,
             body=f"{user.get_full_name()} was removed from the ticket."
         )
@@ -230,18 +249,6 @@ class TicketThreadView(LoginRequiredMixin, View):
         }
         handlers.get(action, lambda: self.handle_add_action(request))()
 
-    def post(self, request, *args, **kwargs):
-        """Handle POST actions for the ticket thread."""
-        self.object = self.get_object()
-        action = request.POST.get("action")
-
-        if action in {"add", "remove"}:
-            self.handle_assignment_change(request)
-            return self.get(request, *args, **kwargs)
-
-        self.dispatch_post_action(action, request)
-        return self.get(request, *args, **kwargs)
-    
     def _add_department(self, department, added_by):
         """Assign a department to the ticket."""
         assign_department_to_ticket(

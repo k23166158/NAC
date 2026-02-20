@@ -17,24 +17,17 @@ class AssignStaffToTicketTests(TestCase):
     """Test cases for the assign_staff_to_ticket helper function."""
     def setUp(self):
         """Create a standard user and a staff user."""
-        self.staff_user = User.objects.create_user(
-            username='staff', 
-            email='staff@example.com',
-            password='password', 
-            first_name='John', 
-            last_name='Doe'
-        )
+        self.staff_user = User.objects.create_user(username='staff', email='staff@example.com',password='password', first_name='John', last_name='Doe')
+
         self.admin_user = User.objects.create_user(
             username='admin', 
             email='admin@example.com',
             password='password'
         )
-        
-        # Create a ticket instance
+    
         self.ticket = Ticket.objects.create(
             title="Test Ticket",
             created_by=self.staff_user,
-            # Ensure updated_at is in the past so we can test it changing
             updated_at=timezone.now() - timedelta(days=1)
         )
 
@@ -133,38 +126,22 @@ class AssignDepartmentToTicketTests(TestCase):
     """Test cases for the assign_department_to_ticket helper function."""
 
     def setUp(self):
-        self.creator = User.objects.create_user(
-            username="creator",
-            email="creator@example.com",
-            password="password",
-            first_name="Alice",
-            last_name="Smith",
-        )
+        """Set up test data including a creator user, staff users, a ticket, and a department."""
+        self.creator = User.objects.create_user(username="creator",email="creator@example.com",password="password",first_name="Alice",last_name="Smith")
 
-        self.staff1 = User.objects.create_user(
-            username="staff1",
-            email="staff1@example.com",
-            password="password",
-        )
+        self.staff1 = User.objects.create_user(username="staff1",email="staff1@example.com",password="password")
 
-        self.staff2 = User.objects.create_user(
-            username="staff2",
-            email="staff2@example.com",
-            password="password",
-        )
+        self.staff2 = User.objects.create_user(username="staff2",email="staff2@example.com",password="password")
 
-        self.ticket = Ticket.objects.create(
-            title="Department Test Ticket",
-            created_by=self.creator,
-        )
+        self.ticket = Ticket.objects.create(title="Department Test Ticket",created_by=self.creator)
 
-        # ✅ FIX: include created_by
         self.department = Department.objects.create(
             name="Support",
             created_by=self.creator,
         )
 
         self.department.members.add(self.staff1, self.staff2)
+        
     def test_assign_department_creates_ticket_department_relation(self):
         """Department is linked to the ticket."""
         assign_department_to_ticket(
