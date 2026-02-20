@@ -19,18 +19,32 @@ class HomeView(View):
         scope = request.GET.get("scope", "personal")
         qs, scope = self.handle_scope(request.user, scope)
         overdue = self.overdue_tickets(qs)
-        context = {
+        
+        ctx = self.get_context(qs, scope, overdue)
+        if self.is_admin(request.user):
+            ctx.update(self.get_admin_stats())
+            
+        return render(request, "home_view.html", ctx)
+
+    def get_context(self, qs, scope, overdue):
+        """Build the base context dictionary for the view."""
+        return {
             "scope": scope,
             "completed_tickets": self.completed_tickets(qs),
             "overdue_tickets": overdue,
             "active_tickets": self.active_tickets(qs, overdue),
-            "total_tickets": Ticket.objects.count() if self.is_admin(request.user) else None,
-            "tickets_by_status": self.tickets_by_status() if self.is_admin(request.user) else None,
-            "total_users": User.objects.count() if self.is_admin(request.user) else None,
         }
-        return render(request, "home_view.html", context)
+
+    def get_admin_stats(self):
+        """Returns extra admin statistics for the dashboard."""
+        return {
+            "total_tickets": Ticket.objects.count(),
+            "tickets_by_status": self.tickets_by_status(),
+            "total_users": User.objects.count(),
+        }
 
     def is_admin(self, user):
+        """Check if a user has admin privileges."""
         return user.is_superuser or user.is_staff
 
     def tickets_by_status(self):

@@ -26,23 +26,23 @@
         </div>
     </div>
     <div class="admin-body">
-        <div class="admin-stats" style="margin-bottom: 20px;">
-            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; align-items: center;">
-                <div class="stat-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-                    <span class="stat-label" style="margin-bottom: 5px; display: block;">Total Tickets</span>
-                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #0d6efd; line-height: 1;">{{ total_tickets|compact_number }}</span>
+        <div class="admin-stats admin-stats-container">
+            <div class="stats-grid">
+                <div class="stat-item stat-item-flex">
+                    <span class="stat-label stat-label-block">Total Tickets</span>
+                    <span class="stat-value stat-value-blue">{{ total_tickets|compact_number }}</span>
                 </div>
-                <div class="stat-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-                    <span class="stat-label" style="margin-bottom: 5px; display: block;">Open</span>
-                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #dc3545; line-height: 1;">{{ tickets_by_status.open|compact_number }}</span>
+                <div class="stat-item stat-item-flex">
+                    <span class="stat-label stat-label-block">Open</span>
+                    <span class="stat-value stat-value-red">{{ tickets_by_status.open|compact_number }}</span>
                 </div>
-                <div class="stat-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-                    <span class="stat-label" style="margin-bottom: 5px; display: block;">Pending</span>
-                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #ffc107; line-height: 1;">{{ tickets_by_status.pending|compact_number }}</span>
+                <div class="stat-item stat-item-flex">
+                    <span class="stat-label stat-label-block">Pending</span>
+                    <span class="stat-value stat-value-yellow">{{ tickets_by_status.pending|compact_number }}</span>
                 </div>
-                <div class="stat-item" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-                    <span class="stat-label" style="margin-bottom: 5px; display: block;">Closed</span>
-                    <span class="stat-value" style="font-size: 1.5rem; font-weight: bold; color: #198754; line-height: 1;">{{ tickets_by_status.closed|compact_number }}</span>
+                <div class="stat-item stat-item-flex">
+                    <span class="stat-label stat-label-block">Closed</span>
+                    <span class="stat-value stat-value-green">{{ tickets_by_status.closed|compact_number }}</span>
                 </div>
             </div>
         </div>
@@ -53,6 +53,9 @@
             </a>
             <a href="{% url 'department_manage' %}" class="btn-admin">
                 <i class="bi bi-building-fill"></i> Manage Departments
+            </a>
+            <a href="{% url 'admin_statistics' %}" class="btn-admin">
+                <i class="bi bi-bar-chart-fill"></i> View Statistics
             </a>
             {% if user.is_superuser %}
             <a href="/admin/" class="btn-admin">
