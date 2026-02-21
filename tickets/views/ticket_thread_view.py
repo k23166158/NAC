@@ -29,18 +29,16 @@ class TicketThreadView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
     def post(self, request, uuid):
-        """Handle POST actions for the ticket thread."""
+        """Handle POST actions for the ticket thread."""    
         self.ticket = get_object_or_404(Ticket, uuid=uuid)
         action = request.POST.get("action")
 
         if not self.has_edit_permissions(self.ticket, request.user):
             return HttpResponseForbidden("You don't have permission to do this.")
-
         if action in {"add", "remove"}:
             self.handle_staff_change(request)
         else:
             self.dispatch_post_action(action, request)
-        
         return self.get(request, uuid)
 
     def get_messages_queryset(self):

@@ -53,25 +53,28 @@ class HomeView(View):
             return Ticket.objects.filter(participants__user=user).distinct()
 
     def annotated_tickets(self, user, scope="personal"):
-        """Annotate the base ticket queryset with last message info and unread count."""
-        last_msg = TicketMessage.objects.filter(
-            ticket_id=OuterRef("pk")
-        ).order_by("-edited_at")
-        last_read_subquery = TicketParticipant.objects.filter(
-            ticket=OuterRef("pk"),
-            user=user
-        ).values("last_read_at")[:1]
+        """Annotate the base ticket queryset with message metadata."""
         qs = self.base_tickets(user, scope=scope)
-        qs = qs.annotate(
+        qs = self._annotate_last_message(qs, user)
+        return self._annotate_unread_count(qs, user)
+
+    def _annotate_last_message(self, qs, user):
+        """Annotate the queryset with details of the last message and last read timestamp."""
+        last_msg = TicketMessage.objects.filter(ticket_id=OuterRef("pk")).order_by("-edited_at")
+        last_read = TicketParticipant.objects.filter(ticket=OuterRef("pk"),user=user).values("last_read_at")[:1]
+        return qs.annotate(
             last_message_at=Subquery(last_msg.values("edited_at")[:1]),
             last_message_body=Subquery(last_msg.values("body")[:1]),
             last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
             last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
             last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
             last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
-            user_last_read_at=Subquery(last_read_subquery, output_field=DateTimeField()),
+            user_last_read_at=Subquery(last_read, output_field=DateTimeField()),
         )
-        qs = qs.annotate(
+    
+    def _annotate_unread_count(self, qs, user):
+        """Annotate the queryset with the count of unread messages for the user."""
+        return qs.annotate(
             unread_count=Count(
                 "messages",
                 filter=Q(messages__edited_at__gt=Coalesce(
@@ -80,8 +83,6 @@ class HomeView(View):
                 )) & ~Q(messages__sender=user)
             )
         )
-        return qs
-
 
     def completed_tickets(self, qs):
         """Tickets that are completed/closed."""
