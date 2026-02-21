@@ -5,8 +5,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from tickets.models.ticket_participant import TicketParticipant
 from tickets.views.ticket_thread_view import TicketThreadView
-
 from tickets.models import Ticket, TicketMessage, Department, UserDepartments, TicketAssigned
+from django.http import Http404
 
 User = get_user_model()
 
@@ -637,6 +637,7 @@ class TicketThreadViewTests(TestCase):
         self.assertTrue(self.ticket.updated_at > old)
 
     def test_post_edit_without_message_id_sets_edit_message_none(self):
+        """POST action=edit without message_id should not set edit_message in context."""
         self.client.force_login(self.user)
         self.client.get(self._url())
         response = self.client.post(
@@ -647,6 +648,7 @@ class TicketThreadViewTests(TestCase):
         self.assertIsNone(response.context["edit_message"])
 
     def test_post_add_staff_invalid_user_id_404(self):
+        """POST action=add with non-existent user_id returns 404."""
         staff_user = make_user("staffuser", is_staff=True)
         self.client.force_login(self.user)
         self.client.get(self._url())
@@ -717,7 +719,6 @@ class TicketThreadViewTests(TestCase):
             body="Hidden",
             hidden=True
         )
-
         self.client.force_login(self.user)
         request = self.client.post(
             self._url(),
@@ -728,6 +729,90 @@ class TicketThreadViewTests(TestCase):
         view.ticket = self.ticket
         view.request = request
 
-        from django.http import Http404
         with self.assertRaises(Http404):
             view.get_edit_message()
+
+    def test_post_close_ticket_sets_closed_at(self):
+        """POST action=close_ticket on an open ticket sets closed_at timestamp."""
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="close_ticket"),
+        )
+
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+
+    def test_last_user_message_id_none_when_only_other_users_visible(self):
+        """last_user_message_id should be None if the only visible messages are from other users."""
+        TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.other_user,
+            body="Other user message"
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(self._url())
+
+        self.assertIsNone(response.context["last_user_message_id"])
+
+    def test_post_without_permission_returns_403(self):
+        """POST by a user with no permissions should return 403 Forbidden."""
+        no_perm_user = make_user("nopermuser")
+        self.client.force_login(no_perm_user)
+
+        response = self.client.post(
+            self._url(),
+            data={"body": "Should fail"}
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_unknown_action_without_body_creates_no_message(self):
+        """POST with unknown action and no body should not create a message."""
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="unknown_action")
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(TicketMessage.objects.count(), 0)
+
+    def test_post_update_with_empty_string_body_does_not_change(self):
+        """POST action=update with empty body should not change the message body."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="Original"
+        )
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="update",
+                message_id=str(msg.id),
+                body=""
+            )
+        )
+        msg.refresh_from_db()
+        self.assertEqual(msg.body, "Original")
+
+    def test_post_add_non_staff_user_returns_404(self):
+        """POST action=add with a user_id of a non-staff user should return 404 and not add them."""
+        normal_user = make_user("normaluser", is_staff=False)
+
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="add", user_id=str(normal_user.id))
+        )
+
+        self.assertEqual(response.status_code, 404)
