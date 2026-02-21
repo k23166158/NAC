@@ -1,9 +1,12 @@
 from datetime import timedelta
 
-from django.db.models import OuterRef, Subquery, Q
+from django.db.models import Count, OuterRef, Subquery, Q, F
 from django.shortcuts import render
 from django.utils import timezone
 from django.views import View
+from django.db.models import Subquery, OuterRef, Count, Q, DateTimeField
+from django.db.models.functions import Coalesce
+from django.utils import timezone
 
 from tickets.models import Ticket, TicketMessage, Department, TicketAssigned, UserDepartments, TicketParticipant
 from django.db.models import Exists, OuterRef
@@ -50,19 +53,35 @@ class HomeView(View):
             return Ticket.objects.filter(participants__user=user).distinct()
 
     def annotated_tickets(self, user, scope="personal"):
-        """Tickets with last message info annotated."""
-        last_msg = TicketMessage.objects.filter(ticket_id=OuterRef("pk")).order_by("-edited_at")
-        return (
-            self.base_tickets(user, scope=scope)
-            .annotate(
-                last_message_at=Subquery(last_msg.values("edited_at")[:1]),
-                last_message_body=Subquery(last_msg.values("body")[:1]),
-                last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
-                last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
-                last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
-                last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
+        """Annotate the base ticket queryset with last message info and unread count."""
+        last_msg = TicketMessage.objects.filter(
+            ticket_id=OuterRef("pk")
+        ).order_by("-edited_at")
+        last_read_subquery = TicketParticipant.objects.filter(
+            ticket=OuterRef("pk"),
+            user=user
+        ).values("last_read_at")[:1]
+        qs = self.base_tickets(user, scope=scope)
+        qs = qs.annotate(
+            last_message_at=Subquery(last_msg.values("edited_at")[:1]),
+            last_message_body=Subquery(last_msg.values("body")[:1]),
+            last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
+            last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
+            last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
+            last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
+            user_last_read_at=Subquery(last_read_subquery, output_field=DateTimeField()),
+        )
+        qs = qs.annotate(
+            unread_count=Count(
+                "messages",
+                filter=Q(messages__edited_at__gt=Coalesce(
+                    F("user_last_read_at"),
+                    timezone.make_aware(timezone.datetime.min)
+                )) & ~Q(messages__sender=user)
             )
         )
+        return qs
+
 
     def completed_tickets(self, qs):
         """Tickets that are completed/closed."""

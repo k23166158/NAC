@@ -18,8 +18,14 @@ class TicketThreadView(LoginRequiredMixin, View):
     def get(self, request, uuid):
         """Handle GET requests: render the ticket thread."""
         self.ticket = get_object_or_404(Ticket, uuid=uuid)
+        TicketParticipant.objects.update_or_create(
+            ticket=self.ticket,
+            user=request.user,
+            defaults={"last_read_at": timezone.now()}
+        )
         context = self.get_context_data()
         context["permission"] = self.has_edit_permissions(self.ticket, request.user)
+
         return render(request, self.template_name, context)
 
     def post(self, request, uuid):

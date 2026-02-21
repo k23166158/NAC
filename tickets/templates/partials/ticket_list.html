@@ -6,6 +6,11 @@
       {% if request.GET.open|default:'' == t.uuid|stringformat:"s" %}open{% endif %}
     >
       <summary class="ticket-bar {% if t.status == 'pending' %}ticket-bar-overdue{% endif %}">
+        {% if t.unread_count > 0 %}
+          <span class="unread-badge">
+            {{ t.unread_count }}
+          </span>
+        {% endif %}
         <span class="chev" aria-hidden="true"></span>
 
         <div class="ticket-bar-main">
