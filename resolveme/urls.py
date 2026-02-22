@@ -27,6 +27,8 @@ from tickets.views import SignUpView
 from django.conf import settings
 from django.conf.urls.static import static
 
+from tickets.views.search_assignables_view import search_assignables
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', HomeView.as_view(), name='home'),
@@ -37,6 +39,7 @@ urlpatterns = [
     path('tickets/<uuid:uuid>/', TicketThreadView.as_view(), name='ticket_thread'),
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
     path("tickets/create/", CreateTicketView.as_view(), name="ticket_create"),
+    path("ticket/search-assignables/", search_assignables, name="search_assignables"),
 
     path('department/manage/', DepartmentManageView.as_view(), name='department_manage'),
     path('department/create/', CreateDepartmentView.as_view(), name='create_department'),
