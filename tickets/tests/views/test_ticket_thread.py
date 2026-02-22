@@ -698,11 +698,9 @@ class TicketThreadViewTests(TestCase):
         """POST action=remove with target_type=department removes department and logs message."""
         dept = Department.objects.create(name="To Remove", created_by=self.user)
         self.ticket.ticket_departments.create(department=dept)
-
         self.client.force_login(self.user)
         self.client.get(self._url())
-        response = self.client.post(
-            self._url(),
+        response = self.client.post(self._url(),
             data=self._csrf_data(
                 action="remove",
                 target_type="department",
@@ -711,17 +709,9 @@ class TicketThreadViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertFalse(
-            Department.objects.filter(
-                ticket_departments__ticket=self.ticket,
-                id=dept.id,
-            ).exists()
-        )
+            Department.objects.filter(ticket_departments__ticket=self.ticket, id=dept.id,).exists())
         self.assertTrue(
-            TicketMessage.objects.filter(
-                ticket=self.ticket,
-                body__contains="was removed from the ticket",
-            ).exists()
-        )
+            TicketMessage.objects.filter(ticket=self.ticket,body__contains="was removed from the ticket",).exists())
 
     def test_remove_department_direct_call(self):
         """Direct call to _remove_department removes department and logs message."""

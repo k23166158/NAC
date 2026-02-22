@@ -297,17 +297,14 @@ class TicketThreadView(LoginRequiredMixin, View):
         target_id = request.POST.get("target_id")
         target_type = request.POST.get("target_type")
         action = request.POST.get("action")
-        if not target_id or not target_type or not action:
-            return
+        if not target_id or not target_type or not action: return
         handlers = {
             "staff": TicketThreadView.StaffAssignmentHandler,
             "department": TicketThreadView.DepartmentAssignmentHandler,
         }
-        if target_type not in handlers:
-            return
+        if target_type not in handlers: return
         target = self.get_assignment_target(target_type, target_id)
-        if target is None:
-            return
+        if target is None: return
         handler = handlers[target_type](self, action)
         self.apply_assignment_action(handler, target, request.user)
 
