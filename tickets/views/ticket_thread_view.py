@@ -280,7 +280,8 @@ class TicketThreadView(LoginRequiredMixin, View):
             return get_object_or_404(User, id=target_id, is_staff=True)
         if target_type == "department":
             return get_object_or_404(Department, id=target_id)
-    
+        return None
+
     def apply_assignment_action(self, handler, target, actor):
         """Apply the add or remove action for staff or department assignments."""
         actions = {
@@ -296,14 +297,18 @@ class TicketThreadView(LoginRequiredMixin, View):
         target_id = request.POST.get("target_id")
         target_type = request.POST.get("target_type")
         action = request.POST.get("action")
-        if not target_id or not target_type or not action: return
-        
-        target = self.get_assignment_target(target_type, target_id)
-        handler = {
+        if not target_id or not target_type or not action:
+            return
+        handlers = {
             "staff": TicketThreadView.StaffAssignmentHandler,
             "department": TicketThreadView.DepartmentAssignmentHandler,
-        }[target_type](self, action)
-
+        }
+        if target_type not in handlers:
+            return
+        target = self.get_assignment_target(target_type, target_id)
+        if target is None:
+            return
+        handler = handlers[target_type](self, action)
         self.apply_assignment_action(handler, target, request.user)
 
     def handle_close_ticket_action(self):

@@ -6,7 +6,6 @@ from django.contrib.auth import get_user_model
 from tickets.models.ticket_participant import TicketParticipant
 from tickets.views.ticket_thread_view import TicketThreadView
 from tickets.models import Ticket, TicketMessage, Department, UserDepartments, TicketAssigned
-from tickets.models.department import Department
 from django.test import RequestFactory
 from django.http import Http404
 User = get_user_model()
@@ -35,6 +34,7 @@ class TicketThreadViewTests(TestCase):
             title="Test Ticket",
             created_by=self.user,
         )
+        self.object = self.ticket
 
     def _url(self, ticket=None):
         """Get the URL for the ticket thread view for the given ticket (default: self.ticket)."""
@@ -694,6 +694,35 @@ class TicketThreadViewTests(TestCase):
             Department.objects.filter(ticket_departments__ticket=self.ticket, id=dept.id).exists()
         )
 
+    def test_post_remove_department_removes_department(self):
+        """POST action=remove with target_type=department removes department and logs message."""
+        dept = Department.objects.create(name="To Remove", created_by=self.user)
+        self.ticket.ticket_departments.create(department=dept)
+
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="remove",
+                target_type="department",
+                target_id=str(dept.id),
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            Department.objects.filter(
+                ticket_departments__ticket=self.ticket,
+                id=dept.id,
+            ).exists()
+        )
+        self.assertTrue(
+            TicketMessage.objects.filter(
+                ticket=self.ticket,
+                body__contains="was removed from the ticket",
+            ).exists()
+        )
+
     def test_remove_department_direct_call(self):
         """Direct call to _remove_department removes department and logs message."""
         dept = Department.objects.create(name="Legal", created_by=self.user)
@@ -760,6 +789,18 @@ class TicketThreadViewTests(TestCase):
         view.handle_staff_change(request)
 
         self.assertTrue(self.ticket.participants.filter(user=staff).exists())
+
+    def test_post_add_staff_with_user_id_only_uses_legacy_path(self):
+        """POST action=add with user_id but no target_type uses legacy handle_staff_change and returns 200."""
+        staff = make_user("legacystaff", is_staff=True)
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="add", user_id=str(staff.id)),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(self.ticket.participants.filter(user=staff).exists())
     
     def test_handle_staff_change_remove(self):
         """handle_staff_change directly removes staff."""
@@ -805,6 +846,62 @@ class TicketThreadViewTests(TestCase):
         self.assertTrue(
             Department.objects.filter(ticket_departments__ticket=self.ticket, id=dept.id).exists()
         )
+
+    def test_apply_assignment_action_remove_department(self):
+        """apply_assignment_action(remove) works for department handler."""
+        dept = Department.objects.create(name="To Remove", created_by=self.user)
+        self.ticket.ticket_departments.create(department=dept)
+
+        view = TicketThreadView()
+        view.object = self.ticket
+        handler = TicketThreadView.DepartmentAssignmentHandler(view, "remove")
+        view.apply_assignment_action(handler, dept, self.user)
+
+        self.assertFalse(
+            Department.objects.filter(
+                ticket_departments__ticket=self.ticket,
+                id=dept.id,
+            ).exists()
+        )
+
+    def test_handle_assignment_change_invalid_target_type_does_nothing(self):
+        """handle_assignment_change with invalid target_type returns without error."""
+        self.client.force_login(self.user)
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.post(
+            self._url(),
+            data={
+                "action": "add",
+                "target_type": "invalid",
+                "target_id": "1",
+            },
+        )
+        request.user = self.user
+        view = TicketThreadView()
+        view.object = self.ticket
+        view.handle_assignment_change(request)
+        self.assertEqual(self.ticket.participants.count(), 0)
+        self.assertEqual(
+            Department.objects.filter(ticket_departments__ticket=self.ticket).count(),
+            0,
+        )
+
+    def test_handle_assignment_change_none_target_returns_early(self):
+        """handle_assignment_change returns early when get_assignment_target returns None."""
+        from unittest.mock import patch
+        from django.test import RequestFactory
+        factory = RequestFactory()
+        request = factory.post(
+            self._url(),
+            data={"action": "add", "target_type": "staff", "target_id": "1"},
+        )
+        request.user = self.user
+        view = TicketThreadView()
+        view.object = self.ticket
+        with patch.object(view, "get_assignment_target", return_value=None):
+            view.handle_assignment_change(request)
+        self.assertEqual(self.ticket.participants.count(), 0)
 
     def test_get_reply_messages_single_message_returns_empty_list(self):
         """get_reply_messages returns empty list if only one message."""
@@ -861,12 +958,13 @@ class TicketThreadViewTests(TestCase):
         """POST by a user with no permissions returns 403 Forbidden."""
         no_perm_user = make_user("noperm")
         self.client.force_login(no_perm_user)
-        self.client.get(self._url())
+        # Get CSRF from another page so we don't add this user as a ticket participant (GET ticket would give them access)
+        self.client.get(reverse("home"))
         response = self.client.post(
             self._url(),
             data=self._csrf_data(body="I shouldn't be here"),
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
     def test_has_edit_permission_superuser(self):
         """Superusers have edit permission."""
@@ -901,20 +999,20 @@ class TicketThreadViewTests(TestCase):
         """get_department_staff returns empty queryset when ticket has no assigned department."""
         self.client.force_login(self.user)
         view = TicketThreadView()
-        view.ticket = self.ticket
+        view.object = self.ticket
         view.request = self.client.get(self._url()).wsgi_request
         staff_qs = view.get_department_staff()
         self.assertQuerySetEqual(staff_qs, [])
 
-    def test_get_available_staff_excludes_current_staff(self):
-        """get_available_staff excludes staff already assigned to ticket."""
+    def test_get_available_staff_excludes_current_staff_direct_call(self):
+        """get_available_staff (direct call) excludes staff already assigned to ticket."""
         staff1 = make_user("s1", is_staff=True)
         staff2 = make_user("s2", is_staff=True)
         self.ticket.participants.create(user=staff1)
         
         self.client.force_login(self.user)
         view = TicketThreadView()
-        view.ticket = self.ticket
+        view.object = self.ticket
         available = view.get_available_staff([staff1])
         self.assertIn(staff2, available)
         self.assertNotIn(staff1, available)
@@ -926,7 +1024,7 @@ class TicketThreadViewTests(TestCase):
         
         self.client.force_login(self.user)
         view = TicketThreadView()
-        view.ticket = self.ticket
+        view.object = self.ticket
         available = view.get_available_staff([])
         self.assertIn(staff1, available)
         self.assertIn(staff2, available)
@@ -935,7 +1033,7 @@ class TicketThreadViewTests(TestCase):
         """Direct call to touch_ticket updates the ticket's updated_at timestamp."""
         self.client.force_login(self.user)
         view = TicketThreadView()
-        view.ticket = self.ticket
+        view.object = self.ticket
         old = self.ticket.updated_at
         view.touch_ticket()
         self.ticket.refresh_from_db()
@@ -989,7 +1087,7 @@ class TicketThreadViewTests(TestCase):
         # Force login as the department staff
         self.client.force_login(staff)
         view = TicketThreadView()
-        view.ticket = self.ticket
+        view.object = self.ticket
         view.request = self.client.get(self._url()).wsgi_request
 
         # Call has_edit_permissions directly
@@ -1010,7 +1108,7 @@ class TicketThreadViewTests(TestCase):
         request.user = self.user
         
         view = TicketThreadView()
-        view.ticket = self.ticket
+        view.object = self.ticket
         view.handle_staff_change(request)
         
         # Ensure staff user was not added
@@ -1031,7 +1129,7 @@ class TicketThreadViewTests(TestCase):
         ).wsgi_request
 
         view = TicketThreadView()
-        view.ticket = self.ticket
+        view.object = self.ticket
         view.request = request
 
         with self.assertRaises(Http404):
