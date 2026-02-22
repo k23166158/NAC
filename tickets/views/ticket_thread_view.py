@@ -33,7 +33,6 @@ class TicketThreadView(LoginRequiredMixin, View):
         def remove(self, user):
             """Remove a staff user from the ticket and log the action."""
             self.view._remove_staff(user)
-            
 
     class DepartmentAssignmentHandler:
         """Handler for adding or removing department assignments to a ticket."""
@@ -56,6 +55,7 @@ class TicketThreadView(LoginRequiredMixin, View):
     def get(self, request, uuid):
         """Handle GET requests: render the ticket thread."""
         self.ticket = get_object_or_404(Ticket, uuid=uuid)
+        self.object = self.ticket
         TicketParticipant.objects.update_or_create(
             ticket=self.ticket,
             user=request.user,
