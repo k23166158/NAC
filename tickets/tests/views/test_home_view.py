@@ -343,3 +343,90 @@ class HomeViewTests(TestCase):
         ticket_create_url = reverse("ticket_create")
         self.assertContains(response, f'href="{ticket_create_url}"')
         self.assertContains(response, 'class="tab-plus"')
+
+    def test_handle_scope_invalid_for_staff_direct_call(self):
+        """handle_scope should coerce invalid scope to personal for staff."""
+        view = HomeView()
+        qs, scope = view.handle_scope(self.staff1, "invalid")
+
+        self.assertEqual(scope, "personal")
+        self.assertIsNotNone(qs)
+    
+    def test_handle_scope_non_staff_forces_personal(self):
+        """Non-staff users should always get personal scope."""
+        view = HomeView()
+        qs, scope = view.handle_scope(self.user, "department")
+
+        self.assertEqual(scope, "personal")
+        self.assertIsNotNone(qs)
+
+    def test_base_tickets_assigned_scope_direct(self):
+        """base_tickets should return participant tickets in assigned scope."""
+        t = Ticket.objects.create(
+            title="Assigned ticket",
+            created_by=self.user,
+            status=Ticket.Status.OPEN
+        )
+        TicketParticipant.objects.create(ticket=t, user=self.staff1)
+
+        view = HomeView()
+        qs = view.base_tickets(self.staff1, scope="assigned")
+
+        self.assertIn(t, qs)
+
+    def test_base_tickets_department_scope_direct(self):
+        """base_tickets should return department tickets."""
+        dept = Department.objects.create(name="Support", created_by=self.staff1)
+        UserDepartments.objects.create(user=self.staff1, department=dept)
+
+        t = Ticket.objects.create(
+            title="Dept ticket",
+            created_by=self.user,
+            status=Ticket.Status.OPEN
+        )
+        TicketAssigned.objects.create(ticket=t, department=dept)
+
+        view = HomeView()
+        qs = view.base_tickets(self.staff1, scope="department")
+
+        self.assertIn(t, qs)
+
+    def test_unread_count_annotation(self):
+        """Unread count should reflect messages after last_read_at."""
+        t = Ticket.objects.create(
+            title="Unread test",
+            created_by=self.user,
+            status=Ticket.Status.OPEN
+        )
+
+        TicketMessage.objects.create(
+            ticket=t,
+            sender=self.staff1,
+            body="New reply"
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+
+        ticket = response.context["active_tickets"].get(id=t.id)
+        self.assertEqual(ticket.unread_count, 1)
+
+    def test_unread_count_without_participant_record(self):
+        """Unread count should work when user has no TicketParticipant record."""
+        t = Ticket.objects.create(
+            title="No participant",
+            created_by=self.user,
+            status=Ticket.Status.OPEN
+        )
+
+        TicketMessage.objects.create(
+            ticket=t,
+            sender=self.staff1,
+            body="Reply"
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+
+        ticket = response.context["active_tickets"].get(id=t.id)
+        self.assertEqual(ticket.unread_count, 1)
