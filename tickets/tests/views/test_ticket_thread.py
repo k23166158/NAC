@@ -1294,3 +1294,32 @@ class TicketThreadViewTests(TestCase):
         msg = TicketMessage.objects.filter(ticket=self.ticket).order_by("-created_at").first()
         self.assertIsNotNone(msg)
         self.assertEqual(msg.body, "Here are files")
+
+    def test_post_returns_403_when_user_has_no_permission(self):
+        """POST should return 403 for a user without edit permissions."""
+        self.client.force_login(self.other_user)  # ensure other_user exists in your setup
+        url = reverse("ticket_thread", args=[self.ticket.uuid])
+
+        resp = self.client.post(url, data={"body": "nope"}, follow=False)
+        self.assertEqual(resp.status_code, 403)
+
+    def test_get_assignment_target_returns_none_for_unknown_type(self):
+        """Unknown target_type should return None."""
+        view = TicketThreadView()
+        self.assertIsNone(view.get_assignment_target("nonsense", 123))
+
+    def test_apply_assignment_action_does_nothing_for_unknown_action(self):
+        """apply_assignment_action should do nothing if handler.action is not add/remove."""
+        view = TicketThreadView()
+
+        class DummyHandler:
+            def __init__(self):
+                self.action = "nonsense"
+            def add(self, target, actor):  # pragma: no cover
+                raise AssertionError("Should not be called")
+            def remove(self, target):  # pragma: no cover
+                raise AssertionError("Should not be called")
+
+        handler = DummyHandler()
+        # Should not raise and should not call add/remove
+        view.apply_assignment_action(handler, target=None, actor=None)

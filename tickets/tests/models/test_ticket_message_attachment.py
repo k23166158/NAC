@@ -177,3 +177,23 @@ class TicketMessageAttachmentModelTests(TestCase):
         self.assertIn(att, self.ticket.attachments.all())
         self.assertIn(att, self.message.attachments.all())
         self.assertIn(att, self.user.uploaded_attachments.all())
+
+    def test_content_type_falls_back_to_underlying_file_object(self):
+        """If file.content_type is missing/None but file.file.content_type exists, use the fallback."""
+        upload = SimpleUploadedFile("x.bin", b"123", content_type=None)
+
+        # Simulate a wrapped file object that has content_type
+        upload.file.content_type = "application/octet-stream"
+
+        att = TicketMessageAttachment(
+            ticket=self.ticket,
+            message=self.message,
+            file=upload,
+            uploaded_by=self.user,
+        )
+        att.save()
+        att.refresh_from_db()
+
+        self.assertEqual(att.content_type, "application/octet-stream")
+
+    
