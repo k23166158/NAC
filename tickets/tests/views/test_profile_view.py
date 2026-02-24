@@ -11,6 +11,12 @@ Covers:
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from tickets.models import (
+    Ticket,
+    TicketParticipant,
+    Department,
+    UserDepartments,
+)
 
 
 class ProfileViewTests(TestCase):
@@ -55,6 +61,12 @@ class ProfileViewTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertFalse(r.context["is_own_profile"])
         self.assertEqual(r.context["profile_user"].pk, self.other.pk)
+        self.assertEqual(r.context["assigned_active_count"], 0)
+        self.assertEqual(r.context["assigned_completed_count"], 0)
+        self.assertEqual(r.context["created_total_count"], 0)
+        self.assertEqual(r.context["created_closed_count"], 0)
+        self.assertEqual(r.context["department_count"], 0)
+        self.assertEqual(r.context["department_names"], [])
 
     def test_views_self_sets_flag_true(self):
         """Viewing own slug sets is_own_profile True."""
@@ -64,6 +76,49 @@ class ProfileViewTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.context["is_own_profile"])
         self.assertEqual(r.context["profile_user"].pk, self.user.pk)
+
+    def _create_profile_stats_fixtures(self):
+        """Create tickets and departments used by stats tests."""
+        tickets_data = [
+            ("Open ticket by self", Ticket.Status.OPEN, self.user),
+            ("Pending ticket by other", Ticket.Status.PENDING, self.other),
+            ("Closed ticket by other", Ticket.Status.CLOSED, self.other),
+        ]
+        tickets = [
+            Ticket.objects.create(title=title, status=status, created_by=creator)
+            for title, status, creator in tickets_data
+        ]
+        Ticket.objects.create(
+            title="Unrelated closed ticket",
+            status=Ticket.Status.CLOSED,
+            created_by=self.user,
+        )
+        for ticket in tickets:
+            TicketParticipant.objects.create(ticket=ticket, user=self.other)
+        for name in ["Support", "Billing"]:
+            dept = Department.objects.create(name=name, created_by=self.user)
+            UserDepartments.objects.create(user=self.other, department=dept)
+
+    def test_profile_stats_reflect_tickets_and_departments(self):
+        """Profile view exposes correct ticket and department stats."""
+        self.login()
+        self._create_profile_stats_fixtures()
+
+        url = reverse("profile", kwargs={"profile_slug": self.other.profile_slug})
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+
+        self.assertEqual(r.context["assigned_active_count"], 2)
+        self.assertEqual(r.context["assigned_completed_count"], 1)
+
+        self.assertEqual(r.context["created_total_count"], 2)
+        self.assertEqual(r.context["created_closed_count"], 1)
+
+        self.assertEqual(r.context["department_count"], 2)
+        self.assertCountEqual(
+            r.context["department_names"],
+            ["Support", "Billing"],
+        )
 
     def test_unknown_slug_returns_404(self):
         """Unknown slugs should return a 404."""
