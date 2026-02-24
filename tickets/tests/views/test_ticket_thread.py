@@ -1,15 +1,19 @@
+import tempfile
 import uuid
+from PIL.Image import msg
 from django.utils import timezone
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from tickets.models.ticket_participant import TicketParticipant
 from tickets.views.ticket_thread_view import TicketThreadView
-from tickets.models import Ticket, TicketMessage, Department, UserDepartments, TicketAssigned
+from tickets.models import Ticket, TicketMessage, Department, UserDepartments, TicketAssigned, TicketMessageAttachment
 from django.test import RequestFactory
 from django.http import Http404
-User = get_user_model()
+from django.core.files.uploadedfile import SimpleUploadedFile
 
+
+User = get_user_model()
 
 def make_user(username, **kwargs):
     """Create a user with required fields for this project's User model."""
@@ -35,6 +39,12 @@ class TicketThreadViewTests(TestCase):
             created_by=self.user,
         )
         self.object = self.ticket
+        self.message = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="hello",
+            created_at=timezone.now()
+        )
 
     def _url(self, ticket=None):
         """Get the URL for the ticket thread view for the given ticket (default: self.ticket)."""
@@ -1209,3 +1219,63 @@ class TicketThreadViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_attachment_save_without_file_early_returns(self):
+        """POST with attachment but no file should return 200 without error."""
+        attachment = TicketMessageAttachment.objects.create(
+            ticket = self.ticket,
+            message = self.message,
+            uploaded_by = self.user,
+        )
+        attachment.save()
+
+        attachment.refresh_from_db()
+        self.assertEqual(attachment.original.name, "")
+        self.assertEqual(attachment.content_type, "")
+        self.assertEqual(attachment.size_bytes, 0)
+
+    @override_settings (MEDIA_ROOT=tempfile.gettempdir())
+    def test_attachment_save_populates_metadata(self):
+        ''''"'Uploading a file should populate size_bytes/original_name/content_type.'''''
+        upload = SimpleUploadedFile(
+            name="folder/Screenshot.png",
+            content=b"abc123",
+            content_type="image/png",
+        )
+        attachment = TicketMessageAttachment (
+        ticket=self.ticket, message=self.message, uploaded_by=self.user, file=upload,
+        )
+        attachment.save()
+        attachment.refresh_from_db()
+        self.assertGreater(attachment.size_bytes, 0)
+        self.assertEqual(attachment.original_name, "Screenshot.png") # split("/") [-1] 
+        self.assertEqual(attachment.content_type, "image/png")
+        self.assertTrue(bool(attachment.file.name))
+
+    def test_attachment_str(self):
+        """_str_ should include original_name and message_id."""
+        upload = SimpleUploadedFile("a.txt", b"hello", content_type="text/plain")
+        attachment = TicketMessageAttachment.objects.create(
+        ticket=self.ticket, message=self.message, uploaded_by=self.user, file=upload,
+        )
+        self.assertIn("Attachment", str(attachment))
+        self.assertIn("a.txt", str(attachment))
+        self.assertIn(str(attachment.message_id), str(attachment))
+
+    @override_settings(MEDIA_ROOT=tempfile.gettempdir())
+    def test_ticket_thread_post_creates_message_attachments (self):
+        """Posting a reply with attachments should create TicketMessageAttachment rows.""" 
+        self.client.force_login(self.user)
+        url = reverse("ticket_thread", kwargs={"uuid": self.ticket.uuid})
+        f1 = SimpleUploadedFile("one.png", b"img1", content_type="image/png")
+        f2 = SimpleUploadedFile("two.txt", b"hello", content_type="text/plain")
+        response = self.client.post(
+        url,
+        data={"body": "Here are files"}, files={"attachments": [f1, f2]}, follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        msg = TicketMessage.objects.filter(ticket=self.ticket, sender=self.user).order_by("-created_at").first()
+        self.assertIsNotNone(msg)
+        atts = TicketMessageAttachment.objects.filter(message=msg).order_by("created_at")
+        self.assertEqual(atts.count(), 2)
+        self.assertEqual(atts.first().ticket_id, self.ticket.id)
