@@ -90,12 +90,12 @@ class TicketThreadView(LoginRequiredMixin, View):
 
         self.handle_staff_change(request)
         return self.get(request, self.object.uuid)
-
+    
     def get_messages_queryset(self):
         """Get the queryset for ticket messages."""
         return (
             TicketMessage.objects
-            .filter(ticket=self.object)
+            .filter(ticket=self.object, hidden=False)
             .select_related("sender")
             .prefetch_related("attachments")
             .order_by("created_at")
@@ -111,7 +111,7 @@ class TicketThreadView(LoginRequiredMixin, View):
 
     def get_last_user_message_id(self, messages):
         """Get the ID of the last visible user message."""
-        last_user_message = messages.filter(sender=self.request.user, hidden=False).last()
+        last_user_message = messages.filter(sender=self.request.user).last()
         return last_user_message.id if last_user_message else None
 
     def get_ticket_staff(self):
@@ -182,9 +182,11 @@ class TicketThreadView(LoginRequiredMixin, View):
         return None
 
     def _save_attachments_for_message(self, request, message):
-        """Create TicketMessageAttachment rows for any uploaded files."""
-        files = request.FILES.getlist("attachments")
-        for f in files:
+        """Save any uploaded files as TicketMessageAttachment rows."""
+        getlist = getattr(request.FILES, "getlist", None)
+        files = (getlist("attachments") + getlist("attachment")) if getlist else []
+        files = files or [f for _, f in getattr(request.FILES, "items", lambda: [])()]
+        for f in filter(None, files):
             TicketMessageAttachment.objects.create(
                 ticket=self.object,
                 message=message,
@@ -223,16 +225,18 @@ class TicketThreadView(LoginRequiredMixin, View):
             self.touch_ticket()
 
     def handle_add_action(self, request):
-        """Handle adding a new message."""
-        body = request.POST.get('body')
-        if body:
-            message = TicketMessage.objects.create(
-                ticket=self.object,
-                sender=request.user,
-                body=body
-            )
-            self._save_attachments_for_message(request, message)
-            self.touch_ticket()
+        """Handle adding a new message (and any attachments)."""
+        body = (request.POST.get("body") or "").strip()
+        if not body:
+            return
+
+        message = TicketMessage.objects.create(
+            ticket=self.object,
+            sender=request.user,
+            body=body,
+        )
+        self._save_attachments_for_message(request, message)
+        self.touch_ticket()
 
     def _add_staff(self, user, added_by):
         """Assign a staff member to the ticket."""
@@ -270,7 +274,14 @@ class TicketThreadView(LoginRequiredMixin, View):
             "close_ticket": self.handle_close_ticket_action,
             "edit": lambda: None,
         }
-        handlers.get(action, lambda: self.handle_add_action(request))()
+
+        if action in handlers:
+            handlers[action]()
+            return
+
+        # IMPORTANT: if no explicit action but body exists, add a message
+        if (request.POST.get("body") or "").strip():
+            self.handle_add_action(request)
 
     def _add_department(self, department, added_by):
         """Assign a department to the ticket."""
