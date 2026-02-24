@@ -1313,11 +1313,15 @@ class TicketThreadViewTests(TestCase):
         view = TicketThreadView()
 
         class DummyHandler:
+            """A dummy handler with an unknown action that should not call add or remove."""
             def __init__(self):
+                """Set action to an unknown value."""
                 self.action = "nonsense"
             def add(self, target, actor):  # pragma: no cover
+                """The add method should not be called for an unknown action."""
                 raise AssertionError("Should not be called")
             def remove(self, target):  # pragma: no cover
+                """The remove method should also not be called for an unknown action."""
                 raise AssertionError("Should not be called")
 
         handler = DummyHandler()
