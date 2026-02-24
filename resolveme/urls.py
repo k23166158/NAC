@@ -50,3 +50,6 @@ urlpatterns = [
     path('manage-users/', UserManagementView.as_view(), name='manage_users'),
     path('manage-users/<int:pk>/toggle-status/', ToggleUserStatusView.as_view(), name='toggle_user_status'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
