@@ -11,16 +11,27 @@ class ProfileEditView(View):
     template_name = "profile_edit.html"
 
     def get(self, request):
+        """Render the profile edit form for authenticated users."""
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path())
         return render(request, self.template_name, {"user": request.user})
 
     def post(self, request):
+        """Process profile update submissions."""
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path())
-
         user = request.user
-        password_changed = False
+        password_changed = self._apply_profile_updates(request, user)
+        try:
+            user.save()
+        except IntegrityError:
+            return self._render_duplicate_error(request, user)
+        if password_changed:
+            update_session_auth_hash(request, user)
+        return redirect("profile", profile_slug=user.profile_slug)
+
+    def _apply_profile_updates(self, request, user):
+        """Update basic profile fields and password, returns if password changed."""
         user.first_name = request.POST.get("first_name", "").strip()
         user.last_name = request.POST.get("last_name", "").strip()
         user.username = request.POST.get("username", "").strip()
@@ -31,18 +42,16 @@ class ProfileEditView(View):
         password = request.POST.get("password", "").strip()
         if password:
             user.set_password(password)
-            password_changed = True
-        try:
-            user.save()
-        except IntegrityError:
-            return render(
-                request,
-                self.template_name,
-                {
-                    "user": user,
-                    "error": "Email or username already exists.",
-                },
-            )
-        if password_changed:
-            update_session_auth_hash(request, user)
-        return redirect("profile", profile_slug=user.profile_slug)
+            return True
+        return False
+
+    def _render_duplicate_error(self, request, user):
+        """Render the form with a duplicate username/email error."""
+        return render(
+            request,
+            self.template_name,
+            {
+                "user": user,
+                "error": "Email or username already exists.",
+            },
+        )
