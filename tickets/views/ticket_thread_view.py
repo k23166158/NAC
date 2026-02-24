@@ -75,13 +75,10 @@ class TicketThreadView(LoginRequiredMixin, View):
 
         if not self.has_edit_permissions(self.object, request.user):
             return HttpResponseForbidden("You don't have permission to do this.")
-
         action = request.POST.get("action")
         target_type = request.POST.get("target_type")
-
         if action in {"add", "remove"}:
             return self._handle_add_remove(request, target_type)
-
         self.dispatch_post_action(action, request)
         return self.get(request, uuid)
 
@@ -215,8 +212,7 @@ class TicketThreadView(LoginRequiredMixin, View):
             TicketMessage,
             id=message_id,
             ticket=self.object,
-            sender=request.user,
-            hidden=False,
+            sender=request.user, hidden=False,
         )
         body = request.POST.get("body")
         if body:
@@ -326,11 +322,9 @@ class TicketThreadView(LoginRequiredMixin, View):
             "staff": TicketThreadView.StaffAssignmentHandler,
             "department": TicketThreadView.DepartmentAssignmentHandler,
         }
-        if target_type not in handlers:
-            return
+        if target_type not in handlers: return
         target = self.get_assignment_target(target_type, target_id)
-        if target is None:
-            return
+        if target is None: return
         handler = handlers[target_type](self, action)
         self.apply_assignment_action(handler, target, request.user)
 
