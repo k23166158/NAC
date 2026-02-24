@@ -20,7 +20,7 @@ from tickets.views import (
     HomeView, CustomLoginView, 
     TicketThreadView, ForwardTicketView, CreateTicketView,
     DepartmentView, CreateDepartmentView, DepartmentManageView, EditDepartmentView, DeleteDepartmentView,
-    UserManagementView, ToggleUserStatusView,
+    UserManagementView, ToggleUserStatusView, AdminStatisticsView
 )
 from django.contrib.auth.views import LogoutView
 from tickets.views import SignUpView
@@ -49,6 +49,7 @@ urlpatterns = [
     
     path('manage-users/', UserManagementView.as_view(), name='manage_users'),
     path('manage-users/<int:pk>/toggle-status/', ToggleUserStatusView.as_view(), name='toggle_user_status'),
+    path('admin-statistics/', AdminStatisticsView.as_view(), name='admin_statistics'),
 ]
 
 if settings.DEBUG:

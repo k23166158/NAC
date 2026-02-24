@@ -43,10 +43,14 @@ class DepartmentView(LoginRequiredMixin, View):
     def build_context(self, department):
         """Build the context for rendering the department view."""
         current_staff = self.get_current_staff(department)
+        pending_invitations = DepartmentInvitation.objects.filter(department=department, status='pending').select_related('recipient')
+        invited_users = [invite.recipient for invite in pending_invitations]
+
         return {
             "department": department,
             "staff": current_staff,
-            "available_staff": self.get_available_staff(current_staff),
+            "invited_staff": invited_users,
+            "available_staff": self.get_available_staff(current_staff, invited_users),
             "active_tickets": self.get_tickets(department, ['open', 'pending']),
             "closed_tickets": self.get_tickets(department, ['closed']),
         }
@@ -58,9 +62,9 @@ class DepartmentView(LoginRequiredMixin, View):
             for assignment in department.assigned_users.select_related('user').all()
         ]
 
-    def get_available_staff(self, current_staff):
-        """Get staff users not currently assigned to the department."""
-        current_ids = [u.id for u in current_staff]
+    def get_available_staff(self, current_staff, invited_users):
+        """Get staff users not currently assigned or invited to the department."""
+        current_ids = [u.id for u in current_staff] + [u.id for u in invited_users]
         return User.objects.filter(is_staff=True).exclude(id__in=current_ids)
 
     def get_tickets(self, department, status_list):
@@ -122,10 +126,11 @@ class DepartmentView(LoginRequiredMixin, View):
         """Add, remove, or invite a staff member for the department."""
         user = get_object_or_404(User, id=user_id)
         if action == 'add':
-            UserDepartments.objects.get_or_create(user=user, department=department)
+            self._invite_staff_to_department(request, user, department)
             return
         if action == 'remove':
             UserDepartments.objects.filter(user=user, department=department).delete()
             return
-        if action == 'invite':
-            self._invite_staff_to_department(request, user, department)
+        if action == 'remove_invite':
+            DepartmentInvitation.objects.filter(department=department, recipient=user, status='pending').delete()
+            return

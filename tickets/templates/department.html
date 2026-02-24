@@ -11,6 +11,10 @@
 {% block content %}
 <div class="tickets-wrap tickets-centered">
     
+    <div class="back-link-container ">
+        <a href="{% url 'department_manage' %}" class="ticket-link">← Back to Manage Departments</a>
+    </div>
+
     <div class="tickets-header tickets-header-centered dept-header">
         <div class="dept-header-inner">
             <div>
@@ -33,7 +37,7 @@
         <div class="staff-grid">
             
             <div class="staff-card">
-                <h3 class="staff-card-header">Assigned</h3>
+                <h3 class="staff-card-header">Assigned & Invited</h3>
                 
                 <div class="staff-list">
                     {% for pill_user in staff %}
@@ -46,7 +50,7 @@
                                 {% endif %}
                                 <span class="staff-name">{{ pill_user.full_name }}</span>
                             </div>
-                            
+
                             {% if department.created_by == user or user.is_superuser %} 
                                 {% if department.created_by != pill_user %}
                                     <form method="POST" class="remove-staff-form">
@@ -57,24 +61,49 @@
                                             <i class="bi bi-trash3"></i>
                                         </button>
                                     </form>
+                                {% else %}
+                                    <div class="remove-btn-spacer"></div>
                                 {% endif %}
                             {% endif %}
-
                         </div>
                     {% empty %}
-                        <div class="empty empty-state">No staff assigned yet.</div>
+                        {% if not invited_staff %}
+                            <div class="empty empty-state">No staff assigned or invited yet.</div>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% for pill_user in invited_staff %}
+                        <div class="pill staff-row staff-row-invited">
+                            <div class="staff-info">
+                                {% if pill_user.profile_picture %}
+                                    <img src="{{ pill_user.profile_picture.url }}" alt="{{ pill_user.first_name }}" class="avatar">
+                                {% else %}
+                                   {% include "partials/empty_avatar.html" with user=pill_user %}
+                                {% endif %}
+                                <i class="staff-name">{{ pill_user.full_name }} (Invited)</i>
+                            </div>
+
+                            {% if department.created_by == user or user.is_superuser %} 
+                                <form method="POST" class="remove-staff-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="remove_invite">
+                                    <input type="hidden" name="user_id" value="{{ pill_user.id }}">
+                                    <button type="submit" class="btn-icon-remove" title="Revoke invite">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
                     {% endfor %}
                 </div>
             </div>
-
             {% if department.created_by == user or user.is_superuser %}
             <div class="staff-card">
-                <h3 class="staff-card-header">Add Staff</h3>
+                <h3 class="staff-card-header">Invite Staff</h3>
                 {% include 'partials/user_search_bar.html' with staff=available_staff %}
             </div>
             {% endif %}
         </div>
-    </div>
 
     <div class="tickets-sections">
         
