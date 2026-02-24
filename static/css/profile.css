@@ -114,6 +114,10 @@
   gap: 14px;
 }
 
+.profile-details.profile-stats {
+  margin-top: 18px;
+}
+
 .profile-field {
   border: 1px solid #e5e7eb;
   background: #fafafa;

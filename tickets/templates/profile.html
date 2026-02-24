@@ -61,6 +61,47 @@
       {% endif %}
     </div>
 
+    <div class="profile-details profile-stats">
+      {% if profile_user.is_staff %}
+      <div class="profile-field">
+        <div class="profile-label">Active tickets assigned</div>
+        <div class="profile-value">{{ assigned_active_count }}</div>
+      </div>
+
+      <div class="profile-field">
+        <div class="profile-label">Completed tickets (as assignee)</div>
+        <div class="profile-value">{{ assigned_completed_count }}</div>
+      </div>
+      {% endif %}
+
+      <div class="profile-field">
+        <div class="profile-label">Tickets created</div>
+        <div class="profile-value">{{ created_total_count }}</div>
+      </div>
+
+      <div class="profile-field">
+        <div class="profile-label">Tickets created &amp; closed</div>
+        <div class="profile-value">{{ created_closed_count }}</div>
+      </div>
+
+      <div class="profile-field">
+        <div class="profile-label">Departments</div>
+        <div class="profile-value">
+          {{ department_count }}
+          {% if department_count %}
+            <details class="profile-dept-details">
+              <summary>View departments</summary>
+              <ul class="profile-dept-list">
+                {% for dept_name in department_names %}
+                  <li>{{ dept_name }}</li>
+                {% endfor %}
+              </ul>
+            </details>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 {% endblock %}
