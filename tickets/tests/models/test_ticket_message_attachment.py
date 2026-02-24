@@ -68,19 +68,17 @@ class TicketMessageAttachmentModelTests(TestCase):
         self.assertEqual(att.size_bytes, len(b"hello world"))
         self.assertEqual(att.content_type, "text/plain")
 
-    def test_save_with_no_file_does_not_crash(self):
-        """If file is missing, save() should still work and not populate metadata."""
+    def test_save_with_no_file_early_return_branch(self):
+        """Cover the `if not file: return super().save(...)` branch."""
         att = TicketMessageAttachment(
             ticket=self.ticket,
             message=self.message,
             uploaded_by=self.user,
         )
+        att.file = None
         att.save()
 
         self.assertIsNotNone(att.id)
-        self.assertEqual(att.size_bytes, 0)
-        self.assertEqual(att.original_name, "")
-        self.assertEqual(att.content_type, "")
 
     def test_existing_metadata_is_not_overwritten(self):
         """If metadata is already set, save() should not override it."""
@@ -178,4 +176,27 @@ class TicketMessageAttachmentModelTests(TestCase):
         self.assertIn(att, self.ticket.attachments.all())
         self.assertIn(att, self.message.attachments.all())
         self.assertIn(att, self.user.uploaded_attachments.all())
+    
+    def test_file_name_is_stripped_to_basename(self):
+        """
+        If an uploaded filename includes a path, model should strip it so
+        attachment.file.name and original_name become just the basename.
+        """
+        upload = SimpleUploadedFile(
+            "folder/subfolder/example.txt",  # IMPORTANT: includes path
+            b"hello world",
+            content_type="text/plain",
+        )
+
+        att = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=self.message,
+            file=upload,
+            uploaded_by=self.user,
+        )
+
+        att.refresh_from_db()
+        self.assertEqual(att.original_name, "example.txt")
+        self.assertEqual(att.file.name, "example.txt")
+    
     

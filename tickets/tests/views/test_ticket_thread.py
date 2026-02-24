@@ -1327,3 +1327,60 @@ class TicketThreadViewTests(TestCase):
         handler = DummyHandler()
         # Should not raise and should not call add/remove
         view.apply_assignment_action(handler, target=None, actor=None)
+
+    def test_close_ticket_action_closes_open_ticket(self):
+        """handle_close_ticket_action should set status to CLOSED if currently OPEN."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        self.ticket.status = Ticket.Status.OPEN
+        self.ticket.save(update_fields=["status"])
+
+        view.handle_close_ticket_action()
+
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+
+    def test_close_ticket_action_when_already_closed_no_change(self):
+        """If ticket is already CLOSED, handle_close_ticket_action should not reopen it."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        # Set ticket to CLOSED (Ticket has no closed_at field)
+        self.ticket.status = Ticket.Status.CLOSED
+        self.ticket.save(update_fields=["status"])
+
+        updated_before = self.ticket.updated_at
+
+        # Call the action (should be a no-op or keep it closed)
+        view.handle_close_ticket_action()
+
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+        # updated_at may change due to save(), but should not break status
+        self.assertIsNotNone(self.ticket.updated_at)
+
+    def test_handle_assignment_change_missing_fields_returns(self):
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        req = self.client.request().wsgi_request
+        req.user = self.user
+        req.POST = {}  # missing target_id/target_type/action
+
+        # Should not raise
+        view.handle_assignment_change(req)
+    
+    def test_handle_assignment_change_unknown_target_type_returns(self):
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        req = self.client.request().wsgi_request
+        req.user = self.user
+        req.POST = {"target_id": "1", "target_type": "nonsense", "action": "add"}
+
+        view.handle_assignment_change(req)

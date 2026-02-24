@@ -346,3 +346,34 @@ class TicketThreadView(LoginRequiredMixin, View):
             self.ticket.closed_at = timezone.now()
             self.ticket.save()
             self.touch_ticket()
+    
+    def test_get_assignment_target_returns_none_for_unknown_type(self):
+        view = TicketThreadView()
+        self.assertIsNone(view.get_assignment_target("unknown", "123"))
+
+    def test_apply_assignment_action_does_nothing_for_unknown_action(self):
+        view = TicketThreadView()
+
+        class DummyHandler:
+            action = "nonsense"
+            def add(self, target, actor):
+                raise AssertionError("Should not be called")
+            def remove(self, target):
+                raise AssertionError("Should not be called")
+
+        view.apply_assignment_action(DummyHandler(), target=None, actor=None)
+
+    def test_close_ticket_action_when_already_closed_does_not_change(self):
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        self.ticket.status = Ticket.Status.CLOSED
+        self.ticket.save(update_fields=["status"])
+
+        closed_at_before = self.ticket.closed_at
+        view.handle_close_ticket_action()
+
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+        self.assertEqual(self.ticket.closed_at, closed_at_before)
