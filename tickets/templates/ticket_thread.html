@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/ticket_style.css' %}">
+<link rel="stylesheet" href="{% static 'css/create_ticket.css' %}">
 <link rel="stylesheet" href="{% static 'css/attachments.css' %}">
 {% endblock %}
 
@@ -171,37 +172,32 @@
                       class="reply-textarea"
                       required>{{ edit_message.body|default_if_none:"" }}</textarea>
 
-            <div class="reply-attach-row">
-              <button type="button" class="btn-attach-toggle" id="attachToggle">Add attachment</button>
-            </div>
+            {# Attachments (always visible, like Create Ticket) #}
+            <div class="field">
+              <label class="label" for="id_attachments">Attachments</label>
 
-            <div class="reply-attachments is-hidden" id="attachPanel">
-              <div class="field">
-                <label class="label" for="id_attachments">Attachments</label>
+              <div class="file-upload-wrapper">
+                <label class="file-upload-label" for="id_attachments">
+                  <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 16 12 12 8 16"></polyline>
+                    <line x1="12" y1="12" x2="12" y2="21"></line>
+                    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+                  </svg>
+                  <span class="upload-text">Click to upload or drag files here</span>
+                  <span class="upload-info">PDF, DOC, DOCX, XLS, XLSX, ZIP, Images, TXT</span>
+                </label>
 
-                <div class="file-upload-wrapper">
-                  <label class="file-upload-label" for="id_attachments">
-                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="16 16 12 12 8 16"></polyline>
-                      <line x1="12" y1="12" x2="12" y2="21"></line>
-                      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
-                    </svg>
-                    <span class="upload-text">Click to upload or drag files here</span>
-                    <span class="upload-info">PDF, DOC, DOCX, XLS, XLSX, ZIP, Images, TXT</span>
-                  </label>
-
-                  <input
-                    type="file"
-                    id="id_attachments"
-                    name="attachments"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt,.png,.jpg,.jpeg,.gif,.bmp,.webp"
-                    multiple
-                  >
-                  <div id="fileList" class="file-list"></div>
-                </div>
-
-                <div class="help">Optional: You can attach files to support your reply.</div>
+                <input
+                  type="file"
+                  id="id_attachments"
+                  name="attachments"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt,.png,.jpg,.jpeg,.gif,.bmp,.webp"
+                  multiple
+                >
+                <div id="fileList" class="file-list"></div>
               </div>
+
+              <div class="help">Optional: You can attach files to support your reply.</div>
             </div>
 
             <div class="reply-actions">
@@ -330,13 +326,6 @@
 </div>
 
 <script>
-  (function () {
-    const toggle = document.getElementById("attachToggle");
-    const panel = document.getElementById("attachPanel");
-    if (!toggle || !panel) return;
-    toggle.addEventListener("click", () => panel.classList.toggle("is-hidden"));
-  })();
-
   (function () {
     const fileInput = document.getElementById('id_attachments');
     const fileList = document.getElementById('fileList');
