@@ -1386,3 +1386,124 @@ class TicketThreadViewTests(TestCase):
         req.POST = {"target_id": "1", "target_type": "nonsense", "action": "add"}
 
         view.handle_assignment_change(req)
+    
+    def test_get_assignment_target_returns_none_for_unknown_type(self):
+        """Test that get_assignment_target returns None for unknown target types."""
+        view = TicketThreadView()
+        self.assertIsNone(view.get_assignment_target("unknown", "123"))
+
+    def test_apply_assignment_action_does_nothing_for_unknown_action(self):
+        """Test that apply_assignment_action does not call any handler methods for unknown actions."""
+        view = TicketThreadView()
+
+        class DummyHandler:
+            """A dummy handler that raises an error if its methods are called."""
+            action = "nonsense"
+            def add(self, target, actor):
+                """Should not be called for unknown action."""
+                raise AssertionError("Should not be called")
+            def remove(self, target):
+                """Should not be called for unknown action."""
+                raise AssertionError("Should not be called")
+
+        view.apply_assignment_action(DummyHandler(), target=None, actor=None)
+
+    def test_post_permission_denied(self):
+        """Test line 85: Returns HttpResponseForbidden if user lacks edit permissions."""
+        # Log in as a user who didn't create the ticket and isn't staff/dept member
+        self.client.force_login(self.other_user)
+        response = self.client.post(self._url(), {'action': 'add', 'body': 'Hello'})
+        self.assertEqual(response.status_code, 403)
+
+    def test_handle_update_action_empty_body(self):
+        """Test line 231: handle_update_action returns early if no body is provided."""
+        msg = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="Original")
+        self.client.force_login(self.user)
+        # Send update action with empty body
+        self.client.post(self._url(), {'action': 'update', 'message_id': msg.id, 'body': ''})
+        msg.refresh_from_db()
+        self.assertEqual(msg.body, "Original")
+
+    def test_handle_add_action_empty_body(self):
+        """Test line 244: handle_add_action returns early if body is whitespace."""
+        self.client.force_login(self.user)
+        self.client.post(self._url(), {'body': '   '})
+        self.assertEqual(TicketMessage.objects.filter(ticket=self.ticket).count(), 0)
+
+    def test_handle_staff_change_missing_user_id(self):
+        """Test line 265: handle_staff_change returns early if user_id is missing."""
+        self.client.force_login(self.user)
+        # Action 'add' without 'user_id'
+        response = self.client.post(self._url(), {'action': 'add'})
+        self.assertEqual(response.status_code, 200) # Should just re-render thread
+
+    def test_handle_assignment_change_invalid_type(self):
+        """Test line 357: handle_assignment_change returns if target_type is invalid."""
+        self.client.force_login(self.user)
+        response = self.client.post(self._url(), {
+            'target_id': '1', 
+            'target_type': 'invalid_type', 
+            'action': 'add'
+        })
+        self.assertEqual(response.status_code, 200)
+
+    def test_handle_update_action_null_body(self):
+        """Handle_update_action early return when body is missing."""
+        msg = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="Old Body")
+        self.client.force_login(self.user)
+        
+        # Action is update, but 'body' key is missing entirely from POST
+        self.client.post(self._url(), {
+            'action': 'update',
+            'message_id': msg.id
+            # 'body' is missing
+        })
+        
+        msg.refresh_from_db()
+        self.assertEqual(msg.body, "Old Body")
+
+    def test_post_invalid_action_returns_render(self):
+        """Ensure an unrecognized action just re-renders the page."""
+        self.client.force_login(self.user)
+        # Send an action that the view doesn't have a handler for
+        response = self.client.post(self._url(), {'action': 'fake_action_123'})
+        
+        self.assertEqual(response.status_code, 200)
+        # Ensure it didn't crash and returned the template
+        self.assertTemplateUsed(response, 'ticket_thread.html')
+
+    def test_handle_add_action_blank_body_returns_without_creating_message(self):
+        """Test that handle_add_action returns early and does not create a message if body is blank after stripping whitespace."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        rf = RequestFactory()
+        request = rf.post(self._url(), data={"body": "   "})  # blank after strip
+        request.user = self.user
+
+        before = TicketMessage.objects.filter(ticket=self.ticket).count()
+        view.handle_add_action(request)
+        after = TicketMessage.objects.filter(ticket=self.ticket).count()
+
+        self.assertEqual(before, after)
+
+    def test_save_attachments_for_message_creates_rows(self):
+        """Test that _save_attachments_for_message creates TicketMessageAttachment rows for uploaded files."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        msg = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="hi")
+
+        f1 = SimpleUploadedFile("a.txt", b"aaa", content_type="text/plain")
+        f2 = SimpleUploadedFile("b.txt", b"bbb", content_type="text/plain")
+
+        rf = RequestFactory()
+        # IMPORTANT: pass files as part of the POST so request.FILES is populated
+        request = rf.post(self._url(), data={"body": "hi", "attachments": [f1, f2]})
+        request.user = self.user
+
+        view._save_attachments_for_message(request, msg)
+
+        self.assertEqual(TicketMessageAttachment.objects.filter(message=msg).count(), 2)

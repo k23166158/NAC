@@ -199,4 +199,38 @@ class TicketMessageAttachmentModelTests(TestCase):
         self.assertEqual(att.original_name, "example.txt")
         self.assertEqual(att.file.name, "example.txt")
     
+    def test_save_without_file(self):
+        """Saving an attachment model without a file attached."""
+        att = TicketMessageAttachment(
+            ticket=self.ticket,
+            message=self.message,
+            file=None, # Trigger the 'if not file' branch
+            uploaded_by=self.user
+        )
+        att.save()
+        self.assertIsNotNone(att.id)
+        self.assertEqual(att.original_name, "")
+
+    def test_second_save_does_not_rewrite_file_name_again(self):
+        """
+        Cover the false branch of:
+        if self.file and self.file.name != basename:
+        On first save it rewrites file.name to basename; on second save it should not.
+        """
+        upload = SimpleUploadedFile("example.txt", b"hello", content_type="text/plain")
+
+        att = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=self.message,
+            file=upload,
+            uploaded_by=self.user,
+        )
+
+        att.refresh_from_db()
+        self.assertEqual(att.file.name, "example.txt")
+
+        att.save()
+        att.refresh_from_db()
+        self.assertEqual(att.file.name, "example.txt")
+    
     
