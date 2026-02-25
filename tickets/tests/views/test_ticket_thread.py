@@ -1363,6 +1363,7 @@ class TicketThreadViewTests(TestCase):
         self.assertIsNotNone(self.ticket.updated_at)
 
     def test_handle_assignment_change_missing_fields_returns(self):
+        """handle_assignment_change should return early if target_id, target_type, or action is missing."""
         view = TicketThreadView()
         view.ticket = self.ticket
         view.object = self.ticket
@@ -1375,6 +1376,7 @@ class TicketThreadViewTests(TestCase):
         view.handle_assignment_change(req)
     
     def test_handle_assignment_change_unknown_target_type_returns(self):
+        """handle_assignment_change should return early if get_assignment_target returns None for unknown target_type."""
         view = TicketThreadView()
         view.ticket = self.ticket
         view.object = self.ticket
