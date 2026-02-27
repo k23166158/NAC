@@ -208,3 +208,7 @@ __marimo__/
 
 ### macOS ###
 .DS_Store
+
+# User uploads / generated media
+media/*
+!media/.gitkeep

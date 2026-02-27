@@ -6,6 +6,11 @@
       {% if request.GET.open|default:'' == t.uuid|stringformat:"s" %}open{% endif %}
     >
       <summary class="ticket-bar {% if t.status == 'pending' %}ticket-bar-overdue{% endif %}">
+        {% if t.unread_count > 0 %}
+          <span class="unread-badge">
+            {{ t.unread_count }}
+          </span>
+        {% endif %}
         <span class="chev" aria-hidden="true"></span>
 
         <div class="ticket-bar-main">
@@ -59,45 +64,10 @@
             </span>
           </div>
 
-          {% if user.is_staff %}
-            <form class="forward-form" method="post">
-              {% csrf_token %}
-              <input type="hidden" name="return_tab" class="return-tab" value="active">
-
-              <div class="forward-control">
-                <span class="forward-ico" aria-hidden="true">↪</span>
-                <input
-                  class="forward-input"
-                  type="email"
-                  name="email"
-                  placeholder="Forward to staff email…"
-                  required
-                  autocomplete="email"
-                >
-              </div>
-
-              <button class="forward-btn" type="submit">Forward</button>
-            </form>
-          {% endif %}
+          {# Forwarding UI removed per refactor -- forwarding is handled elsewhere #}
         </div>
 
-        {% if request.GET.tid|default:'' == t.uuid|stringformat:"s" and request.GET.fwd|default:'' %}
-          <div class="fwd-pop {% if request.GET.fwd|default:'' == 'ok' %}fwd-pop--ok{% else %}fwd-pop--err{% endif %}">
-            <span class="fwd-pop-ico" aria-hidden="true">
-              {% if request.GET.fwd == 'ok' %}✓{% else %}!{% endif %}
-            </span>
-
-            <div class="fwd-pop-text">
-              {% if request.GET.fwd|default:'' == 'ok' %}
-                Forwarded to <strong>{{ request.GET.email|default:'' }}</strong>.
-              {% else %}
-                {{ request.GET.msg|default:"Email failed to forward." }}
-              {% endif %}
-            </div>
-
-            <button type="button" class="fwd-pop-x" aria-label="Close">×</button>
-          </div>
-        {% endif %}
+        {# Forward result popup removed; forwarding handled elsewhere #}
 
         {% if t.last_message_at %}
           <div class="latest">

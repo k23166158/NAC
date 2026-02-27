@@ -10,7 +10,7 @@
     background: var(--card);
     border-radius: var(--radius);
     box-shadow: var(--shadow-sm);
-    overflow: hidden;
+    position: relative;
 }
 
 .ticket-row[open] {
@@ -19,17 +19,43 @@
 }
 
 .ticket-row[open] .ticket-bar {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
     background: #f8fafc;
 }
 
-/* summary bar */
 .ticket-bar {
+    border-radius: var(--radius);
+    position: relative;
     list-style: none;
     cursor: pointer;
     padding: 16px 18px;
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.unread-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 10;
+
+  min-width: 20px;
+  height: 20px;
+  padding: 10px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e53935;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 999px;
+  line-height: 1;
+
+  border: 2px solid #fff; 
+  box-shadow: var(--shadow-sm);
 }
 
 .ticket-bar::-webkit-details-marker {
@@ -127,8 +153,9 @@
     font-weight: 800;
 }
 
-/* Expanded area */
 .ticket-expanded {
+    border-bottom-left-radius: var(--radius);
+    border-bottom-right-radius: var(--radius);
     border-top: 1px solid var(--border);
     padding: 16px 18px 18px;
     background: #fff;
@@ -142,7 +169,6 @@
     margin-bottom: 14px;
 }
 
-/* Meta row */
 .meta-row {
     display: flex;
     align-items: center;

@@ -49,12 +49,15 @@
 }
 
 .tabs[role="tablist"] {
+    position: relative;
     background: #fff;
     border: 1px solid var(--border);
     border-radius: 999px;
     padding: 6px;
     box-shadow: var(--shadow-sm);
     gap: 6px;
+    display: flex !important;
+    align-items: center;
 }
 
 .tab-btn {
@@ -66,10 +69,11 @@
     cursor: pointer;
     font-weight: 720;
     font-size: 13.5px;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 10px;
     transition: background .12s ease, border-color .12s ease, color .12s ease, transform .06s ease;
+    flex-shrink: 0;
 }
 
 .tab-btn:hover {
@@ -132,6 +136,42 @@
     animation: fadeIn .14s ease;
 }
 
+/* Scope dropdown (Personal / Department) */
+.scope-wrap {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+}
+
+.scope-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.scope-text {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.scope-select {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.scope-select:focus {
+    outline: none;
+    border-color: rgba(17, 24, 39, .22);
+    box-shadow: 0 0 0 3px rgba(17, 24, 39, .08);
+}
+
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -142,4 +182,41 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.tab-plus {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--blue);
+    color: #fff;
+    border: 1px solid var(--blue);
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 24px;
+    text-decoration: none;
+    transition: all .12s ease;
+    min-height: 38px;
+    width: 38px;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+    position: absolute;
+    right: 10px;
+}
+
+.tab-plus:hover {
+    background: #0052cc;
+    border-color: #0052cc;
+    transform: scale(1.05);
+    text-decoration: none;
+}
+
+.tab-plus:active {
+    transform: scale(0.98);
+}
+
+.tab-plus:focus {
+    outline: none;
 }

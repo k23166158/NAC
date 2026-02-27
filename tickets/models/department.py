@@ -15,6 +15,13 @@ class Department(models.Model):
         related_name="departments_created",
     )
 
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="departments",
+        limit_choices_to={"is_staff": True},
+        blank=True,
+    )
+
     created_on = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):

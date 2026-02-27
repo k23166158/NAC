@@ -9,7 +9,8 @@ class TicketParticipant(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="ticket_participations")
     added_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="participants_added")
     added_at = models.DateTimeField(auto_now_add=True)
-
+    last_read_at = models.DateTimeField(null=True, blank=True)
+    
     class Meta:
         """Meta information for the TicketParticipant model."""
         db_table = "ticket_participants"

@@ -11,6 +11,10 @@
 {% block content %}
 <div class="tickets-wrap tickets-centered">
     
+    <div class="back-link-container ">
+        <a href="{% url 'department_manage' %}" class="ticket-link">← Back to Manage Departments</a>
+    </div>
+
     <div class="tickets-header tickets-header-centered dept-header">
         <div class="dept-header-inner">
             <div>
@@ -18,7 +22,7 @@
                 <p class="tickets-subtitle dept-subtitle">{{ department.description }}</p>
             </div>
             
-            {% if department.created_by == user %}
+            {% if department.created_by == user or user.is_superuser %}
                 <div class="dept-actions">
                     <a class="pill btn-action btn-secondary" href="{% url 'edit_department' department.slug %}">Edit</a>
                     <a class="pill btn-action btn-danger" href="{% url 'delete_department' department.slug %}">Delete</a>
@@ -33,43 +37,73 @@
         <div class="staff-grid">
             
             <div class="staff-card">
-                <h3 class="staff-card-header">Assigned</h3>
+                <h3 class="staff-card-header">Assigned & Invited</h3>
                 
                 <div class="staff-list">
-                    {% for user in staff %}
+                    {% for pill_user in staff %}
                         <div class="pill staff-row">
                             <div class="staff-info">
-                                {% if user.profile_picture %}
-                                    <img src="{{ user.profile_picture.url }}" alt="{{ user.first_name }}" class="avatar">
+                                {% if pill_user.profile_picture %}
+                                    <img src="{{ pill_user.profile_picture.url }}" alt="{{ pill_user.first_name }}" class="avatar">
                                 {% else %}
-                                   {% include "partials/empty_avatar.html" with user=user %}
+                                   {% include "partials/empty_avatar.html" with user=pill_user %}
                                 {% endif %}
-                                <span class="staff-name">{{ user.full_name }}</span>
+                                <span class="staff-name">{{ pill_user.full_name }}</span>
                             </div>
-                            
-                            {% if department.created_by != user %}
+
+                            {% if department.created_by == user or user.is_superuser %} 
+                                {% if department.created_by != pill_user %}
+                                    <form method="POST" class="remove-staff-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="remove">
+                                        <input type="hidden" name="user_id" value="{{ pill_user.id }}">
+                                        <button type="submit" class="btn-icon-remove" title="Remove staff">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <div class="remove-btn-spacer"></div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        {% if not invited_staff %}
+                            <div class="empty empty-state">No staff assigned or invited yet.</div>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% for pill_user in invited_staff %}
+                        <div class="pill staff-row staff-row-invited">
+                            <div class="staff-info">
+                                {% if pill_user.profile_picture %}
+                                    <img src="{{ pill_user.profile_picture.url }}" alt="{{ pill_user.first_name }}" class="avatar">
+                                {% else %}
+                                   {% include "partials/empty_avatar.html" with user=pill_user %}
+                                {% endif %}
+                                <i class="staff-name">{{ pill_user.full_name }} (Invited)</i>
+                            </div>
+
+                            {% if department.created_by == user or user.is_superuser %} 
                                 <form method="POST" class="remove-staff-form">
                                     {% csrf_token %}
-                                    <input type="hidden" name="action" value="remove">
-                                    <input type="hidden" name="user_id" value="{{ user.id }}">
-                                    <button type="submit" class="btn-icon-remove" title="Remove staff">
-                                        <i class="bi bi-trash3"></i>
+                                    <input type="hidden" name="action" value="remove_invite">
+                                    <input type="hidden" name="user_id" value="{{ pill_user.id }}">
+                                    <button type="submit" class="btn-icon-remove" title="Revoke invite">
+                                        <i class="bi bi-x-lg"></i>
                                     </button>
                                 </form>
                             {% endif %}
                         </div>
-                    {% empty %}
-                        <div class="empty empty-state">No staff assigned yet.</div>
                     {% endfor %}
                 </div>
             </div>
-
+            {% if department.created_by == user or user.is_superuser %}
             <div class="staff-card">
-                <h3 class="staff-card-header">Add Staff</h3>
+                <h3 class="staff-card-header">Invite Staff</h3>
                 {% include 'partials/user_search_bar.html' with staff=available_staff %}
             </div>
+            {% endif %}
         </div>
-    </div>
 
     <div class="tickets-sections">
         

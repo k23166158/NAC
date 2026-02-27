@@ -33,3 +33,4 @@ class Ticket(models.Model):
     def __str__(self):
         """Returns a string representation of the ticket."""
         return f"#{self.id} - {self.title}"
+    

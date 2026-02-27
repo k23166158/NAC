@@ -68,7 +68,7 @@
 
 
                             {% if user_obj != user %}
-                                {% if not user_obj.is_superuser or user.is_superuser %}
+                                {% if user.is_superuser %}
                                     <form action="{% url 'toggle_user_status' user_obj.pk %}" method="post" class="inline-form">
                                         {% csrf_token %}
                                         {% if user_obj.is_active %}

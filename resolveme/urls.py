@@ -17,9 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from tickets.views import (
-    HomeView, CustomLoginView, TicketThreadView, ForwardTicketView,
+    HomeView, CustomLoginView, 
+    TicketThreadView, ForwardTicketView, CreateTicketView,
     DepartmentView, CreateDepartmentView, DepartmentManageView, EditDepartmentView, DeleteDepartmentView,
-    UserManagementView, ToggleUserStatusView,
+    UserManagementView, ToggleUserStatusView, AdminStatisticsView
 )
 from django.contrib.auth.views import LogoutView
 from tickets.views.auth import SignUpView
@@ -27,6 +28,8 @@ from tickets.views.profile_view import ProfileView
 from tickets.views.profile_edit_view import ProfileEditView
 from django.conf import settings
 from django.conf.urls.static import static
+
+from tickets.views.search_assignables_view import search_assignables
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -36,6 +39,8 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('tickets/<uuid:uuid>/', TicketThreadView.as_view(), name='ticket_thread'),
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
+    path("tickets/create/", CreateTicketView.as_view(), name="ticket_create"),
+    path("ticket/search-assignables/", search_assignables, name="search_assignables"),
 
     path('department/manage/', DepartmentManageView.as_view(), name='department_manage'),
     path('department/create/', CreateDepartmentView.as_view(), name='create_department'),
@@ -46,6 +51,8 @@ urlpatterns = [
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
     path('manage-users/', UserManagementView.as_view(), name='manage_users'),
     path('manage-users/<int:pk>/toggle-status/', ToggleUserStatusView.as_view(), name='toggle_user_status'),
+    path('admin-statistics/', AdminStatisticsView.as_view(), name='admin_statistics'),
     path("profile/edit/", ProfileEditView.as_view(), name="profile_edit"),
     path("profile/<slug:profile_slug>/", ProfileView.as_view(), name="profile"),
 ]
+
