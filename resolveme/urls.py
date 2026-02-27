@@ -26,7 +26,7 @@ from django.contrib.auth.views import LogoutView
 from tickets.views import SignUpView
 from django.conf import settings
 from django.conf.urls.static import static
-
+from tickets.views.notifications_view import NotificationView
 from tickets.views.search_assignables_view import search_assignables
 
 urlpatterns = [
@@ -36,6 +36,8 @@ urlpatterns = [
     path('signup/', SignUpView, name='signup'),
     path('logout/', LogoutView.as_view(), name='logout'),
 
+    path('notifications/', NotificationView.as_view(), name='notifications'),
+    
     path('tickets/<uuid:uuid>/', TicketThreadView.as_view(), name='ticket_thread'),
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
     path("tickets/create/", CreateTicketView.as_view(), name="ticket_create"),
