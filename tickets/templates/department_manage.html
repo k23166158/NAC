@@ -6,6 +6,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/department_view.css' %}">
 <link rel="stylesheet" href="{% static 'css/department_manage.css' %}">
+<link rel="stylesheet" href="{% static 'css/pagination.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -64,8 +65,9 @@
     <h2 class="section-title">Your Departments</h2>
     {% if departments %}
       <div class="department-search-wrapper">
-        <input type="text" id="departmentSearchInput" class="department-search-input" autocomplete="off" placeholder="Search departments...">
-        <i class="bi bi-search department-search-icon"></i>
+        <form method="GET" action="{% url 'department_manage' %}" style="display: flex; width: 100%;">
+        <input type="text" name="q" value="{{ request.GET.q|default_if_none:"" }}" id="departmentSearchInput" class="department-search-input" autocomplete="off" placeholder="Search departments...">
+        <button type="submit" class="bi bi-search department-search-icon" style="background: none; border: none; cursor: pointer; color: inherit;"></button></form>
       </div>
       <div class="department-list" id="departmentList">
         {% for department in departments %}
@@ -120,52 +122,32 @@
         {% endfor %}
       </div>
       <div id="noDepartmentsMsg" class="empty empty-state empty-state-hidden">No departments match your search.</div>
+      
+      {% if is_paginated %}
+      <div class="pagination">
+        <span class="step-links">
+          {% if page_obj.has_previous %}
+            <a href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="pagination-link">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="pagination-link">previous</a>
+          {% endif %}
+
+          <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+          </span>
+
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="pagination-link">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="pagination-link">last &raquo;</a>
+          {% endif %}
+        </span>
+      </div>
+      {% endif %}
     {% else %}
       <div class="empty empty-state">No departments found.</div>
     {% endif %}
   </div>
 </div>
 
-<script>
-  const searchInput = document.getElementById('departmentSearchInput');
-  const departmentList = document.getElementById('departmentList');
-  const departmentItems = document.querySelectorAll('.department-item');
-  const noDepartmentsMsg = document.getElementById('noDepartmentsMsg');
 
-  if (searchInput) {
-    searchInput.addEventListener('input', function() {
-      const query = this.value.toLowerCase().trim();
-      let hasVisibleItems = false;
-
-      departmentItems.forEach(item => {
-        const name = item.getAttribute('data-name') || '';
-        const description = item.getAttribute('data-description') || '';
-        
-        if (query.length === 0 || name.includes(query) || description.includes(query)) {
-          item.classList.remove('department-item-hidden');
-          hasVisibleItems = true;
-        } else {
-          item.classList.add('department-item-hidden');
-        }
-      });
-
-      if (departmentList) {
-        if (hasVisibleItems) {
-          departmentList.classList.remove('department-list-hidden');
-        } else {
-          departmentList.classList.add('department-list-hidden');
-        }
-      }
-      
-      if (noDepartmentsMsg) {
-        if (query.length > 0 && !hasVisibleItems) {
-          noDepartmentsMsg.classList.remove('empty-state-hidden');
-        } else {
-          noDepartmentsMsg.classList.add('empty-state-hidden');
-        }
-      }
-    });
-  }
-</script>
 {% endblock %}
 
