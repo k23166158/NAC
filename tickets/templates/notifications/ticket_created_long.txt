@@ -1,0 +1,6 @@
+Hello {{ user.first_name }},
+
+You have created a new ticket: "{{ target.title }}".
+
+You can view the ticket details here:
+{{ link }}
