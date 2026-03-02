@@ -38,5 +38,6 @@ def assign_department_to_ticket(ticket, department, added_by):
     TicketMessage.objects.create(
         ticket=ticket,
         sender=None,
-        body=f"{department.name} department was added to the ticket by {added_by.get_full_name()}."
+        body=f"The {department.name} department was added to the ticket.",
     )
+    Ticket.objects.filter(id=ticket.id).update(updated_at=timezone.now())
