@@ -49,20 +49,35 @@ class TicketMessageAttachment(models.Model):
         """Populate metadata automatically from the uploaded file."""
         file = self.file
         if not file:
-            super().save(*args, **kwargs)
-            return
-        if not self.size_bytes:
-            self.size_bytes = file.size
+            return super().save(*args, **kwargs)
+        basename = self._basename(file)
+        self._ensure_size(file)
         if not self.original_name:
-            self.original_name = file.name.split("/")[-1]
+            self.original_name = basename
         if not self.content_type:
-            self.content_type = (
-                getattr(file, "content_type", None)
-                or getattr(getattr(file, "file", None), "content_type", None) or ""
-            )
+            self.content_type = self._content_type_from(file)
         super().save(*args, **kwargs)
+        if self.file and self.file.name != basename:
+            type(self).objects.filter(pk=self.pk).update(file=basename)
+            self.file.name = basename
 
+    def _basename(self, file):
+        """Extract the base filename from the file or its name attribute."""
+        name = getattr(file, "name", "") or ""
+        return name.split("/")[-1].split("\\")[-1]
 
+    def _ensure_size(self, file):
+        """Ensure size_bytes is populated from file if not already set."""
+        if not self.size_bytes:
+            self.size_bytes = getattr(file, "size", 0) or 0
+
+    def _content_type_from(self, file):
+        """Try to get content type from file or its file attribute, default to empty string."""
+        return (
+            getattr(file, "content_type", None)
+            or getattr(getattr(file, "file", None), "content_type", None)
+            or ""
+        )
 
     def __str__(self):
         """String representation of the TicketMessageAttachment instance."""

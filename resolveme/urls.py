@@ -56,3 +56,5 @@ urlpatterns = [
     path("profile/<slug:profile_slug>/", ProfileView.as_view(), name="profile"),
 ]
 
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
