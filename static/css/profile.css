@@ -1,0 +1,208 @@
+/* =========================
+   PROFILE PAGE
+   (Matches existing clean theme)
+   ========================= */
+
+.profile-page {
+  min-height: 70vh;
+  display: flex;
+  justify-content: center;
+  padding: 36px 16px;
+}
+
+.profile-card {
+  width: 100%;
+  max-width: 980px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 28px 28px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+}
+
+.profile-top {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #eef2f7;
+  margin-bottom: 18px;
+}
+
+.profile-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-initials {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f8fafc, #e5e7eb);
+  color: #374151;
+  font-weight: 800;
+  font-size: 30px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.profile-headings {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  margin: 0;
+  font-size: 2.2rem;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: #0f172a;
+}
+
+.profile-username {
+  margin-top: 6px;
+  color: #475569;
+  font-size: 1rem;
+}
+
+.profile-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #000000;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid #000000;
+  transition: transform 0.05s ease, background 0.2s ease;
+}
+
+.profile-edit-btn:hover {
+  background: #222;
+}
+
+.profile-edit-btn:active {
+  transform: translateY(1px);
+}
+
+.profile-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.profile-details.profile-stats {
+  margin-top: 18px;
+}
+
+.profile-field {
+  border: 1px solid #e5e7eb;
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 14px 14px;
+}
+
+.profile-label {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.profile-value {
+  font-size: 1.02rem;
+  color: #111827;
+  word-break: break-word;
+}
+
+.profile-field-full {
+  grid-column: 1 / -1;
+}
+
+/* Reusable utility for JS toggles */
+.hidden {
+  display: none !important;
+}
+
+/* =========================
+   Edit Profile (avatar inside auth form)
+   Works when initials element is a DIV with class="profile-initials"
+   ========================= */
+/* Universal initials block (works inside any avatar container) */
+.profile-initials {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f8fafc, #e5e7eb);
+  color: #374151;
+  font-weight: 800;
+  font-size: 32px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+
+.profile-upload .avatar > .profile-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #374151;
+  background: linear-gradient(135deg, #f8fafc, #e5e7eb);
+}
+
+.profile-upload .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Responsive */
+@media (max-width: 720px) {
+  .profile-card {
+    padding: 20px 18px;
+  }
+
+  .profile-name {
+    font-size: 1.7rem;
+  }
+
+  .profile-details {
+    grid-template-columns: 1fr;
+  }
+}
