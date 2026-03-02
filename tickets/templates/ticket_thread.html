@@ -134,7 +134,7 @@
       </div>
       {% if user.is_staff %}
         <div class="section-wrapper">
-          <h2 class="section-title">Staff Members</h2>
+        <h2 class="section-title">Staff Members</h2>
           <div class="staff-grid">
             <div class="staff-card">
               <h3 class="staff-card-header">Assigned</h3>
@@ -152,7 +152,7 @@
                 {% empty %}<div class="empty empty-state">No staff assigned yet.</div>{% endfor %}
               </div>
             </div>
-            <div class="staff-card"><h3 class="staff-card-header">Forward ticket to staff</h3>{% include 'partials/user_search_bar.html' with staff=available_staff %}</div>
+            {% include 'partials/staff_user_search_card.html' with header="Forward ticket to staff" staff=available_staff %}
           </div>
         </div>
         <div class="section-wrapper">
