@@ -19,7 +19,7 @@ class DepartmentView(LoginRequiredMixin, View):
         if not self.is_member(request.user, department) and not request.user.is_superuser:
             return HttpResponseForbidden("You are not allowed to access this.")
 
-        context = self.build_context(department)
+        context = self.build_context(request, department)
         return render(request, "department.html", context)
 
     def post(self, request, department_slug):
@@ -40,21 +40,39 @@ class DepartmentView(LoginRequiredMixin, View):
         """Check if the user can manage staff for the department."""
         return user.is_staff and department.created_by == user
 
-    def build_context(self, department):
-        """Build the context for rendering the department view."""
+    def build_context(self, request, department):
+        """Build the context for rendering the department view, including multiple paginators."""
+        from django.core.paginator import Paginator
+        
         current_staff = self.get_current_staff(department)
         pending_invitations = DepartmentInvitation.objects.filter(department=department, status='pending').select_related('recipient')
         invited_users = [invite.recipient for invite in pending_invitations]
 
+        all_staff_combined = list(current_staff) + list(invited_users)
+        staff_paginator = Paginator(all_staff_combined, 5)
+        staff_page_num = request.GET.get('staff_page', 1)
+        staff_page = staff_paginator.get_page(staff_page_num)
+
+        active_qs = self.get_tickets(department, ['open', 'pending'])
+        active_paginator = Paginator(active_qs, 5)
+        active_page_num = request.GET.get('active_page', 1)
+        active_page = active_paginator.get_page(active_page_num)
+
+        closed_qs = self.get_tickets(department, ['closed'])
+        closed_paginator = Paginator(closed_qs, 5)
+        closed_page_num = request.GET.get('closed_page', 1)
+        closed_page = closed_paginator.get_page(closed_page_num)
+
         return {
             "department": department,
-            "staff": current_staff,
-            "invited_staff": invited_users,
+            "staff_page": staff_page,
+            "invited_users": invited_users,
             "available_staff": self.get_available_staff(current_staff, invited_users),
-            "active_tickets": self.get_tickets(department, ['open', 'pending']),
-            "closed_tickets": self.get_tickets(department, ['closed']),
+            "active_tickets_page": active_page,
+            "closed_tickets_page": closed_page,
+            "active_tickets_count": active_paginator.count,
+            "closed_tickets_count": closed_paginator.count,
         }
-
     def get_current_staff(self, department):
         """Get the current staff assigned to the department."""
         return [
