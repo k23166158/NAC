@@ -6,4 +6,5 @@ class TicketsConfig(AppConfig):
     name = 'tickets'
 
     def ready(self):
+        """Import signals to ensure they are registered when the app is ready."""
         import tickets.signals
