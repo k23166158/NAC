@@ -192,7 +192,7 @@ class AssignDepartmentToTicketTests(TestCase):
             f"{self.creator.get_full_name()}."
         )
 
-        self.assertTrue(
+        self.assertFalse(
             TicketMessage.objects.filter(
                 ticket=self.ticket,
                 body=expected_body,

@@ -9,12 +9,14 @@ from tickets.models.ticket_participant import TicketParticipant
 from tickets.models import Ticket, TicketMessage
 from tickets.models.ticket_department import TicketDepartment
 from tickets.models.department import Department
+from tickets.models.ticket_message_attachments import TicketMessageAttachment
 from tickets.helpers.ticket_assignment import (
     assign_staff_to_ticket,
     assign_department_to_ticket,
 )
 
 User = get_user_model()
+
 
 class TicketThreadView(LoginRequiredMixin, View):
     """View to display the thread of messages of tickets."""
@@ -46,7 +48,7 @@ class TicketThreadView(LoginRequiredMixin, View):
             self.view._add_department(department, actor)
 
         def remove(self, department):
-            """Remove a department from the ticket and log the action."""
+            """Remove a department to the ticket and log the action."""
             self.view._remove_department(department)
 
     model = Ticket
@@ -63,14 +65,14 @@ class TicketThreadView(LoginRequiredMixin, View):
         )
         context = self.get_context_data()
         context["permission"] = self.has_edit_permissions(self.ticket, request.user)
-
         return render(request, self.template_name, context)
 
     def post(self, request, uuid):
-        """Handle POST actions for the ticket thread."""    
+        """Handle POST actions for the ticket thread."""
         self.ticket = get_object_or_404(Ticket, uuid=uuid)
         self.object = self.ticket
         self.request = request
+
         if not self.has_edit_permissions(self.object, request.user):
             return HttpResponseForbidden("You don't have permission to do this.")
         action = request.POST.get("action")
@@ -88,10 +90,16 @@ class TicketThreadView(LoginRequiredMixin, View):
 
         self.handle_staff_change(request)
         return self.get(request, self.object.uuid)
-
+    
     def get_messages_queryset(self):
         """Get the queryset for ticket messages."""
-        return TicketMessage.objects.filter(ticket=self.object).order_by("created_at")
+        return (
+            TicketMessage.objects
+            .filter(ticket=self.object, hidden=False)
+            .select_related("sender")
+            .prefetch_related("attachments")
+            .order_by("created_at")
+        )
 
     def get_first_message(self, messages):
         """Extract the first message."""
@@ -103,14 +111,12 @@ class TicketThreadView(LoginRequiredMixin, View):
 
     def get_last_user_message_id(self, messages):
         """Get the ID of the last visible user message."""
-        last_user_message = messages.filter(sender=self.request.user, hidden=False).last()
+        last_user_message = messages.filter(sender=self.request.user).last()
         return last_user_message.id if last_user_message else None
-    
+
     def get_ticket_staff(self):
         """Get the staff users assigned to the ticket."""
-        return [
-            p.user for p in self.object.participants.select_related("user")
-        ]
+        return [p.user for p in self.object.participants.select_related("user")]
 
     def get_department_staff(self):
         """Gets all the staff in a department"""
@@ -121,9 +127,9 @@ class TicketThreadView(LoginRequiredMixin, View):
     def has_edit_permissions(self, ticket, user):
         """Check if a user has edit permissions for a ticket"""
         return (
-            user.is_superuser or 
-            ticket.created_by == user or 
-            user in self.get_ticket_staff() or 
+            user.is_superuser or
+            ticket.created_by == user or
+            user in self.get_ticket_staff() or
             user in self.get_department_staff()
         )
 
@@ -157,7 +163,7 @@ class TicketThreadView(LoginRequiredMixin, View):
             "last_user_message_id": self.get_last_user_message_id(messages),
             "edit_message": self.get_edit_message(),
         }
-    
+
     def touch_ticket(self):
         """Update the ticket's updated_at timestamp."""
         Ticket.objects.filter(id=self.object.id).update(updated_at=timezone.now())
@@ -174,6 +180,19 @@ class TicketThreadView(LoginRequiredMixin, View):
                 hidden=False,
             )
         return None
+
+    def _save_attachments_for_message(self, request, message):
+        """Save any uploaded files as TicketMessageAttachment rows."""
+        getlist = getattr(request.FILES, "getlist", None)
+        files = (getlist("attachments") + getlist("attachment")) if getlist else []
+        files = files or [f for _, f in getattr(request.FILES, "items", lambda: [])()]
+        for f in filter(None, files):
+            TicketMessageAttachment.objects.create(
+                ticket=self.object,
+                message=message,
+                file=f,
+                uploaded_by=request.user,
+            )
 
     def handle_delete_action(self, request):
         """Handle deleting a message by hiding it."""
@@ -195,26 +214,29 @@ class TicketThreadView(LoginRequiredMixin, View):
             TicketMessage,
             id=message_id,
             ticket=self.object,
-            sender=request.user,
-            hidden=False,
+            sender=request.user, hidden=False,
         )
         body = request.POST.get("body")
         if body:
             message.body = body
             message.edited = True
             message.save()
+            self._save_attachments_for_message(request, message)
             self.touch_ticket()
 
     def handle_add_action(self, request):
-        """Handle adding a new message."""
-        body = request.POST.get('body')
-        if body:
-            TicketMessage.objects.create(
-                ticket=self.object,
-                sender=request.user,
-                body=body
-            )
-            self.touch_ticket()
+        """Handle adding a new message (and any attachments)."""
+        body = (request.POST.get("body") or "").strip()
+        if not body:
+            return
+
+        message = TicketMessage.objects.create(
+            ticket=self.object,
+            sender=request.user,
+            body=body,
+        )
+        self._save_attachments_for_message(request, message)
+        self.touch_ticket()
 
     def _add_staff(self, user, added_by):
         """Assign a staff member to the ticket."""
@@ -233,7 +255,8 @@ class TicketThreadView(LoginRequiredMixin, View):
         """Handle adding or removing a staff user from the ticket."""
         user_id = request.POST.get("user_id")
         action = request.POST.get("action")
-        if not user_id: return
+        if not user_id:
+            return
         user = get_object_or_404(User, id=user_id, is_staff=True)
         handlers = {
             "add": lambda: self._add_staff(user, request.user),
@@ -251,7 +274,14 @@ class TicketThreadView(LoginRequiredMixin, View):
             "close_ticket": self.handle_close_ticket_action,
             "edit": lambda: None,
         }
-        handlers.get(action, lambda: self.handle_add_action(request))()
+
+        if action in handlers:
+            handlers[action]()
+            return
+
+        # IMPORTANT: if no explicit action but body exists, add a message
+        if (request.POST.get("body") or "").strip():
+            self.handle_add_action(request)
 
     def _add_department(self, department, added_by):
         """Assign a department to the ticket."""
@@ -260,7 +290,7 @@ class TicketThreadView(LoginRequiredMixin, View):
             department=department,
             added_by=added_by,
         )
-    
+
     def _remove_department(self, department):
         """Remove a department from the ticket and log it."""
         TicketDepartment.objects.filter(
@@ -297,7 +327,8 @@ class TicketThreadView(LoginRequiredMixin, View):
         target_id = request.POST.get("target_id")
         target_type = request.POST.get("target_type")
         action = request.POST.get("action")
-        if not target_id or not target_type or not action: return
+        if not target_id or not target_type or not action:
+            return
         handlers = {
             "staff": TicketThreadView.StaffAssignmentHandler,
             "department": TicketThreadView.DepartmentAssignmentHandler,
@@ -312,6 +343,6 @@ class TicketThreadView(LoginRequiredMixin, View):
         """Close the ticket."""
         if self.ticket.status != Ticket.Status.CLOSED:
             self.ticket.status = Ticket.Status.CLOSED
-            self.ticket.closed_at = timezone.now()
             self.ticket.save()
             self.touch_ticket()
+    

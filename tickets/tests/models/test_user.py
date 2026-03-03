@@ -47,7 +47,7 @@ class UserModelTests(TestCase):
     def test_required_fields(self):
         """
         Test that validation fails if required fields are blank.
-        Note: We use full_clean() because standard save() does not validation 
+        Note: We use full_clean() because standard save() does not validation
         blank=False automatically without a ModelForm.
         """
         # Test missing email
@@ -59,7 +59,7 @@ class UserModelTests(TestCase):
         user_no_first = User(username='nofirst', email='unique@example.com', last_name='User')
         with self.assertRaises(ValidationError):
             user_no_first.full_clean()
-        
+
         # Test missing last_name
         user_no_last = User(username='nolast', email='unique2@example.com', first_name='Test')
         with self.assertRaises(ValidationError):
@@ -73,7 +73,7 @@ class UserModelTests(TestCase):
         User.objects.create_user(username='c', email='c@test.com', first_name='Charlie', last_name='Baker')
 
         users = User.objects.all()
-        
+
         # Expected Order:
         # 1. Alpha, Bob (Alpha comes before Baker)
         # 2. Baker, Alice (Alice comes before Charlie)
@@ -94,3 +94,79 @@ class UserModelTests(TestCase):
             self.user.save()
         except ValidationError:
             self.fail("User profile_picture cannot be null.")
+
+    def test_profile_slug_is_auto_populated_on_create(self):
+        """profile_slug is created automatically when blank."""
+        self.assertTrue(self.user.profile_slug)
+        self.assertEqual(self.user.profile_slug, "testuser")
+
+    def test_profile_slug_slugifies_username(self):
+        """Slug is derived from username using slugify()."""
+        u = User.objects.create_user(
+            username="John.Doe 99!!!",
+            email="jd99@example.com",
+            first_name="John",
+            last_name="Doe",
+            password="password123",
+        )
+        self.assertEqual(u.profile_slug, "johndoe-99")
+
+
+
+    def test_profile_slug_not_overwritten_if_set(self):
+        """Existing profile_slug is preserved on save()."""
+        self.user.profile_slug = "custom-slug"
+        self.user.save()
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.profile_slug, "custom-slug")
+
+    def test_profile_slug_falls_back_to_user_if_username_unslugifiable(self):
+        """If username slugifies to '', slug uses 'user' base."""
+        u = User.objects.create_user(
+            username="!!!",
+            email="bang@example.com",
+            first_name="Bang",
+            last_name="Bang",
+            password="password123",
+        )
+        self.assertTrue(u.profile_slug.startswith("user"))
+
+    def test_profile_slug_not_overwritten_if_set(self):
+        """Existing profile_slug should not be regenerated on save()."""
+        self.user.profile_slug = "custom-slug"
+        self.user.save()
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.profile_slug, "custom-slug")
+
+    def test_profile_slug_fallback_when_slugify_empty(self):
+        """Slug defaults to 'user' if slugify(username) is empty."""
+        u = User.objects.create_user(
+            username="!!!",
+            email="empty@example.com",
+            first_name="Empty",
+            last_name="Slug",
+            password="password123",
+        )
+        self.assertTrue(u.profile_slug.startswith("user"))
+
+    def test_profile_slug_collision_adds_suffix(self):
+        """Slug collision should append numeric suffix."""
+        u1 = User.objects.create_user(
+            username="john-doe",
+            email="a@example.com",
+            first_name="A",
+            last_name="A",
+            password="password123",
+        )
+        u2 = User.objects.create_user(
+            username="john--doe",
+            email="b@example.com",
+            first_name="B",
+            last_name="B",
+            password="password123",
+        )
+        self.assertEqual(u1.profile_slug, "john-doe")
+        self.assertNotEqual(u2.profile_slug, "john-doe")
+        self.assertTrue(u2.profile_slug.startswith("john-doe-"))
+        self.assertNotEqual(u2.profile_slug, "john-doe")
+        self.assertTrue(u2.profile_slug.startswith("john-doe-"))

@@ -23,7 +23,9 @@ from tickets.views import (
     UserManagementView, ToggleUserStatusView, AdminStatisticsView
 )
 from django.contrib.auth.views import LogoutView
-from tickets.views import SignUpView
+from tickets.views.auth import SignUpView
+from tickets.views.profile_view import ProfileView
+from tickets.views.profile_edit_view import ProfileEditView
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -35,7 +37,6 @@ urlpatterns = [
     path('login/', CustomLoginView.as_view(), name='login'),
     path('signup/', SignUpView, name='signup'),
     path('logout/', LogoutView.as_view(), name='logout'),
-
     path('tickets/<uuid:uuid>/', TicketThreadView.as_view(), name='ticket_thread'),
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
     path("tickets/create/", CreateTicketView.as_view(), name="ticket_create"),
@@ -44,10 +45,16 @@ urlpatterns = [
     path('department/manage/', DepartmentManageView.as_view(), name='department_manage'),
     path('department/create/', CreateDepartmentView.as_view(), name='create_department'),
     path('department/edit/<slug:department_slug>/', EditDepartmentView.as_view(), name='edit_department'),
-    path('department/delete/<slug:department_slug>/', DeleteDepartmentView.as_view(), name='delete_department'),    
+    path('department/delete/<slug:department_slug>/', DeleteDepartmentView.as_view(), name='delete_department'),
     path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
-    
+    path('signup/', SignUpView, name='signup'),
+    path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
     path('manage-users/', UserManagementView.as_view(), name='manage_users'),
     path('manage-users/<int:pk>/toggle-status/', ToggleUserStatusView.as_view(), name='toggle_user_status'),
     path('admin-statistics/', AdminStatisticsView.as_view(), name='admin_statistics'),
+    path("profile/edit/", ProfileEditView.as_view(), name="profile_edit"),
+    path("profile/<slug:profile_slug>/", ProfileView.as_view(), name="profile"),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
