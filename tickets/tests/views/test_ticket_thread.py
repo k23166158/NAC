@@ -288,6 +288,68 @@ class TicketThreadViewTests(TestCase):
         msg.refresh_from_db()
         self.assertEqual(msg.body, "Original body")
 
+    @override_settings(MEDIA_ROOT=tempfile.gettempdir())
+    def test_edit_form_shows_existing_attachments_with_remove_option(self):
+        """Edit mode should display existing attachments and removal checkboxes."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="With file",
+        )
+        upload = SimpleUploadedFile("keep.txt", b"abc", content_type="text/plain")
+        TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=msg,
+            file=upload,
+            uploaded_by=self.user,
+        )
+
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="edit", message_id=str(msg.id)),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "remove_attachment_ids")
+        self.assertContains(response, "keep.txt")
+
+    @override_settings(MEDIA_ROOT=tempfile.gettempdir())
+    def test_post_update_can_remove_selected_attachments(self):
+        """POST action=update should delete selected existing attachments."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="Original body",
+        )
+        a1 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=msg,
+            file=SimpleUploadedFile("one.txt", b"111", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+        a2 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=msg,
+            file=SimpleUploadedFile("two.txt", b"222", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="update",
+                message_id=str(msg.id),
+                body="Updated body",
+                remove_attachment_ids=[str(a1.id)],
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(TicketMessageAttachment.objects.filter(id=a1.id).exists())
+        self.assertTrue(TicketMessageAttachment.objects.filter(id=a2.id).exists())
+
     def test_post_edit_other_users_message_returns_404(self):
         """POST action=edit on another user's message returns 404."""
         msg = TicketMessage.objects.create(

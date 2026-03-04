@@ -111,6 +111,20 @@
             <textarea name="body" rows="4" class="reply-textarea" required>{{ edit_message.body|default_if_none:"" }}</textarea>
             <div class="field">
               <label class="label" for="id_attachments">Attachments</label>
+              {% if edit_message and edit_message.attachments.all %}
+                <div class="msg-attachments" style="margin-bottom:12px;">
+                  {% for a in edit_message.attachments.all %}
+                    <label class="msg-attachment" style="display:flex;align-items:center;gap:8px;">
+                      <input type="checkbox" name="remove_attachment_ids" value="{{ a.id }}">
+                      <span>Remove</span>
+                      <a href="{{ a.file.url }}" target="_blank" rel="noopener">
+                        <span class="msg-attachment-name">{{ a.original_name|default:"Attachment" }}</span>
+                      </a>
+                      {% if a.size_bytes %}<span class="msg-attachment-meta">({{ a.size_bytes }} bytes)</span>{% endif %}
+                    </label>
+                  {% endfor %}
+                </div>
+              {% endif %}
               <div class="file-upload-wrapper">
                 <label class="file-upload-label" for="id_attachments">
                   <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg>

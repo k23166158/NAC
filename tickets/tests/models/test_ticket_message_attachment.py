@@ -247,5 +247,24 @@ class TicketMessageAttachmentModelTests(TestCase):
         )
         self.assertEqual(len(created), 1)
         self.assertEqual(TicketMessageAttachment.objects.filter(message=self.message).count(), 1)
+
+    def test_delete_for_message_helper(self):
+        """delete_for_message should delete only selected attachments."""
+        a1 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=self.message,
+            file=SimpleUploadedFile("del1.txt", b"aaa", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+        a2 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=self.message,
+            file=SimpleUploadedFile("del2.txt", b"bbb", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+        deleted = TicketMessageAttachment.delete_for_message(self.message, [str(a1.id)])
+        self.assertEqual(deleted, 1)
+        self.assertFalse(TicketMessageAttachment.objects.filter(id=a1.id).exists())
+        self.assertTrue(TicketMessageAttachment.objects.filter(id=a2.id).exists())
     
     

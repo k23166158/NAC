@@ -60,6 +60,21 @@ class TicketMessageAttachment(models.Model):
             )
         return created
 
+    @classmethod
+    def delete_for_message(cls, message, attachment_ids):
+        """Delete selected attachments belonging to a message."""
+        if not attachment_ids:
+            return 0
+        queryset = cls.objects.filter(message=message, id__in=attachment_ids)
+        deleted = 0
+        for attachment in queryset:
+            # Remove the backing file from storage when possible.
+            if attachment.file:
+                attachment.file.delete(save=False)
+            attachment.delete()
+            deleted += 1
+        return deleted
+
     def save(self, *args, **kwargs):
         """Populate metadata automatically from the uploaded file."""
         file = self.file

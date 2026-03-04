@@ -183,6 +183,8 @@ class TicketThreadView(LoginRequiredMixin, View):
         body = request.POST.get("body")
         message = TicketMessage.update_user_message(self.object, message_id, request.user, body)
         if message:
+            remove_ids = request.POST.getlist("remove_attachment_ids")
+            TicketMessageAttachment.delete_for_message(message, remove_ids)
             self._save_attachments_for_message(request, message)
 
     def handle_add_action(self, request):
