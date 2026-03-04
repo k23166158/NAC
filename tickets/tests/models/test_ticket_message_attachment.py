@@ -266,5 +266,16 @@ class TicketMessageAttachmentModelTests(TestCase):
         self.assertEqual(deleted, 1)
         self.assertFalse(TicketMessageAttachment.objects.filter(id=a1.id).exists())
         self.assertTrue(TicketMessageAttachment.objects.filter(id=a2.id).exists())
+
+    def test_delete_for_message_with_no_file_attachment(self):
+        """delete_for_message should handle attachments that have no file value."""
+        a = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=self.message,
+            uploaded_by=self.user,
+        )
+        deleted = TicketMessageAttachment.delete_for_message(self.message, [str(a.id)])
+        self.assertEqual(deleted, 1)
+        self.assertFalse(TicketMessageAttachment.objects.filter(id=a.id).exists())
     
     
