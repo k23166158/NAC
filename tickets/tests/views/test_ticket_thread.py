@@ -51,6 +51,23 @@ class TicketThreadViewTests(TestCase):
         data.update(extra)
         return data
 
+    def _create_message_with_attachments(self):
+        """Create one message with two text attachments."""
+        msg = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="Original body")
+        a1 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=msg,
+            file=SimpleUploadedFile("one.txt", b"111", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+        a2 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=msg,
+            file=SimpleUploadedFile("two.txt", b"222", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+        return msg, a1, a2
+
     # --- GET: access and template ---
 
     def test_get_anonymous_redirects_to_login(self):
@@ -317,24 +334,7 @@ class TicketThreadViewTests(TestCase):
     @override_settings(MEDIA_ROOT=tempfile.gettempdir())
     def test_post_update_can_remove_selected_attachments(self):
         """POST action=update should delete selected existing attachments."""
-        msg = TicketMessage.objects.create(
-            ticket=self.ticket,
-            sender=self.user,
-            body="Original body",
-        )
-        a1 = TicketMessageAttachment.objects.create(
-            ticket=self.ticket,
-            message=msg,
-            file=SimpleUploadedFile("one.txt", b"111", content_type="text/plain"),
-            uploaded_by=self.user,
-        )
-        a2 = TicketMessageAttachment.objects.create(
-            ticket=self.ticket,
-            message=msg,
-            file=SimpleUploadedFile("two.txt", b"222", content_type="text/plain"),
-            uploaded_by=self.user,
-        )
-
+        msg, a1, a2 = self._create_message_with_attachments()
         self.client.force_login(self.user)
         self.client.get(self._url())
         response = self.client.post(

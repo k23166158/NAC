@@ -112,9 +112,9 @@
             <div class="field">
               <label class="label" for="id_attachments">Attachments</label>
               {% if edit_message and edit_message.attachments.all %}
-                <div class="msg-attachments" style="margin-bottom:12px;">
+                <div class="msg-attachments edit-attachments-list">
                   {% for a in edit_message.attachments.all %}
-                    <label class="msg-attachment" style="display:flex;align-items:center;gap:8px;">
+                    <label class="msg-attachment edit-attachment-item">
                       <input type="checkbox" name="remove_attachment_ids" value="{{ a.id }}">
                       <span>Remove</span>
                       <a href="{{ a.file.url }}" target="_blank" rel="noopener">

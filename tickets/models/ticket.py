@@ -67,15 +67,21 @@ class Ticket(models.Model):
         last_read = TicketParticipant.objects.filter(
             ticket=OuterRef("pk"), user=user
         ).values("last_read_at")[:1]
-        return qs.annotate(
-            last_message_at=Subquery(last_msg.values("edited_at")[:1]),
-            last_message_body=Subquery(last_msg.values("body")[:1]),
-            last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
-            last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
-            last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
-            last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
-            user_last_read_at=Subquery(last_read, output_field=DateTimeField()),
-        )
+        annotations = cls._last_message_annotations(last_msg, last_read)
+        return qs.annotate(**annotations)
+
+    @classmethod
+    def _last_message_annotations(cls, last_msg, last_read):
+        """Return dashboard annotations derived from the latest message subqueries."""
+        return {
+            "last_message_at": Subquery(last_msg.values("edited_at")[:1]),
+            "last_message_body": Subquery(last_msg.values("body")[:1]),
+            "last_message_sender_id": Subquery(last_msg.values("sender_id")[:1]),
+            "last_sender_is_staff": Subquery(last_msg.values("sender__is_staff")[:1]),
+            "last_sender_first": Subquery(last_msg.values("sender__first_name")[:1]),
+            "last_sender_last": Subquery(last_msg.values("sender__last_name")[:1]),
+            "user_last_read_at": Subquery(last_read, output_field=DateTimeField()),
+        }
 
     @classmethod
     def _annotate_unread_count_for_user(cls, qs, user):

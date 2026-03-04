@@ -94,37 +94,22 @@ class TicketThreadLogicModelTests(TestCase):
 
     def setUp(self):
         """Create common users/ticket data for thread-model logic tests."""
-        self.creator = User.objects.create_user(
-            username="creator",
-            password="password123",
-            email="creator@example.com",
-            first_name="Creator",
-            last_name="User",
-        )
-        self.staff = User.objects.create_user(
-            username="staff",
-            password="password123",
-            email="staff@example.com",
-            first_name="Staff",
-            last_name="User",
-            is_staff=True,
-        )
-        self.other = User.objects.create_user(
-            username="other",
-            password="password123",
-            email="other@example.com",
-            first_name="Other",
-            last_name="User",
-        )
-        self.superuser = User.objects.create_user(
-            username="admin",
-            password="password123",
-            email="admin@example.com",
-            first_name="Admin",
-            last_name="User",
-            is_superuser=True,
-        )
+        self.creator = self._mk_user("creator", "Creator")
+        self.staff = self._mk_user("staff", "Staff", is_staff=True)
+        self.other = self._mk_user("other", "Other")
+        self.superuser = self._mk_user("admin", "Admin", is_superuser=True)
         self.ticket = Ticket.objects.create(title="Thread logic ticket", created_by=self.creator)
+
+    def _mk_user(self, username, first_name, **extra):
+        """Create a test user with consistent defaults."""
+        return User.objects.create_user(
+            username=username,
+            password="password123",
+            email=f"{username}@example.com",
+            first_name=first_name,
+            last_name="User",
+            **extra,
+        )
 
     def test_mark_read_for_create_and_update(self):
         """mark_read_for should create and then update a participant row."""
@@ -193,52 +178,33 @@ class TicketHomeDashboardModelTests(TestCase):
 
     def setUp(self):
         """Create users/tickets/messages for home query model methods."""
-        self.student = User.objects.create_user(
-            username="home_student",
+        self.student = self._mk_user("home_student", "Home", "Student")
+        self.staff = self._mk_user("home_staff", "Home", "Staff", is_staff=True)
+        self.other_staff = self._mk_user("home_other_staff", "Other", "Staff", is_staff=True)
+        self._build_ticket_fixtures()
+        self._build_department_fixtures()
+
+    def _mk_user(self, username, first_name, last_name, **extra):
+        """Create a dashboard test user."""
+        return User.objects.create_user(
+            username=username,
             password="password123",
-            email="home_student@example.com",
-            first_name="Home",
-            last_name="Student",
-        )
-        self.staff = User.objects.create_user(
-            username="home_staff",
-            password="password123",
-            email="home_staff@example.com",
-            first_name="Home",
-            last_name="Staff",
-            is_staff=True,
-        )
-        self.other_staff = User.objects.create_user(
-            username="home_other_staff",
-            password="password123",
-            email="home_other_staff@example.com",
-            first_name="Other",
-            last_name="Staff",
-            is_staff=True,
+            email=f"{username}@example.com",
+            first_name=first_name,
+            last_name=last_name,
+            **extra,
         )
 
-        self.personal_open = Ticket.objects.create(
-            title="Personal Open",
-            created_by=self.staff,
-            status=Ticket.Status.OPEN,
-        )
-        self.personal_closed = Ticket.objects.create(
-            title="Personal Closed",
-            created_by=self.staff,
-            status=Ticket.Status.CLOSED,
-        )
-        self.foreign_open = Ticket.objects.create(
-            title="Foreign Open",
-            created_by=self.student,
-            status=Ticket.Status.OPEN,
-        )
-        self.assigned_only = Ticket.objects.create(
-            title="Assigned Only",
-            created_by=self.student,
-            status=Ticket.Status.PENDING,
-        )
+    def _build_ticket_fixtures(self):
+        """Create ticket fixtures used across dashboard tests."""
+        self.personal_open = Ticket.objects.create(title="Personal Open", created_by=self.staff, status=Ticket.Status.OPEN)
+        self.personal_closed = Ticket.objects.create(title="Personal Closed", created_by=self.staff, status=Ticket.Status.CLOSED)
+        self.foreign_open = Ticket.objects.create(title="Foreign Open", created_by=self.student, status=Ticket.Status.OPEN)
+        self.assigned_only = Ticket.objects.create(title="Assigned Only", created_by=self.student, status=Ticket.Status.PENDING)
         TicketParticipant.objects.create(ticket=self.assigned_only, user=self.staff)
 
+    def _build_department_fixtures(self):
+        """Create department assignment fixtures for department-scope tests."""
         self.department = Department.objects.create(name="HomeDept", created_by=self.staff)
         UserDepartments.objects.create(user=self.staff, department=self.department)
         TicketAssigned.objects.create(ticket=self.foreign_open, department=self.department)
@@ -312,37 +278,36 @@ class TicketHomeDashboardModelTests(TestCase):
 
     def test_completed_overdue_and_active_from(self):
         """completed_from/overdue_from/active_from should partition dashboard tickets."""
-        overdue_ticket = Ticket.objects.create(
-            title="Overdue",
-            created_by=self.staff,
-            status=Ticket.Status.OPEN,
-        )
-        overdue_msg = TicketMessage.objects.create(
-            ticket=overdue_ticket,
-            sender=self.student,
-            body="Old user message",
-        )
-        # make message old enough to be overdue
-        old_time = timezone.now() - timedelta(days=8)
-        TicketMessage.objects.filter(pk=overdue_msg.pk).update(edited_at=old_time, created_at=old_time)
-
-        recent_ticket = Ticket.objects.create(
-            title="Recent",
-            created_by=self.staff,
-            status=Ticket.Status.OPEN,
-        )
-        TicketMessage.objects.create(ticket=recent_ticket, sender=self.student, body="Recent message")
-
-        qs = Ticket.annotated_for_home(self.staff, "personal")
-        completed = Ticket.completed_from(qs)
-        overdue = Ticket.overdue_from(qs)
-        active = Ticket.active_from(qs, overdue)
-
-        completed_ids = list(completed.values_list("id", flat=True))
-        overdue_ids = list(overdue.values_list("id", flat=True))
-        active_ids = list(active.values_list("id", flat=True))
-
+        overdue_ticket = self._create_overdue_ticket()
+        recent_ticket = self._create_recent_ticket()
+        completed_ids, overdue_ids, active_ids = self._dashboard_partition_ids()
         self.assertIn(self.personal_closed.id, completed_ids)
         self.assertIn(overdue_ticket.id, overdue_ids)
         self.assertIn(recent_ticket.id, active_ids)
         self.assertNotIn(overdue_ticket.id, active_ids)
+
+    def _create_overdue_ticket(self):
+        """Create a ticket with an old user-authored latest message."""
+        overdue_ticket = Ticket.objects.create(title="Overdue", created_by=self.staff, status=Ticket.Status.OPEN)
+        overdue_msg = TicketMessage.objects.create(ticket=overdue_ticket, sender=self.student, body="Old user message")
+        old_time = timezone.now() - timedelta(days=8)
+        TicketMessage.objects.filter(pk=overdue_msg.pk).update(edited_at=old_time, created_at=old_time)
+        return overdue_ticket
+
+    def _create_recent_ticket(self):
+        """Create a ticket with a recent message."""
+        recent_ticket = Ticket.objects.create(title="Recent", created_by=self.staff, status=Ticket.Status.OPEN)
+        TicketMessage.objects.create(ticket=recent_ticket, sender=self.student, body="Recent message")
+        return recent_ticket
+
+    def _dashboard_partition_ids(self):
+        """Return IDs for completed, overdue, and active dashboard slices."""
+        qs = Ticket.annotated_for_home(self.staff, "personal")
+        completed = Ticket.completed_from(qs)
+        overdue = Ticket.overdue_from(qs)
+        active = Ticket.active_from(qs, overdue)
+        return (
+            list(completed.values_list("id", flat=True)),
+            list(overdue.values_list("id", flat=True)),
+            list(active.values_list("id", flat=True)),
+        )

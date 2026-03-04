@@ -68,12 +68,17 @@ class TicketMessageAttachment(models.Model):
         queryset = cls.objects.filter(message=message, id__in=attachment_ids)
         deleted = 0
         for attachment in queryset:
-            # Remove the backing file from storage when possible.
-            if attachment.file:
-                attachment.file.delete(save=False)
+            cls._delete_file(attachment)
             attachment.delete()
             deleted += 1
         return deleted
+
+    @staticmethod
+    def _delete_file(attachment):
+        """Delete backing file from storage if present."""
+        if not attachment.file:
+            return
+        attachment.file.delete(save=False)
 
     def save(self, *args, **kwargs):
         """Populate metadata automatically from the uploaded file."""
