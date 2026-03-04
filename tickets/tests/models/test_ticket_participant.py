@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 
-from tickets.models import Ticket
+from tickets.models import Ticket, TicketMessage
 from tickets.models.ticket_participant import TicketParticipant  # adjust if needed
 
 User = get_user_model()
@@ -93,3 +93,31 @@ class TicketParticipantModelTests(TestCase):
 
         self.staff1.delete()
         self.assertEqual(TicketParticipant.objects.count(), 0)
+
+    def test_defaults_for_actor(self):
+        """defaults_for_actor should include added_by mapping."""
+        defaults = TicketParticipant.defaults_for_actor(self.staff2)
+        self.assertEqual(defaults, {"added_by": self.staff2})
+
+    def test_has_add_and_remove_participant_helpers(self):
+        """Participant helper methods should create/check/remove participants."""
+        self.assertFalse(TicketParticipant.has_participant(self.ticket, self.staff1))
+        TicketParticipant.add_participant(self.ticket, self.staff1, actor=self.staff2)
+        self.assertTrue(TicketParticipant.has_participant(self.ticket, self.staff1))
+        tp = TicketParticipant.objects.get(ticket=self.ticket, user=self.staff1)
+        self.assertEqual(tp.added_by, self.staff2)
+        TicketParticipant.remove_participant(self.ticket, self.staff1)
+        self.assertFalse(TicketParticipant.has_participant(self.ticket, self.staff1))
+
+    def test_assign_staff_creates_participant_and_system_message(self):
+        """assign_staff should apply ticket-assignment side effects."""
+        created = TicketParticipant.assign_staff(self.ticket, self.staff1, added_by=self.staff2)
+        self.assertTrue(created)
+        self.assertTrue(TicketParticipant.objects.filter(ticket=self.ticket, user=self.staff1).exists())
+        self.assertTrue(
+            TicketMessage.objects.filter(
+                ticket=self.ticket,
+                body__contains=f"{self.staff1.get_full_name()} was added to the ticket.",
+                sender=None,
+            ).exists()
+        )

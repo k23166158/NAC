@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 
 from tickets.models import Ticket
 from tickets.models.ticket_participant import TicketParticipant
-from tickets.views.forward_ticket_view import _err, _err, _ticket_redirect
+from tickets.views.forward_ticket_view import ForwardTicketView, _err, _ticket_redirect
 
 from types import SimpleNamespace
 
@@ -164,3 +164,11 @@ class ForwardTicketViewTests(TestCase):
         self.assertTrue(create_mock.called)
         kwargs = create_mock.call_args.kwargs
         self.assertNotIn("added_by", kwargs)
+
+    def test_touch_ticket_updates_updated_at(self):
+        """touch_ticket should delegate timestamp update to ticket.touch()."""
+        view = ForwardTicketView()
+        before = self.ticket.updated_at
+        view.touch_ticket(self.ticket)
+        self.ticket.refresh_from_db()
+        self.assertGreater(self.ticket.updated_at, before)

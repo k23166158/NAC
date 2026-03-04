@@ -232,5 +232,17 @@ class TicketMessageAttachmentModelTests(TestCase):
         att.save()
         att.refresh_from_db()
         self.assertEqual(att.file.name, "example.txt")
+
+    def test_create_for_message_helper(self):
+        """create_for_message should create attachments for non-null files only."""
+        f1 = SimpleUploadedFile("a.txt", b"aaa", content_type="text/plain")
+        created = TicketMessageAttachment.create_for_message(
+            self.ticket,
+            self.message,
+            [f1, None],
+            self.user,
+        )
+        self.assertEqual(len(created), 1)
+        self.assertEqual(TicketMessageAttachment.objects.filter(message=self.message).count(), 1)
     
     
