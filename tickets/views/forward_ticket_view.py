@@ -4,7 +4,6 @@ from django.http import HttpResponseForbidden
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
-from django.utils import timezone
 
 from tickets.forms import ForwardTicketForm
 from tickets.models import Ticket
@@ -43,11 +42,11 @@ class ForwardTicketView(LoginRequiredMixin, View):
 
     def _defaults(self, request):
         """Build defaults dict for TicketParticipant creation."""
-        return {"added_by": request.user} if _has_field(TicketParticipant, "added_by") else {}
+        return TicketParticipant.defaults_for_actor(request.user) if _has_field(TicketParticipant, "added_by") else {}
     
     def touch_ticket(self, ticket):
         """Update the ticket's updated_at timestamp."""
-        Ticket.objects.filter(id=ticket.id).update(updated_at=timezone.now())
+        ticket.touch()
 
     def post(self, request, ticket_id):
         """Handle POST to forward a ticket to a staff user."""
@@ -71,7 +70,7 @@ class ForwardTicketView(LoginRequiredMixin, View):
 
     def _invalid_forward(self, user, ticket, staff_user):
         """Check if forwarding to the given staff user is invalid."""
-        return staff_user.id == user.id or TicketParticipant.objects.filter(ticket=ticket, user=staff_user).exists()
+        return staff_user.id == user.id or TicketParticipant.has_participant(ticket, staff_user)
 
     def _forward_error_msg(self, user, ticket, staff_user):
         """Generate an error message for invalid forwards."""
@@ -81,6 +80,14 @@ class ForwardTicketView(LoginRequiredMixin, View):
 
     def _forward_ticket(self, ticket, staff_user):
         """Forward the ticket to the given staff user."""
-        TicketParticipant.objects.create(ticket=ticket, user=staff_user, **self._defaults(self.request))
-        TicketMessage.objects.create(ticket=ticket, body=f"Ticket forwarded to {staff_user.full_name()}", sender=None)
+        TicketParticipant.add_participant(
+            ticket,
+            staff_user,
+            actor=self.request.user,
+            defaults=self._defaults(self.request),
+        )
+        TicketMessage.create_system_message(
+            ticket,
+            f"Ticket forwarded to {staff_user.full_name()}",
+        )
         self.touch_ticket(ticket)
