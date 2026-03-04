@@ -177,10 +177,10 @@ class TicketMessageAttachmentModelTests(TestCase):
         self.assertIn(att, self.message.attachments.all())
         self.assertIn(att, self.user.uploaded_attachments.all())
     
-    def test_file_name_is_stripped_to_basename(self):
+    def test_file_name_keeps_upload_to_path(self):
         """
-        If an uploaded filename includes a path, model should strip it so
-        attachment.file.name and original_name become just the basename.
+        If an uploaded filename includes a path, storage should keep upload_to path
+        while original_name remains the basename.
         """
         upload = SimpleUploadedFile(
             "folder/subfolder/example.txt",  # IMPORTANT: includes path
@@ -197,7 +197,9 @@ class TicketMessageAttachmentModelTests(TestCase):
 
         att.refresh_from_db()
         self.assertEqual(att.original_name, "example.txt")
-        self.assertEqual(att.file.name, "example.txt")
+        self.assertTrue(att.file.name.startswith("ticket_attachments/"))
+        self.assertTrue(att.file.name.endswith(".txt"))
+        self.assertIn("example", att.file.name)
     
     def test_save_without_file(self):
         """Saving an attachment model without a file attached."""
@@ -211,11 +213,9 @@ class TicketMessageAttachmentModelTests(TestCase):
         self.assertIsNotNone(att.id)
         self.assertEqual(att.original_name, "")
 
-    def test_second_save_does_not_rewrite_file_name_again(self):
+    def test_second_save_keeps_file_name_stable(self):
         """
-        Cover the false branch of:
-        if self.file and self.file.name != basename:
-        On first save it rewrites file.name to basename; on second save it should not.
+        Saving again should preserve the same stored file path.
         """
         upload = SimpleUploadedFile("example.txt", b"hello", content_type="text/plain")
 
@@ -227,11 +227,14 @@ class TicketMessageAttachmentModelTests(TestCase):
         )
 
         att.refresh_from_db()
-        self.assertEqual(att.file.name, "example.txt")
+        first_name = att.file.name
+        self.assertTrue(first_name.startswith("ticket_attachments/"))
+        self.assertTrue(first_name.endswith(".txt"))
+        self.assertIn("example", first_name)
 
         att.save()
         att.refresh_from_db()
-        self.assertEqual(att.file.name, "example.txt")
+        self.assertEqual(att.file.name, first_name)
 
     def test_create_for_message_helper(self):
         """create_for_message should create attachments for non-null files only."""

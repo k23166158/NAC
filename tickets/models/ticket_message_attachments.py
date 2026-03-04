@@ -72,9 +72,6 @@ class TicketMessageAttachment(models.Model):
         if not self.content_type:
             self.content_type = self._content_type_from(file)
         super().save(*args, **kwargs)
-        if self.file and self.file.name != basename:
-            type(self).objects.filter(pk=self.pk).update(file=basename)
-            self.file.name = basename
 
     def _basename(self, file):
         """Extract the base filename from the file or its name attribute."""

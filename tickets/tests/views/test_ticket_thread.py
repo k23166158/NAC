@@ -1254,7 +1254,9 @@ class TicketThreadViewTests(TestCase):
         attachment.save()
         attachment.refresh_from_db()
         self.assertGreater(attachment.size_bytes, 0)
-        self.assertEqual(attachment.file.name, "Screenshot.png")  # expected stripped
+        self.assertTrue(attachment.file.name.startswith("ticket_attachments/"))
+        self.assertTrue(attachment.file.name.endswith(".png"))
+        self.assertIn("Screenshot", attachment.file.name)
         self.assertEqual(attachment.content_type, "image/png")
         self.assertTrue(bool(attachment.file.name))
 
