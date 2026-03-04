@@ -196,12 +196,24 @@ class Command(BaseCommand):
 
     def create_known_users(self):
         """Create users from predefined fixtures."""
-        for fixture in user_fixtures: 
-            User.objects.create_user(
-                username=fixture['username'], email=fixture['email'], password=self.DEFAULT_PASSWORD,
-                first_name=fixture['first_name'], last_name=fixture['last_name'],
-                is_superuser=fixture.get('superuser', False), is_staff=fixture.get('staff', False)
+        for fixture in user_fixtures:
+            user, _ = User.objects.get_or_create(
+                username=fixture['username'],
+                defaults={
+                    "email": fixture['email'],
+                    "first_name": fixture['first_name'],
+                    "last_name": fixture['last_name'],
+                    "is_superuser": fixture.get('superuser', False),
+                    "is_staff": fixture.get('staff', False),
+                },
             )
+            user.email = fixture['email']
+            user.first_name = fixture['first_name']
+            user.last_name = fixture['last_name']
+            user.is_superuser = fixture.get('superuser', False)
+            user.is_staff = fixture.get('staff', False)
+            user.set_password(self.DEFAULT_PASSWORD)
+            user.save()
 
     def create_random_staff_users(self):
         """Create random staff users using Faker library."""
@@ -247,10 +259,12 @@ class Command(BaseCommand):
         """Create departments from predefined fixtures."""
         for fixture in department_fixtures:
             creator = User.objects.get(username=fixture['created_by'])
-            Department.objects.create(
+            Department.objects.update_or_create(
                 name=fixture['name'],
-                description=fixture.get('description', ''),
-                created_by=creator
+                defaults={
+                    "description": fixture.get('description', ''),
+                    "created_by": creator,
+                },
             )
 
     def create_random_departments(self):
@@ -265,7 +279,13 @@ class Command(BaseCommand):
             )
             created_by = choice(staff)
 
-            Department.objects.create(name=name, description=description, created_by=created_by)
+            Department.objects.get_or_create(
+                name=name,
+                defaults={
+                    "description": description,
+                    "created_by": created_by,
+                },
+            )
 
     def _department_name_for_index(self, index, available_names):
         """Return the most suitable seeded department name for an index."""
