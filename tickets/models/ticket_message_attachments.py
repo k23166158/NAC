@@ -45,6 +45,21 @@ class TicketMessageAttachment(models.Model):
         db_table = "ticket_message_attachments"
         ordering = ["created_at"]
 
+    @classmethod
+    def create_for_message(cls, ticket, message, files, user):
+        """Persist uploaded files for a ticket message."""
+        created = []
+        for file in filter(None, files or []):
+            created.append(
+                cls.objects.create(
+                    ticket=ticket,
+                    message=message,
+                    file=file,
+                    uploaded_by=user,
+                )
+            )
+        return created
+
     def save(self, *args, **kwargs):
         """Populate metadata automatically from the uploaded file."""
         file = self.file
