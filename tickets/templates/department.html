@@ -98,10 +98,7 @@
                 </div>
             </div>
             {% if department.created_by == user or user.is_superuser %}
-            <div class="staff-card">
-                <h3 class="staff-card-header">Invite Staff</h3>
-                {% include 'partials/user_search_bar.html' with staff=available_staff %}
-            </div>
+            {% include 'partials/staff_user_search_card.html' with header="Invite Staff" staff=available_staff %}
             {% endif %}
         </div>
 

@@ -1,0 +1,1 @@
+You have created a new ticket: "<a href="{{ link }}">{{ target.title }}</a>"

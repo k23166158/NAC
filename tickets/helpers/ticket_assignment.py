@@ -26,9 +26,7 @@ from tickets.models.ticket_department import TicketDepartment
 
 def assign_department_to_ticket(ticket, department, added_by):
     """Assign a department to a ticket, auto-assigning all department members as staff and logging the action."""
-    TicketDepartment.objects.get_or_create(
-        ticket=ticket,
-        department=department,
+    TicketDepartment.objects.get_or_create(ticket=ticket,department=department,
     )
     for user in department.members.all():
         TicketParticipant.objects.get_or_create(
@@ -38,5 +36,6 @@ def assign_department_to_ticket(ticket, department, added_by):
     TicketMessage.objects.create(
         ticket=ticket,
         sender=None,
-        body=f"{department.name} department was added to the ticket by {added_by.get_full_name()}."
+        body=f"The {department.name} department was added to the ticket.",
     )
+    Ticket.objects.filter(id=ticket.id).update(updated_at=timezone.now())
