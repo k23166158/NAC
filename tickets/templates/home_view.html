@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="{% static 'css/admin.css' %}">
 <link rel="stylesheet" href="{% static 'css/tickets_home.css' %}">
 <link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
+<link rel="stylesheet" href="{% static 'css/pagination.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -108,8 +109,28 @@
   </div>
 
   <section id="panel-active" class="tab-panel" role="tabpanel">
-    {% if active_tickets %}
-      {% include "partials/ticket_list.html" with tickets=active_tickets %}
+    {% if active_tickets_page %}
+      {% include "partials/ticket_list.html" with tickets=active_tickets_page %}
+      
+      {% if active_tickets_page.has_other_pages %}
+      <div class="pagination">
+        <span class="step-links">
+          {% if active_tickets_page.has_previous %}
+            <a href="?active_page={{ active_tickets_page.previous_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">&laquo; first</a>
+            <a href="?active_page={{ active_tickets_page.previous_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">previous</a>
+          {% endif %}
+
+          <span class="current">
+            Page {{ active_tickets_page.number }} of {{ active_tickets_page.paginator.num_pages }}
+          </span>
+
+          {% if active_tickets_page.has_next %}
+            <a href="?active_page={{ active_tickets_page.next_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">next</a>
+            <a href="?active_page={{ active_tickets_page.paginator.num_pages }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">last &raquo;</a>
+          {% endif %}
+        </span>
+      </div>
+      {% endif %}
     {% else %}
       <div class="empty">No active tickets right now.</div>
     {% endif %}
@@ -124,8 +145,28 @@
   </section>
 
   <section id="panel-completed" class="tab-panel" role="tabpanel" hidden>
-    {% if completed_tickets %}
-      {% include "partials/ticket_list.html" with tickets=completed_tickets %}
+    {% if completed_tickets_page %}
+      {% include "partials/ticket_list.html" with tickets=completed_tickets_page %}
+      
+      {% if completed_tickets_page.has_other_pages %}
+      <div class="pagination">
+        <span class="step-links">
+          {% if completed_tickets_page.has_previous %}
+            <a href="?completed_page={{ completed_tickets_page.previous_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">&laquo; first</a>
+            <a href="?completed_page={{ completed_tickets_page.previous_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">previous</a>
+          {% endif %}
+
+          <span class="current">
+            Page {{ completed_tickets_page.number }} of {{ completed_tickets_page.paginator.num_pages }}
+          </span>
+
+          {% if completed_tickets_page.has_next %}
+            <a href="?completed_page={{ completed_tickets_page.next_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">next</a>
+            <a href="?completed_page={{ completed_tickets_page.paginator.num_pages }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">last &raquo;</a>
+          {% endif %}
+        </span>
+      </div>
+      {% endif %}
     {% else %}
       <div class="empty">No completed tickets yet.</div>
     {% endif %}

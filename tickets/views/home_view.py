@@ -23,19 +23,37 @@ class HomeView(View):
         qs, scope = self.handle_scope(request.user, scope)
         overdue = self.overdue_tickets(qs)
         
-        ctx = self.get_context(qs, scope, overdue)
+        ctx = self.get_context(request, qs, scope, overdue)
         if self.is_admin(request.user):
             ctx.update(self.get_admin_stats())
             
         return render(request, "home_view.html", ctx)
 
-    def get_context(self, qs, scope, overdue):
-        """Build the base context dictionary for the view."""
+    def get_context(self, request, qs, scope, overdue):
+        """Build the base context dictionary for the view, with pagination for the lists."""
+        from django.core.paginator import Paginator
+        
+        active_qs = self.active_tickets(qs, overdue)
+        overdue_qs = overdue
+        completed_qs = self.completed_tickets(qs)
+
+        active_paginator = Paginator(active_qs, 10)
+        active_page = active_paginator.get_page(request.GET.get('active_page', 1))
+
+        overdue_paginator = Paginator(overdue_qs, 10)
+        overdue_page = overdue_paginator.get_page(request.GET.get('overdue_page', 1))
+
+        completed_paginator = Paginator(completed_qs, 10)
+        completed_page = completed_paginator.get_page(request.GET.get('completed_page', 1))
+
         return {
             "scope": scope,
-            "completed_tickets": self.completed_tickets(qs),
-            "overdue_tickets": overdue,
-            "active_tickets": self.active_tickets(qs, overdue),
+            "completed_tickets": completed_qs, # keep for counts if needed
+            "overdue_tickets": overdue_qs,
+            "active_tickets": active_qs,
+            "active_tickets_page": active_page,
+            "overdue_tickets_page": overdue_page,
+            "completed_tickets_page": completed_page,
         }
 
     def get_admin_stats(self):
