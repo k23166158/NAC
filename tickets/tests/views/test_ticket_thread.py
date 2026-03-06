@@ -51,6 +51,23 @@ class TicketThreadViewTests(TestCase):
         data.update(extra)
         return data
 
+    def _create_message_with_attachments(self):
+        """Create one message with two text attachments."""
+        msg = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="Original body")
+        a1 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=msg,
+            file=SimpleUploadedFile("one.txt", b"111", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+        a2 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=msg,
+            file=SimpleUploadedFile("two.txt", b"222", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+        return msg, a1, a2
+
     # --- GET: access and template ---
 
     def test_get_anonymous_redirects_to_login(self):
@@ -287,6 +304,51 @@ class TicketThreadViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         msg.refresh_from_db()
         self.assertEqual(msg.body, "Original body")
+
+    @override_settings(MEDIA_ROOT=tempfile.gettempdir())
+    def test_edit_form_shows_existing_attachments_with_remove_option(self):
+        """Edit mode should display existing attachments and removal checkboxes."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="With file",
+        )
+        upload = SimpleUploadedFile("keep.txt", b"abc", content_type="text/plain")
+        TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=msg,
+            file=upload,
+            uploaded_by=self.user,
+        )
+
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="edit", message_id=str(msg.id)),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "remove_attachment_ids")
+        self.assertContains(response, "keep.txt")
+
+    @override_settings(MEDIA_ROOT=tempfile.gettempdir())
+    def test_post_update_can_remove_selected_attachments(self):
+        """POST action=update should delete selected existing attachments."""
+        msg, a1, a2 = self._create_message_with_attachments()
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="update",
+                message_id=str(msg.id),
+                body="Updated body",
+                remove_attachment_ids=[str(a1.id)],
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(TicketMessageAttachment.objects.filter(id=a1.id).exists())
+        self.assertTrue(TicketMessageAttachment.objects.filter(id=a2.id).exists())
 
     def test_post_edit_other_users_message_returns_404(self):
         """POST action=edit on another user's message returns 404."""
@@ -1254,7 +1316,9 @@ class TicketThreadViewTests(TestCase):
         attachment.save()
         attachment.refresh_from_db()
         self.assertGreater(attachment.size_bytes, 0)
-        self.assertEqual(attachment.file.name, "Screenshot.png")  # expected stripped
+        self.assertTrue(attachment.file.name.startswith("ticket_attachments/"))
+        self.assertTrue(attachment.file.name.endswith(".png"))
+        self.assertIn("Screenshot", attachment.file.name)
         self.assertEqual(attachment.content_type, "image/png")
         self.assertTrue(bool(attachment.file.name))
 

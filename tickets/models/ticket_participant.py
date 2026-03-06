@@ -16,6 +16,34 @@ class TicketParticipant(models.Model):
         db_table = "ticket_participants"
         unique_together = ("ticket", "user")
 
+    @classmethod
+    def defaults_for_actor(cls, actor):
+        """Return defaults used when creating a participant via an actor action."""
+        return {"added_by": actor} if any(f.name == "added_by" for f in cls._meta.fields) else {}
+
+    @classmethod
+    def has_participant(cls, ticket, user):
+        """Return whether a user is already a participant for a ticket."""
+        return cls.objects.filter(ticket=ticket, user=user).exists()
+
+    @classmethod
+    def add_participant(cls, ticket, user, *, actor=None, defaults=None):
+        """Create participant row with optional actor-derived defaults."""
+        participant_defaults = cls.defaults_for_actor(actor) if defaults is None else defaults
+        return cls.objects.create(ticket=ticket, user=user, **participant_defaults)
+
+    @classmethod
+    def remove_participant(cls, ticket, user):
+        """Remove a participant from a ticket."""
+        cls.objects.filter(ticket=ticket, user=user).delete()
+
+    @classmethod
+    def assign_staff(cls, ticket, staff_user, *, added_by=None):
+        """Assign a staff user with standard ticket side effects."""
+        from tickets.helpers.ticket_assignment import assign_staff_to_ticket
+
+        return assign_staff_to_ticket(ticket=ticket, staff_user=staff_user, added_by=added_by)
+
     def __str__(self):
         """String representation of the TicketParticipant instance."""
         return f"Ticket #{self.ticket_id} participant: {self.user_id}"

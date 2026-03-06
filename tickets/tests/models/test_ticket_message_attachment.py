@@ -177,10 +177,10 @@ class TicketMessageAttachmentModelTests(TestCase):
         self.assertIn(att, self.message.attachments.all())
         self.assertIn(att, self.user.uploaded_attachments.all())
     
-    def test_file_name_is_stripped_to_basename(self):
+    def test_file_name_keeps_upload_to_path(self):
         """
-        If an uploaded filename includes a path, model should strip it so
-        attachment.file.name and original_name become just the basename.
+        If an uploaded filename includes a path, storage should keep upload_to path
+        while original_name remains the basename.
         """
         upload = SimpleUploadedFile(
             "folder/subfolder/example.txt",  # IMPORTANT: includes path
@@ -197,7 +197,9 @@ class TicketMessageAttachmentModelTests(TestCase):
 
         att.refresh_from_db()
         self.assertEqual(att.original_name, "example.txt")
-        self.assertEqual(att.file.name, "example.txt")
+        self.assertTrue(att.file.name.startswith("ticket_attachments/"))
+        self.assertTrue(att.file.name.endswith(".txt"))
+        self.assertIn("example", att.file.name)
     
     def test_save_without_file(self):
         """Saving an attachment model without a file attached."""
@@ -211,11 +213,9 @@ class TicketMessageAttachmentModelTests(TestCase):
         self.assertIsNotNone(att.id)
         self.assertEqual(att.original_name, "")
 
-    def test_second_save_does_not_rewrite_file_name_again(self):
+    def test_second_save_keeps_file_name_stable(self):
         """
-        Cover the false branch of:
-        if self.file and self.file.name != basename:
-        On first save it rewrites file.name to basename; on second save it should not.
+        Saving again should preserve the same stored file path.
         """
         upload = SimpleUploadedFile("example.txt", b"hello", content_type="text/plain")
 
@@ -227,10 +227,55 @@ class TicketMessageAttachmentModelTests(TestCase):
         )
 
         att.refresh_from_db()
-        self.assertEqual(att.file.name, "example.txt")
+        first_name = att.file.name
+        self.assertTrue(first_name.startswith("ticket_attachments/"))
+        self.assertTrue(first_name.endswith(".txt"))
+        self.assertIn("example", first_name)
 
         att.save()
         att.refresh_from_db()
-        self.assertEqual(att.file.name, "example.txt")
+        self.assertEqual(att.file.name, first_name)
+
+    def test_create_for_message_helper(self):
+        """create_for_message should create attachments for non-null files only."""
+        f1 = SimpleUploadedFile("a.txt", b"aaa", content_type="text/plain")
+        created = TicketMessageAttachment.create_for_message(
+            self.ticket,
+            self.message,
+            [f1, None],
+            self.user,
+        )
+        self.assertEqual(len(created), 1)
+        self.assertEqual(TicketMessageAttachment.objects.filter(message=self.message).count(), 1)
+
+    def test_delete_for_message_helper(self):
+        """delete_for_message should delete only selected attachments."""
+        a1 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=self.message,
+            file=SimpleUploadedFile("del1.txt", b"aaa", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+        a2 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=self.message,
+            file=SimpleUploadedFile("del2.txt", b"bbb", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+        deleted = TicketMessageAttachment.delete_for_message(self.message, [str(a1.id)])
+        self.assertEqual(deleted, 1)
+        self.assertFalse(TicketMessageAttachment.objects.filter(id=a1.id).exists())
+        self.assertTrue(TicketMessageAttachment.objects.filter(id=a2.id).exists())
+
+    def test_delete_for_message_with_no_file_attachment(self):
+        """delete_for_message should handle attachments that have no file value."""
+        a = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=self.message,
+            uploaded_by=self.user,
+        )
+        deleted = TicketMessageAttachment.delete_for_message(self.message, [str(a.id)])
+        self.assertEqual(deleted, 1)
+        self.assertFalse(TicketMessageAttachment.objects.filter(id=a.id).exists())
     
     
