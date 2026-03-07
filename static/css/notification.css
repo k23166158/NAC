@@ -13,16 +13,19 @@
 }
 
 .notification-row-unread {
-    border-color: rgba(37, 99, 235, 0.35);
     box-shadow: var(--shadow);
 }
 
 .notification-row-unread .ticket-bar {
-    background: #eff6ff;
+    background: var(--card);
 }
 
 .notification-row-unread .ticket-title {
     color: var(--text);
+}
+
+.notification-row-unread .ticket-bar:hover {    
+    background: #f3f4f6;
 }
 
 .notification-row-read .ticket-bar {
