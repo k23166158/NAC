@@ -58,20 +58,14 @@ class DepartmentView(LoginRequiredMixin, View):
 
     def build_context(self, request, department):
         """Build the context for rendering the department view, including multiple paginators."""
-        curr_staff, invited, staff_page = self._get_staff_context(request, department)
-        active_page, active_count = self._get_page(request, self.get_tickets(department, ['open', 'pending']),
-                                                   'active_page')
-        closed_page, closed_count = self._get_page(request, self.get_tickets(department, ['closed']), 'closed_page')
-
+        c_staff, inv, s_page = self._get_staff_context(request, department)
+        act_p, act_c = self._get_page(request, self.get_tickets(department, ['open', 'pending']), 'active_page')
+        cls_p, cls_c = self._get_page(request, self.get_tickets(department, ['closed']), 'closed_page')
         return {
-            "department": department,
-            "staff_page": staff_page,
-            "invited_users": invited,
-            "available_staff": self.get_available_staff(curr_staff, invited),
-            "active_tickets_page": active_page,
-            "closed_tickets_page": closed_page,
-            "active_tickets_count": active_count,
-            "closed_tickets_count": closed_count,
+            "department": department, "staff_page": s_page, "invited_users": inv,
+            "available_staff": self.get_available_staff(c_staff, inv),
+            "active_tickets_page": act_p, "closed_tickets_page": cls_p,
+            "active_tickets_count": act_c, "closed_tickets_count": cls_c,
         }
 
     def get_current_staff(self, department):
