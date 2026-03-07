@@ -23,7 +23,7 @@
   {% if notifications %}
     <div class="ticket-list notification-list">
       {% for n in notifications %}
-        <article class="ticket-row notification-row {% if not n.is_read %}notification-row-unread{% endif %}">
+        <article class="ticket-row notification-row {% if n.is_read %}notification-row-read{% else %}notification-row-unread{% endif %}">
           {% if n.target_object %}
             <a href="{% url 'ticket_thread' n.target_object.uuid %}" class="notification-link">
           {% endif %}
@@ -49,9 +49,7 @@
                   </div>
 
                   <div class="ticket-bar-right">
-                    {% if n.is_read %}
-                      <span class="pill status status-completed">Read</span>
-                    {% else %}
+                    {% if not n.is_read %}
                       <span class="pill status status-active">New</span>
                     {% endif %}
                   </div>

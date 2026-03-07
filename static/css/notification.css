@@ -25,6 +25,14 @@
     color: var(--text);
 }
 
+.notification-row-read .ticket-bar {
+    background: #f3f4f6;
+}
+
+.notification-row-read .ticket-title {
+    color: var(--muted);
+}
+
 .notification-row .ticket-bar {
     cursor: pointer;
     padding-right: 20px;

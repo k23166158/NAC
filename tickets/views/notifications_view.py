@@ -12,15 +12,17 @@ class NotificationView(LoginRequiredMixin, View):
 
     def get(self, request):
         """Handle GET requests to display the notifications page."""
-        notifications = (
-            Notification.objects.filter(actor=request.user)
-            .select_related("actor", "user")
+        qs = Notification.objects.filter(actor=request.user).select_related(
+            "actor", "user"
+        )
+        notifications = list(qs)
+
+        Notification.objects.filter(actor=request.user, is_read=False).update(
+            is_read=True
         )
 
         return render(
             request,
             self.template_name,
-            {
-                "notifications": notifications,
-            },
+            {"notifications": notifications},
         )

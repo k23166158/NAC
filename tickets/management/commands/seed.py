@@ -4,6 +4,9 @@ from random import randint, choice
 from django.core.management.base import BaseCommand
 from django.core.files.base import ContentFile
 from tickets.models import *
+from django.contrib.contenttypes.models import ContentType
+from tickets.models.notification import Notification
+from collections import defaultdict
 
 user_fixtures = [
     {'username': 'johndoe', 'email': 'johndoe@example.org', 'first_name': 'John', 'last_name': 'Doe', 'superuser' : True, 'staff': True},
@@ -185,6 +188,7 @@ class Command(BaseCommand):
         self.create_ticket_attachments()
         self.assign_staff_to_tickets()
         self.create_department_invitations()
+        self.create_notifications()
     
     def create_users(self):
         """Create users in the database."""
@@ -196,31 +200,12 @@ class Command(BaseCommand):
 
     def create_known_users(self):
         """Create users from predefined fixtures."""
-        for fixture in user_fixtures:
-            self._upsert_known_user(fixture)
-
-    def _known_user_defaults(self, fixture):
-        """Build known-user defaults from a fixture."""
-        return {
-            "email": fixture['email'],
-            "first_name": fixture['first_name'],
-            "last_name": fixture['last_name'],
-            "is_superuser": fixture.get('superuser', False),
-            "is_staff": fixture.get('staff', False),
-        }
-
-    def _upsert_known_user(self, fixture):
-        """Create or update one known fixture user."""
-        defaults = self._known_user_defaults(fixture)
-        user, _ = User.objects.get_or_create(username=fixture['username'], defaults=defaults)
-        self._apply_known_user_fields(user, defaults)
-
-    def _apply_known_user_fields(self, user, defaults):
-        """Apply fixture fields and reset password for known users."""
-        for field, value in defaults.items():
-            setattr(user, field, value)
-        user.set_password(self.DEFAULT_PASSWORD)
-        user.save()
+        for fixture in user_fixtures: 
+            User.objects.create_user(
+                username=fixture['username'], email=fixture['email'], password=self.DEFAULT_PASSWORD,
+                first_name=fixture['first_name'], last_name=fixture['last_name'],
+                is_superuser=fixture.get('superuser', False), is_staff=fixture.get('staff', False)
+            )
 
     def create_random_staff_users(self):
         """Create random staff users using Faker library."""
@@ -266,12 +251,10 @@ class Command(BaseCommand):
         """Create departments from predefined fixtures."""
         for fixture in department_fixtures:
             creator = User.objects.get(username=fixture['created_by'])
-            Department.objects.update_or_create(
+            Department.objects.create(
                 name=fixture['name'],
-                defaults={
-                    "description": fixture.get('description', ''),
-                    "created_by": creator,
-                },
+                description=fixture.get('description', ''),
+                created_by=creator
             )
 
     def create_random_departments(self):
@@ -280,19 +263,13 @@ class Command(BaseCommand):
         existing_names = {dept.name for dept in Department.objects.all()}
         available_names = [name for name in kcl_department_pool if name not in existing_names]
         for index in range(self.DEPARTMENT_COUNT - len(department_fixtures)):
-            self._create_random_department(index, available_names, staff)
+            name = self._department_name_for_index(index, available_names)
+            description = (
+                "Provides support for students and staff with administrative and academic service requests."
+            )
+            created_by = choice(staff)
 
-    def _create_random_department(self, index, available_names, staff):
-        """Create a single random department if not already present."""
-        name = self._department_name_for_index(index, available_names)
-        Department.objects.get_or_create(name=name, defaults=self._department_defaults(staff))
-
-    def _department_defaults(self, staff):
-        """Build defaults for a seeded department."""
-        return {
-            "description": "Provides support for students and staff with administrative and academic service requests.",
-            "created_by": choice(staff),
-        }
+            Department.objects.create(name=name, description=description, created_by=created_by)
 
     def _department_name_for_index(self, index, available_names):
         """Return the most suitable seeded department name for an index."""
@@ -501,3 +478,77 @@ class Command(BaseCommand):
         for staff in staff_users:
             self._create_invites_for_staff(staff, departments)
         print("Department invitations created.")
+
+    def create_notifications(self):
+        """Create many realistic notifications for tickets."""
+        print("Creating notifications...")
+
+        users = list(User.objects.all())
+        tickets = list(Ticket.objects.all())
+        ticket_ct = ContentType.objects.get_for_model(Ticket)
+
+        notifications_created = 0
+        notifications_by_actor = defaultdict(int)
+
+        for ticket in tickets:
+
+            # Create multiple notifications per ticket
+            for _ in range(randint(2, 6)):
+
+                actor = choice(users)
+                recipient = choice(users)
+
+                # ensure actor != recipient so user receives notification
+                if actor == recipient:
+                    continue
+
+                notification = Notification.objects.create(
+                    user=recipient,
+                    actor=actor,
+                    content_type=ticket_ct,
+                    object_id=ticket.id,
+                    notification_type=Notification.NotificationType.TICKET_CREATED,
+                    short_message=f"{actor.username} interacted with ticket: {ticket.title}",
+                    long_message=(
+                        f"{actor.get_full_name() or actor.username} performed an action "
+                        f"related to the ticket \"{ticket.title}\".\n\n"
+                        f"You are receiving this notification because you are involved "
+                        f"in the ticket or were recently added to it."
+                    ),
+                    is_read=choice([True, False]),
+                )
+
+                notifications_created += 1
+                notifications_by_actor[actor.id] += 1
+
+        # Ensure every user has at least a few notifications as actor
+        min_per_actor = 5
+        for actor in users:
+            remaining = max(0, min_per_actor - notifications_by_actor[actor.id])
+            for _ in range(remaining):
+                recipient_choices = [u for u in users if u != actor]
+                if not recipient_choices:
+                    break
+                recipient = choice(recipient_choices)
+                ticket = choice(tickets)
+
+                Notification.objects.create(
+                    user=recipient,
+                    actor=actor,
+                    content_type=ticket_ct,
+                    object_id=ticket.id,
+                    notification_type=Notification.NotificationType.TICKET_CREATED,
+                    short_message=f"{actor.username} interacted with ticket: {ticket.title}",
+                    long_message=(
+                        f"{actor.get_full_name() or actor.username} performed an action "
+                        f"related to the ticket \"{ticket.title}\".\n\n"
+                        f"You are receiving this notification because you are involved "
+                        f"in the ticket or were recently added to it."
+                    ),
+                    is_read=False,
+                )
+
+                notifications_created += 1
+                notifications_by_actor[actor.id] += 1
+
+        print(f"{notifications_created} Notifications created.")
