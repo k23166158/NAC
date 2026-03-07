@@ -1,6 +1,6 @@
 import random
 from faker import Faker
-from random import randint, choice
+from random import randint, choice, sample
 from django.core.management.base import BaseCommand
 from django.core.files.base import ContentFile
 from tickets.models import *
@@ -174,8 +174,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """
-        Django entrypoint for the command.
-
         Runs the full seeding workflow and stores the data for any
         post-processing or debugging (not required for operation).
         """
@@ -481,74 +479,64 @@ class Command(BaseCommand):
 
     def create_notifications(self):
         """Create many realistic notifications for tickets."""
-        print("Creating notifications...")
+        users, tickets = list(User.objects.all()), list(Ticket.objects.all())
+        ct = ContentType.objects.get_for_model(Ticket)
+        stats = defaultdict(int)
 
-        users = list(User.objects.all())
-        tickets = list(Ticket.objects.all())
-        ticket_ct = ContentType.objects.get_for_model(Ticket)
+        total = self._process_initial_tickets(users, tickets, ct, stats)
+        total += self._ensure_min_notifs(users, tickets, ct, stats)
 
-        notifications_created = 0
-        notifications_by_actor = defaultdict(int)
+        print(f"{total} Notifications created.")
 
+    def _process_initial_tickets(self, users, tickets, ct, stats):
+        """Processes the initial wave of ticket notifications."""
+        created = 0
         for ticket in tickets:
+            created += self._create_multiple_notifs(ticket, users, ct, stats)
+        return created
 
-            # Create multiple notifications per ticket
-            for _ in range(randint(2, 6)):
+    def _create_multiple_notifs(self, ticket, users, ct, stats):
+        """Generates 2 to 6 notifications per ticket."""
+        if len(users) < 2: return 0
+        
+        count = randint(2, 6)
+        for _ in range(count):
+            actor, recipient = sample(users, 2)
+            self._save_notif(actor, recipient, ticket, ct, choice([True, False]))
+            stats[actor.id] += 1
+        return count
 
-                actor = choice(users)
-                recipient = choice(users)
-
-                # ensure actor != recipient so user receives notification
-                if actor == recipient:
-                    continue
-
-                notification = Notification.objects.create(
-                    user=recipient,
-                    actor=actor,
-                    content_type=ticket_ct,
-                    object_id=ticket.id,
-                    notification_type=Notification.NotificationType.TICKET_CREATED,
-                    short_message=f"{actor.username} interacted with ticket: {ticket.title}",
-                    long_message=(
-                        f"{actor.get_full_name() or actor.username} performed an action "
-                        f"related to the ticket \"{ticket.title}\".\n\n"
-                        f"You are receiving this notification because you are involved "
-                        f"in the ticket or were recently added to it."
-                    ),
-                    is_read=choice([True, False]),
-                )
-
-                notifications_created += 1
-                notifications_by_actor[actor.id] += 1
-
-        # Ensure every user has at least a few notifications as actor
-        min_per_actor = 5
+    def _ensure_min_notifs(self, users, tickets, ct, stats):
+        """Ensures every user is an actor at least 5 times."""
+        created = 0
         for actor in users:
-            remaining = max(0, min_per_actor - notifications_by_actor[actor.id])
-            for _ in range(remaining):
-                recipient_choices = [u for u in users if u != actor]
-                if not recipient_choices:
-                    break
-                recipient = choice(recipient_choices)
-                ticket = choice(tickets)
+            created += self._fill_quota(actor, users, tickets, ct, stats)
+        return created
 
-                Notification.objects.create(
-                    user=recipient,
-                    actor=actor,
-                    content_type=ticket_ct,
-                    object_id=ticket.id,
-                    notification_type=Notification.NotificationType.TICKET_CREATED,
-                    short_message=f"{actor.username} interacted with ticket: {ticket.title}",
-                    long_message=(
-                        f"{actor.get_full_name() or actor.username} performed an action "
-                        f"related to the ticket \"{ticket.title}\".\n\n"
-                        f"You are receiving this notification because you are involved "
-                        f"in the ticket or were recently added to it."
-                    ),
-                    is_read=False,
-                )
+    def _fill_quota(self, actor, users, tickets, ct, stats):
+        """Creates missing notifications for a specific actor."""
+        required = max(0, 5 - stats[actor.id])
+        for _ in range(required):
+            recipient = self._get_random_other(actor, users)
+            self._save_notif(actor, recipient, choice(tickets), ct, False)
+        return required
 
-                notifications_created += 1
-                notifications_by_actor[actor.id] += 1
+    def _get_random_other(self, actor, users):
+        """Gets a random user that is not the specified actor."""
+        others = [u for u in users if u != actor]
+        return choice(others) if others else actor
 
-        print(f"{notifications_created} Notifications created.")
+    def _save_notif(self, actor, recipient, ticket, ct, is_read):
+        """Saves a Notification instance to the database."""
+        msg = (
+            f"{actor.get_full_name() or actor.username} performed an action "
+            f"related to the ticket \"{ticket.title}\".\n\n"
+            f"You are receiving this notification because you are involved "
+            f"in the ticket or were recently added to it."
+        )
+        Notification.objects.create(
+            user=recipient, actor=actor, content_type=ct, object_id=ticket.id,
+            notification_type=Notification.NotificationType.TICKET_CREATED,
+            short_message=f"{actor.username} interacted with ticket: {ticket.title}",
+            long_message=msg, is_read=is_read
+        )
