@@ -1,59 +1,52 @@
 from datetime import timedelta
 
-from django.db.models import Count, OuterRef, Subquery, Q, F
+from django.db.models import F
+from django.db.models import OuterRef
+from django.db.models import Subquery, Count, Q, DateTimeField
+from django.db.models.functions import Coalesce
 from django.shortcuts import render
 from django.utils import timezone
 from django.views import View
-from django.db.models import Subquery, OuterRef, Count, Q, DateTimeField
-from django.db.models.functions import Coalesce
-from django.utils import timezone
 
-from tickets.models import Ticket, TicketMessage, Department, TicketAssigned, UserDepartments, TicketParticipant, User
-from django.db.models import Exists, OuterRef
+from tickets.models import Ticket, TicketMessage, TicketParticipant, User
+
 
 class HomeView(View):
     """View for the home page/dashboard."""
 
     def get(self, request):
         """Handle GET request for home page."""
-        if not request.user.is_authenticated: 
+        if not request.user.is_authenticated:
             return render(request, "unauthenticated_home.html")
-    
+
         scope = request.GET.get("scope", "personal")
         qs, scope = self.handle_scope(request.user, scope)
         overdue = self.overdue_tickets(qs)
-        
+
         ctx = self.get_context(request, qs, scope, overdue)
         if self.is_admin(request.user):
             ctx.update(self.get_admin_stats())
-            
+
         return render(request, "home_view.html", ctx)
+
+    def _get_page(self, request, queryset, param_name, per_page=10):
+        """Helper method to return a paginated page."""
+        from django.core.paginator import Paginator
+        return Paginator(queryset, per_page).get_page(request.GET.get(param_name, 1))
 
     def get_context(self, request, qs, scope, overdue):
         """Build the base context dictionary for the view, with pagination for the lists."""
-        from django.core.paginator import Paginator
-        
         active_qs = self.active_tickets(qs, overdue)
-        overdue_qs = overdue
         completed_qs = self.completed_tickets(qs)
-
-        active_paginator = Paginator(active_qs, 10)
-        active_page = active_paginator.get_page(request.GET.get('active_page', 1))
-
-        overdue_paginator = Paginator(overdue_qs, 10)
-        overdue_page = overdue_paginator.get_page(request.GET.get('overdue_page', 1))
-
-        completed_paginator = Paginator(completed_qs, 10)
-        completed_page = completed_paginator.get_page(request.GET.get('completed_page', 1))
 
         return {
             "scope": scope,
-            "completed_tickets": completed_qs, # keep for counts if needed
-            "overdue_tickets": overdue_qs,
+            "completed_tickets": completed_qs,
+            "overdue_tickets": overdue,
             "active_tickets": active_qs,
-            "active_tickets_page": active_page,
-            "overdue_tickets_page": overdue_page,
-            "completed_tickets_page": completed_page,
+            "active_tickets_page": self._get_page(request, active_qs, 'active_page'),
+            "overdue_tickets_page": self._get_page(request, overdue, 'overdue_page'),
+            "completed_tickets_page": self._get_page(request, completed_qs, 'completed_page'),
         }
 
     def get_admin_stats(self):
@@ -92,9 +85,9 @@ class HomeView(View):
         if scope == "personal":
             return Ticket.objects.filter(created_by=user).distinct()
 
-        if scope == "department":         
+        if scope == "department":
             return Ticket.objects.filter(assignments__department__assigned_users__user=user).distinct()
-        
+
         if scope == 'assigned':
             return Ticket.objects.filter(participants__user=user).distinct()
 
@@ -107,7 +100,7 @@ class HomeView(View):
     def _annotate_last_message(self, qs, user):
         """Annotate the queryset with details of the last message and last read timestamp."""
         last_msg = TicketMessage.objects.filter(ticket_id=OuterRef("pk")).order_by("-edited_at")
-        last_read = TicketParticipant.objects.filter(ticket=OuterRef("pk"),user=user).values("last_read_at")[:1]
+        last_read = TicketParticipant.objects.filter(ticket=OuterRef("pk"), user=user).values("last_read_at")[:1]
         return qs.annotate(
             last_message_at=Subquery(last_msg.values("edited_at")[:1]),
             last_message_body=Subquery(last_msg.values("body")[:1]),
@@ -117,7 +110,7 @@ class HomeView(View):
             last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
             user_last_read_at=Subquery(last_read, output_field=DateTimeField()),
         )
-    
+
     def _annotate_unread_count(self, qs, user):
         """Annotate the queryset with the count of unread messages for the user."""
         return qs.annotate(

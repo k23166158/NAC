@@ -1,13 +1,15 @@
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import OuterRef, Subquery
+from django.http import HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
-from django.db.models import OuterRef, Subquery
-from django.contrib.auth import get_user_model
-from django.contrib import messages
+
 from ..models import Department, Ticket, TicketMessage, UserDepartments, DepartmentInvitation
-from django.http import HttpResponseForbidden
-from django.contrib.auth.mixins import LoginRequiredMixin
 
 User = get_user_model()
+
 
 class DepartmentView(LoginRequiredMixin, View):
     """View for displaying department details."""
@@ -40,39 +42,38 @@ class DepartmentView(LoginRequiredMixin, View):
         """Check if the user can manage staff for the department."""
         return user.is_staff and department.created_by == user
 
+    def _get_page(self, request, queryset, param, per_page=5):
+        """Return a paginated page and its total count."""
+        from django.core.paginator import Paginator
+        paginator = Paginator(queryset, per_page)
+        return paginator.get_page(request.GET.get(param, 1)), paginator.count
+
+    def _get_staff_context(self, request, department):
+        """Helper to fetch staff and invited users context."""
+        current_staff = self.get_current_staff(department)
+        pending = DepartmentInvitation.objects.filter(department=department, status='pending')
+        invited_users = [invite.recipient for invite in pending.select_related('recipient')]
+        staff_page, _ = self._get_page(request, list(current_staff) + invited_users, 'staff_page')
+        return current_staff, invited_users, staff_page
+
     def build_context(self, request, department):
         """Build the context for rendering the department view, including multiple paginators."""
-        from django.core.paginator import Paginator
-        
-        current_staff = self.get_current_staff(department)
-        pending_invitations = DepartmentInvitation.objects.filter(department=department, status='pending').select_related('recipient')
-        invited_users = [invite.recipient for invite in pending_invitations]
-
-        all_staff_combined = list(current_staff) + list(invited_users)
-        staff_paginator = Paginator(all_staff_combined, 5)
-        staff_page_num = request.GET.get('staff_page', 1)
-        staff_page = staff_paginator.get_page(staff_page_num)
-
-        active_qs = self.get_tickets(department, ['open', 'pending'])
-        active_paginator = Paginator(active_qs, 5)
-        active_page_num = request.GET.get('active_page', 1)
-        active_page = active_paginator.get_page(active_page_num)
-
-        closed_qs = self.get_tickets(department, ['closed'])
-        closed_paginator = Paginator(closed_qs, 5)
-        closed_page_num = request.GET.get('closed_page', 1)
-        closed_page = closed_paginator.get_page(closed_page_num)
+        curr_staff, invited, staff_page = self._get_staff_context(request, department)
+        active_page, active_count = self._get_page(request, self.get_tickets(department, ['open', 'pending']),
+                                                   'active_page')
+        closed_page, closed_count = self._get_page(request, self.get_tickets(department, ['closed']), 'closed_page')
 
         return {
             "department": department,
             "staff_page": staff_page,
-            "invited_users": invited_users,
-            "available_staff": self.get_available_staff(current_staff, invited_users),
+            "invited_users": invited,
+            "available_staff": self.get_available_staff(curr_staff, invited),
             "active_tickets_page": active_page,
             "closed_tickets_page": closed_page,
-            "active_tickets_count": active_paginator.count,
-            "closed_tickets_count": closed_paginator.count,
+            "active_tickets_count": active_count,
+            "closed_tickets_count": closed_count,
         }
+
     def get_current_staff(self, department):
         """Get the current staff assigned to the department."""
         return [
@@ -97,7 +98,7 @@ class DepartmentView(LoginRequiredMixin, View):
         last_msg = TicketMessage.objects.filter(
             ticket_id=OuterRef("pk")
         ).order_by("-edited_at")
-        
+
         return queryset.annotate(
             last_message_at=Subquery(last_msg.values("edited_at")[:1]),
             last_message_body=Subquery(last_msg.values("body")[:1]),
