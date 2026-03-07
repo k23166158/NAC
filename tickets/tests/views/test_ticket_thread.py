@@ -1,15 +1,18 @@
+import tempfile
 import uuid
 from django.utils import timezone
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from tickets.models.ticket_participant import TicketParticipant
 from tickets.views.ticket_thread_view import TicketThreadView
-from tickets.models import Ticket, TicketMessage, Department, UserDepartments, TicketAssigned
+from tickets.models import Ticket, TicketMessage, Department, UserDepartments, TicketAssigned, TicketMessageAttachment
 from django.test import RequestFactory
 from django.http import Http404
-User = get_user_model()
+from django.core.files.uploadedfile import SimpleUploadedFile
 
+
+User = get_user_model()
 
 def make_user(username, **kwargs):
     """Create a user with required fields for this project's User model."""
@@ -47,6 +50,23 @@ class TicketThreadViewTests(TestCase):
         data = {"csrfmiddlewaretoken": token.value} if token else {}
         data.update(extra)
         return data
+
+    def _create_message_with_attachments(self):
+        """Create one message with two text attachments."""
+        msg = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="Original body")
+        a1 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=msg,
+            file=SimpleUploadedFile("one.txt", b"111", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+        a2 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=msg,
+            file=SimpleUploadedFile("two.txt", b"222", content_type="text/plain"),
+            uploaded_by=self.user,
+        )
+        return msg, a1, a2
 
     # --- GET: access and template ---
 
@@ -284,6 +304,51 @@ class TicketThreadViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         msg.refresh_from_db()
         self.assertEqual(msg.body, "Original body")
+
+    @override_settings(MEDIA_ROOT=tempfile.gettempdir())
+    def test_edit_form_shows_existing_attachments_with_remove_option(self):
+        """Edit mode should display existing attachments and removal checkboxes."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="With file",
+        )
+        upload = SimpleUploadedFile("keep.txt", b"abc", content_type="text/plain")
+        TicketMessageAttachment.objects.create(
+            ticket=self.ticket,
+            message=msg,
+            file=upload,
+            uploaded_by=self.user,
+        )
+
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(action="edit", message_id=str(msg.id)),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "remove_attachment_ids")
+        self.assertContains(response, "keep.txt")
+
+    @override_settings(MEDIA_ROOT=tempfile.gettempdir())
+    def test_post_update_can_remove_selected_attachments(self):
+        """POST action=update should delete selected existing attachments."""
+        msg, a1, a2 = self._create_message_with_attachments()
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(
+            self._url(),
+            data=self._csrf_data(
+                action="update",
+                message_id=str(msg.id),
+                body="Updated body",
+                remove_attachment_ids=[str(a1.id)],
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(TicketMessageAttachment.objects.filter(id=a1.id).exists())
+        self.assertTrue(TicketMessageAttachment.objects.filter(id=a2.id).exists())
 
     def test_post_edit_other_users_message_returns_404(self):
         """POST action=edit on another user's message returns 404."""
@@ -1209,3 +1274,300 @@ class TicketThreadViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_attachment_save_without_file_early_returns(self):
+        """POST with attachment but no file should return 200 without error."""
+        message = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="hello",
+            created_at=timezone.now(),
+        )
+        attachment = TicketMessageAttachment.objects.create(
+            ticket = self.ticket,
+            message = message,
+            uploaded_by = self.user,
+        )
+        attachment.save()
+
+        attachment.refresh_from_db()
+        self.assertEqual(attachment.file.name, "")
+        self.assertEqual(attachment.content_type, "")
+        self.assertEqual(attachment.size_bytes, 0)
+
+    @override_settings (MEDIA_ROOT=tempfile.gettempdir())
+    def test_attachment_save_populates_metadata(self):
+        """Uploading a file should populate size_bytes/original_name/content_type."""
+        msg = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="hello",
+            created_at=timezone.now(),
+        )
+
+        upload = SimpleUploadedFile(
+            name="folder/Screenshot.png",
+            content=b"abc123",
+            content_type="image/png",
+        )
+        attachment = TicketMessageAttachment(
+            ticket=self.ticket, message=msg, uploaded_by=self.user, file=upload,
+        )
+        attachment.save()
+        attachment.refresh_from_db()
+        self.assertGreater(attachment.size_bytes, 0)
+        self.assertTrue(attachment.file.name.startswith("ticket_attachments/"))
+        self.assertTrue(attachment.file.name.endswith(".png"))
+        self.assertIn("Screenshot", attachment.file.name)
+        self.assertEqual(attachment.content_type, "image/png")
+        self.assertTrue(bool(attachment.file.name))
+
+    def test_attachment_str(self):
+        """_str_ should include original_name and message_id."""
+        message = TicketMessage.objects.create(
+            ticket=self.ticket,
+            sender=self.user,
+            body="hello",
+            created_at=timezone.now(),
+        )
+        upload = SimpleUploadedFile("a.txt", b"hello", content_type="text/plain")
+        attachment = TicketMessageAttachment.objects.create(
+        ticket=self.ticket, message=message, uploaded_by=self.user, file=upload,
+        )
+        self.assertIn("Attachment", str(attachment))
+        self.assertIn("a.txt", str(attachment))
+        self.assertIn(str(attachment.message_id), str(attachment))
+
+    @override_settings(MEDIA_ROOT=tempfile.gettempdir())
+    def test_ticket_thread_post_creates_message_attachments(self):
+        """Posting a reply with attachments should not error and should create a message."""
+        self.client.force_login(self.user)  # <-- ADD THIS LINE
+        url = reverse("ticket_thread", args=[self.ticket.uuid])
+        f1 = SimpleUploadedFile("a.txt", b"hello", content_type="text/plain")
+        f2 = SimpleUploadedFile("b.txt", b"world", content_type="text/plain")
+        before = TicketMessage.objects.filter(ticket=self.ticket).count()
+        resp = self.client.post(
+            url,
+            data={"body": "Here are files"},
+            files={"attachments": [f1, f2]},
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        after = TicketMessage.objects.filter(ticket=self.ticket).count()
+        self.assertEqual(after, before + 1)
+        msg = TicketMessage.objects.filter(ticket=self.ticket).order_by("-created_at").first()
+        self.assertIsNotNone(msg)
+        self.assertEqual(msg.body, "Here are files")
+
+    def test_post_returns_403_when_user_has_no_permission(self):
+        """POST should return 403 for a user without edit permissions."""
+        self.client.force_login(self.other_user)  # ensure other_user exists in your setup
+        url = reverse("ticket_thread", args=[self.ticket.uuid])
+
+        resp = self.client.post(url, data={"body": "nope"}, follow=False)
+        self.assertEqual(resp.status_code, 403)
+
+    def test_get_assignment_target_returns_none_for_unknown_type(self):
+        """Unknown target_type should return None."""
+        view = TicketThreadView()
+        self.assertIsNone(view.get_assignment_target("nonsense", 123))
+
+    def test_apply_assignment_action_does_nothing_for_unknown_action(self):
+        """apply_assignment_action should do nothing if handler.action is not add/remove."""
+        view = TicketThreadView()
+
+        class DummyHandler:
+            """A dummy handler with an unknown action that should not call add or remove."""
+            def __init__(self):
+                """Set action to an unknown value."""
+                self.action = "nonsense"
+            def add(self, target, actor):  # pragma: no cover
+                """The add method should not be called for an unknown action."""
+                raise AssertionError("Should not be called")
+            def remove(self, target):  # pragma: no cover
+                """The remove method should also not be called for an unknown action."""
+                raise AssertionError("Should not be called")
+
+        handler = DummyHandler()
+        # Should not raise and should not call add/remove
+        view.apply_assignment_action(handler, target=None, actor=None)
+
+    def test_close_ticket_action_closes_open_ticket(self):
+        """handle_close_ticket_action should set status to CLOSED if currently OPEN."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        self.ticket.status = Ticket.Status.OPEN
+        self.ticket.save(update_fields=["status"])
+
+        view.handle_close_ticket_action()
+
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+
+    def test_close_ticket_action_when_already_closed_no_change(self):
+        """If ticket is already CLOSED, handle_close_ticket_action should not reopen it."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        # Set ticket to CLOSED (Ticket has no closed_at field)
+        self.ticket.status = Ticket.Status.CLOSED
+        self.ticket.save(update_fields=["status"])
+
+        updated_before = self.ticket.updated_at
+
+        # Call the action (should be a no-op or keep it closed)
+        view.handle_close_ticket_action()
+
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+        # updated_at may change due to save(), but should not break status
+        self.assertIsNotNone(self.ticket.updated_at)
+
+    def test_handle_assignment_change_missing_fields_returns(self):
+        """handle_assignment_change should return early if target_id, target_type, or action is missing."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        req = self.client.request().wsgi_request
+        req.user = self.user
+        req.POST = {}  # missing target_id/target_type/action
+
+        # Should not raise
+        view.handle_assignment_change(req)
+    
+    def test_handle_assignment_change_unknown_target_type_returns(self):
+        """handle_assignment_change should return early if get_assignment_target returns None for unknown target_type."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        req = self.client.request().wsgi_request
+        req.user = self.user
+        req.POST = {"target_id": "1", "target_type": "nonsense", "action": "add"}
+
+        view.handle_assignment_change(req)
+    
+    def test_get_assignment_target_returns_none_for_unknown_type(self):
+        """Test that get_assignment_target returns None for unknown target types."""
+        view = TicketThreadView()
+        self.assertIsNone(view.get_assignment_target("unknown", "123"))
+
+    def test_apply_assignment_action_does_nothing_for_unknown_action(self):
+        """Test that apply_assignment_action does not call any handler methods for unknown actions."""
+        view = TicketThreadView()
+
+        class DummyHandler:
+            """A dummy handler that raises an error if its methods are called."""
+            action = "nonsense"
+            def add(self, target, actor):
+                """Should not be called for unknown action."""
+                raise AssertionError("Should not be called")
+            def remove(self, target):
+                """Should not be called for unknown action."""
+                raise AssertionError("Should not be called")
+
+        view.apply_assignment_action(DummyHandler(), target=None, actor=None)
+
+    def test_post_permission_denied(self):
+        """Test line 85: Returns HttpResponseForbidden if user lacks edit permissions."""
+        # Log in as a user who didn't create the ticket and isn't staff/dept member
+        self.client.force_login(self.other_user)
+        response = self.client.post(self._url(), {'action': 'add', 'body': 'Hello'})
+        self.assertEqual(response.status_code, 403)
+
+    def test_handle_update_action_empty_body(self):
+        """Test line 231: handle_update_action returns early if no body is provided."""
+        msg = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="Original")
+        self.client.force_login(self.user)
+        # Send update action with empty body
+        self.client.post(self._url(), {'action': 'update', 'message_id': msg.id, 'body': ''})
+        msg.refresh_from_db()
+        self.assertEqual(msg.body, "Original")
+
+    def test_handle_add_action_empty_body(self):
+        """Test line 244: handle_add_action returns early if body is whitespace."""
+        self.client.force_login(self.user)
+        self.client.post(self._url(), {'body': '   '})
+        self.assertEqual(TicketMessage.objects.filter(ticket=self.ticket).count(), 0)
+
+    def test_handle_staff_change_missing_user_id(self):
+        """Test line 265: handle_staff_change returns early if user_id is missing."""
+        self.client.force_login(self.user)
+        # Action 'add' without 'user_id'
+        response = self.client.post(self._url(), {'action': 'add'})
+        self.assertEqual(response.status_code, 200) # Should just re-render thread
+
+    def test_handle_assignment_change_invalid_type(self):
+        """Test line 357: handle_assignment_change returns if target_type is invalid."""
+        self.client.force_login(self.user)
+        response = self.client.post(self._url(), {
+            'target_id': '1', 
+            'target_type': 'invalid_type', 
+            'action': 'add'
+        })
+        self.assertEqual(response.status_code, 200)
+
+    def test_handle_update_action_null_body(self):
+        """Handle_update_action early return when body is missing."""
+        msg = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="Old Body")
+        self.client.force_login(self.user)
+        
+        # Action is update, but 'body' key is missing entirely from POST
+        self.client.post(self._url(), {
+            'action': 'update',
+            'message_id': msg.id
+            # 'body' is missing
+        })
+        
+        msg.refresh_from_db()
+        self.assertEqual(msg.body, "Old Body")
+
+    def test_post_invalid_action_returns_render(self):
+        """Ensure an unrecognized action just re-renders the page."""
+        self.client.force_login(self.user)
+        # Send an action that the view doesn't have a handler for
+        response = self.client.post(self._url(), {'action': 'fake_action_123'})
+        
+        self.assertEqual(response.status_code, 200)
+        # Ensure it didn't crash and returned the template
+        self.assertTemplateUsed(response, 'ticket_thread.html')
+
+    def test_handle_add_action_blank_body_returns_without_creating_message(self):
+        """Test that handle_add_action returns early and does not create a message if body is blank after stripping whitespace."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        rf = RequestFactory()
+        request = rf.post(self._url(), data={"body": "   "})  # blank after strip
+        request.user = self.user
+
+        before = TicketMessage.objects.filter(ticket=self.ticket).count()
+        view.handle_add_action(request)
+        after = TicketMessage.objects.filter(ticket=self.ticket).count()
+
+        self.assertEqual(before, after)
+
+    def test_save_attachments_for_message_creates_rows(self):
+        """Test that _save_attachments_for_message creates TicketMessageAttachment rows for uploaded files."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+
+        msg = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="hi")
+
+        f1 = SimpleUploadedFile("a.txt", b"aaa", content_type="text/plain")
+        f2 = SimpleUploadedFile("b.txt", b"bbb", content_type="text/plain")
+
+        rf = RequestFactory()
+        # IMPORTANT: pass files as part of the POST so request.FILES is populated
+        request = rf.post(self._url(), data={"body": "hi", "attachments": [f1, f2]})
+        request.user = self.user
+
+        view._save_attachments_for_message(request, msg)
+
+        self.assertEqual(TicketMessageAttachment.objects.filter(message=msg).count(), 2)

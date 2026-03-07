@@ -1,14 +1,7 @@
-from datetime import timedelta
-
-from django.db.models import F
-from django.db.models import OuterRef
-from django.db.models import Subquery, Count, Q, DateTimeField
-from django.db.models.functions import Coalesce
 from django.shortcuts import render
-from django.utils import timezone
 from django.views import View
 
-from tickets.models import Ticket, TicketMessage, TicketParticipant, User
+from tickets.models import Ticket, User
 
 
 class HomeView(View):
@@ -63,11 +56,7 @@ class HomeView(View):
 
     def tickets_by_status(self):
         """Returns a count of tickets by status."""
-        return {
-            "open": Ticket.objects.filter(status=Ticket.Status.OPEN).count(),
-            "pending": Ticket.objects.filter(status=Ticket.Status.PENDING).count(),
-            "closed": Ticket.objects.filter(status=Ticket.Status.CLOSED).count(),
-        }
+        return Ticket.status_counts()
 
     def handle_scope(self, user, scope):
         """Handles the tickets to display depending on the scope selected by the user"""
@@ -81,66 +70,29 @@ class HomeView(View):
 
     def base_tickets(self, user, scope="personal"):
         """Tickets visible to this user."""
-
-        if scope == "personal":
-            return Ticket.objects.filter(created_by=user).distinct()
-
-        if scope == "department":
-            return Ticket.objects.filter(assignments__department__assigned_users__user=user).distinct()
-
-        if scope == 'assigned':
-            return Ticket.objects.filter(participants__user=user).distinct()
+        return Ticket.base_for_scope(user, scope=scope)
 
     def annotated_tickets(self, user, scope="personal"):
         """Annotate the base ticket queryset with message metadata."""
-        qs = self.base_tickets(user, scope=scope)
-        qs = self._annotate_last_message(qs, user)
-        return self._annotate_unread_count(qs, user)
+        return Ticket.annotated_for_home(user, scope=scope)
 
     def _annotate_last_message(self, qs, user):
         """Annotate the queryset with details of the last message and last read timestamp."""
-        last_msg = TicketMessage.objects.filter(ticket_id=OuterRef("pk")).order_by("-edited_at")
-        last_read = TicketParticipant.objects.filter(ticket=OuterRef("pk"), user=user).values("last_read_at")[:1]
-        return qs.annotate(
-            last_message_at=Subquery(last_msg.values("edited_at")[:1]),
-            last_message_body=Subquery(last_msg.values("body")[:1]),
-            last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
-            last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
-            last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
-            last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
-            user_last_read_at=Subquery(last_read, output_field=DateTimeField()),
-        )
+        return Ticket._annotate_last_message_for_user(qs, user
+                                                      )
 
     def _annotate_unread_count(self, qs, user):
         """Annotate the queryset with the count of unread messages for the user."""
-        return qs.annotate(
-            unread_count=Count(
-                "messages",
-                filter=Q(messages__edited_at__gt=Coalesce(
-                    F("user_last_read_at"),
-                    timezone.make_aware(timezone.datetime.min)
-                )) & ~Q(messages__sender=user)
-            )
-        )
+        return Ticket._annotate_unread_count_for_user(qs, user)
 
     def completed_tickets(self, qs):
         """Tickets that are completed/closed."""
-        return qs.filter(status=Ticket.Status.CLOSED).order_by("-updated_at")
+        return Ticket.completed_from(qs)
 
     def overdue_tickets(self, qs):
         """Tickets that are overdue for a response."""
-        cutoff = timezone.now() - timedelta(days=7)
-        return qs.filter(
-            status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING],
-            last_message_at__isnull=False,
-            last_message_at__lt=cutoff,
-            last_sender_is_staff=False,
-        ).order_by("-last_message_at")
+        return Ticket.overdue_from(qs)
 
     def active_tickets(self, qs, overdue):
         """Tickets that are active and not overdue."""
-        return qs.filter(
-            status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING],
-        ).exclude(
-            id__in=overdue.values_list("id", flat=True)
-        ).order_by("-updated_at")
+        return Ticket.active_from(qs, overdue)

@@ -304,6 +304,26 @@ class HomeViewTests(TestCase):
 
         self.assertEqual(response.context["scope"], "department")
 
+    def test__annotate_last_message_wrapper_direct_call(self):
+        """_annotate_last_message delegates to Ticket annotation helper."""
+        ticket = Ticket.objects.create(title="Wrapper ticket", created_by=self.user, status=Ticket.Status.OPEN)
+        TicketMessage.objects.create(ticket=ticket, sender=self.user, body="Wrapper body")
+        view = HomeView()
+        qs = Ticket.objects.filter(id=ticket.id)
+        annotated = view._annotate_last_message(qs, self.user)
+        row = annotated.get(id=ticket.id)
+        self.assertEqual(row.last_message_body, "Wrapper body")
+
+    def test__annotate_unread_count_wrapper_direct_call(self):
+        """_annotate_unread_count delegates to Ticket unread annotation helper."""
+        ticket = Ticket.objects.create(title="Unread wrapper", created_by=self.user, status=Ticket.Status.OPEN)
+        TicketMessage.objects.create(ticket=ticket, sender=self.staff1, body="Unread one")
+        view = HomeView()
+        qs = view._annotate_last_message(Ticket.objects.filter(id=ticket.id), self.user)
+        annotated = view._annotate_unread_count(qs, self.user)
+        row = annotated.get(id=ticket.id)
+        self.assertEqual(row.unread_count, 1)
+
     def test_plus_button_present_for_authenticated_user(self):
         """The plus button should be present on the home page for authenticated users."""
         self.client.force_login(self.user)

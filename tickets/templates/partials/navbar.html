@@ -9,12 +9,15 @@
                     {% if user.is_staff %}
                         <li><a href="{% url 'department_manage' %}">Departments</a></li>
                     {% endif %}
-        <li>
-            <form action="/logout/" method="post" class="logout-form">
-                {% csrf_token %}
-                <button type="submit" class="logout-btn">Logout</button>
-            </form>
-        </li>
+                    <li>
+                        <a href="{% url 'notifications' %}">Notifications</a>
+                    </li>
+                    <li>
+                        <form action="/logout/" method="post" class="logout-form">
+                            {% csrf_token %}
+                            <button type="submit" class="logout-btn">Logout</button>
+                        </form>
+                    </li>
             {% else %}
                 <li><a href="/login/">Login</a></li>
             {% endif %}

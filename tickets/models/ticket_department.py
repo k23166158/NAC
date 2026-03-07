@@ -22,3 +22,22 @@ class TicketDepartment(models.Model):
     class Meta:
         """Meta options for the TicketDepartment model."""
         unique_together = ("ticket", "department")
+
+    @classmethod
+    def assign_department(cls, ticket, department, *, added_by=None):
+        """Assign a department with standard ticket side effects."""
+        from tickets.helpers.ticket_assignment import assign_department_to_ticket
+
+        return assign_department_to_ticket(
+            ticket=ticket,
+            department=department,
+            added_by=added_by,
+        )
+
+    @classmethod
+    def remove_department(cls, ticket, department):
+        """Remove a ticket-department relation and log system message."""
+        from .ticket_message import TicketMessage
+
+        cls.objects.filter(ticket=ticket, department=department).delete()
+        TicketMessage.create_system_message(ticket, f"{department.name} was removed from the ticket.")
