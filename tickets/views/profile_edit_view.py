@@ -1,6 +1,6 @@
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.views import redirect_to_login
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.views import View
 
@@ -23,7 +23,8 @@ class ProfileEditView(View):
         user = request.user
         password_changed = self._apply_profile_updates(request, user)
         try:
-            user.save()
+            with transaction.atomic():
+                user.save()
         except IntegrityError:
             return self._render_duplicate_error(request, user)
         if password_changed:
