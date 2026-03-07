@@ -5,19 +5,26 @@
             {% if user.is_superuser or user.is_staff %}
                 <li><a href="{% url 'manage_users' %}">Users</a></li>
             {% endif %}
-                {% if user.is_authenticated %}
-                    {% if user.is_staff %}
-                        <li><a href="{% url 'department_manage' %}">Departments</a></li>
-                    {% endif %}
-                    <li>
-                        <a href="{% url 'notifications' %}">Notifications</a>
-                    </li>
-                    <li>
-                        <form action="/logout/" method="post" class="logout-form">
-                            {% csrf_token %}
-                            <button type="submit" class="logout-btn">Logout</button>
-                        </form>
-                    </li>
+            {% if user.is_authenticated %}
+                {% if user.is_staff %}
+                    <li><a href="{% url 'department_manage' %}">Departments</a></li>
+                {% endif %}
+                <li>
+                    <a href="{% url 'notifications' %}" class="nav-link-notifications">
+                        Notifications
+                        {% if unread_notification_count %}
+                            <span class="nav-unread-badge">
+                                {{ unread_notification_count }}
+                            </span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li>
+                    <form action="/logout/" method="post" class="logout-form">
+                        {% csrf_token %}
+                        <button type="submit" class="logout-btn">Logout</button>
+                    </form>
+                </li>
             {% else %}
                 <li><a href="/login/">Login</a></li>
             {% endif %}
