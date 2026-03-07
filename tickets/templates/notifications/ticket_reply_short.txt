@@ -1,0 +1,1 @@
+{{ actor.get_full_name|default:actor.username }} replied to ticket "{{ target.title }}".

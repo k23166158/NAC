@@ -3,6 +3,21 @@
 {% block content %}
 <h1>Notifications</h1>
 
-<p>No notifications yet.</p>
+{% if notifications %}
+    <ul>
+        {% for notification in notifications %}
+            <li>
+                <a href="{% url 'notification_open' notification.id %}">
+                    {{ notification.short_message }}
+                </a>
+                {% if not notification.is_read %}
+                    <strong>(new)</strong>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No notifications yet.</p>
+{% endif %}
 
 {% endblock %}

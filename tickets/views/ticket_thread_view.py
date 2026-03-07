@@ -9,6 +9,7 @@ from tickets.models.department import Department
 from tickets.models.ticket_department import TicketDepartment
 from tickets.models.ticket_message_attachments import TicketMessageAttachment
 from tickets.models.ticket_participant import TicketParticipant
+from tickets.helpers.notifications import notify_ticket_reply
 
 User = get_user_model()
 
@@ -193,6 +194,7 @@ class TicketThreadView(LoginRequiredMixin, View):
         if not message:
             return
         self._save_attachments_for_message(request, message)
+        notify_ticket_reply(self.object, request.user, message.body)
 
     def _add_staff(self, user, added_by):
         """Assign a staff member to the ticket."""

@@ -28,7 +28,7 @@ from tickets.views.profile_view import ProfileView
 from tickets.views.profile_edit_view import ProfileEditView
 from django.conf import settings
 from django.conf.urls.static import static
-from tickets.views.notifications_view import NotificationView
+from tickets.views.notifications_view import NotificationView, NotificationOpenView
 from tickets.views.search_assignables_view import search_assignables
 
 urlpatterns = [
@@ -39,6 +39,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
 
     path('notifications/', NotificationView.as_view(), name='notifications'),
+    path('notifications/<int:notification_id>/open/', NotificationOpenView.as_view(), name='notification_open'),
     
     path('tickets/<uuid:uuid>/', TicketThreadView.as_view(), name='ticket_thread'),
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),

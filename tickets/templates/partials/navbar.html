@@ -10,7 +10,12 @@
                         <li><a href="{% url 'department_manage' %}">Departments</a></li>
                     {% endif %}
                     <li>
-                        <a href="{% url 'notifications' %}">Notifications</a>
+                        <a href="{% url 'notifications' %}">
+                            Notifications
+                            {% if unread_notifications_count %}
+                                <span class="notification-badge">{{ unread_notifications_count }}</span>
+                            {% endif %}
+                        </a>
                     </li>
                     <li>
                         <form action="/logout/" method="post" class="logout-form">

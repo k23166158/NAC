@@ -1,0 +1,2 @@
+{{ actor.get_full_name|default:actor.username }} posted a new response on ticket "{{ target.title }}".
+Open the ticket to read the latest message.

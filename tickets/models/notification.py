@@ -9,6 +9,7 @@ class Notification(models.Model):
     class NotificationType(models.TextChoices):
         """Defines the types of notifications that can be created."""
         TICKET_CREATED = 'TICKET_CREATED', 'Ticket Created'
+        TICKET_REPLY = 'TICKET_REPLY', 'Ticket Reply'
     
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

@@ -62,6 +62,21 @@ header nav ul li a:hover {
     text-decoration: underline;
 }
 
+.notification-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 6px;
+}
+
 .logout-btn {
     background: none;
     border: none;

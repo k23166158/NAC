@@ -10,6 +10,8 @@ from tickets.models import Ticket, TicketMessage, Department, UserDepartments, T
 from django.test import RequestFactory
 from django.http import Http404
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core import mail
+from tickets.models.notification import Notification
 
 
 User = get_user_model()
@@ -67,6 +69,31 @@ class TicketThreadViewTests(TestCase):
             uploaded_by=self.user,
         )
         return msg, a1, a2
+
+    def _create_staff_participant(self):
+        """Create and attach a staff participant to the ticket."""
+        staff_user = make_user("staffnotify", is_staff=True, email="staffnotify@example.com")
+        self.ticket.participants.create(user=staff_user)
+        return staff_user
+
+    def _post_reply(self, body):
+        """Post a reply as the ticket owner."""
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        return self.client.post(self._url(), data=self._csrf_data(body=body))
+
+    def _assert_reply_notification_email(self, staff_user):
+        """Assert that a TICKET_REPLY notification was created for the staff user and an email was sent."""
+        self.assertTrue(Notification.objects.filter(
+            user=staff_user,
+            notification_type=Notification.NotificationType.TICKET_REPLY,
+        ).exists())
+        self.assertFalse(Notification.objects.filter(
+            user=self.user,
+            notification_type=Notification.NotificationType.TICKET_REPLY,
+        ).exists())
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [staff_user.email])
 
     # --- GET: access and template ---
 
@@ -212,6 +239,14 @@ class TicketThreadViewTests(TestCase):
         msg = TicketMessage.objects.get(ticket=self.ticket)
         self.assertEqual(msg.body, "New reply")
         self.assertEqual(msg.sender, self.user)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_post_with_body_creates_notification_and_email(self):
+        """Posting a reply notifies other ticket participants and sends email."""
+        staff_user = self._create_staff_participant()
+        response = self._post_reply("New reply with notification")
+        self.assertEqual(response.status_code, 200)
+        self._assert_reply_notification_email(staff_user)
 
     def test_post_empty_body_does_not_create_message(self):
         """POST without body (or empty body) does not create a message."""
