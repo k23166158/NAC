@@ -24,6 +24,11 @@ class TicketAssigned(models.Model):
         verbose_name_plural = "Ticket Assignments"
         unique_together = ('ticket', 'department')
 
+    @classmethod
+    def build_for_departments(cls, ticket, departments):
+        """Build unsaved assignments for the given departments."""
+        return [cls(ticket=ticket, department=dept) for dept in departments]
+
     def __str__(self):
         """String representation of the TicketAssigned instance."""
         return f"Assignment: Ticket #{self.ticket.id} -> {self.department.name}"

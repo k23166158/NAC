@@ -40,25 +40,30 @@ class Department(models.Model):
     @classmethod
     def assigned_to_user_with_ticket_counts(cls, user):
         """Return departments assigned to user with ticket count annotations."""
-        return (
-            cls.objects.filter(assigned_users__user=user)
-            .select_related("created_by")
-            .distinct()
-            .annotate(
-                active_ticket_count=models.Count(
-                    "assigned_tickets",
-                    filter=models.Q(assigned_tickets__ticket__status__in=["open", "pending"]),
-                    distinct=True,
-                ),
-                completed_ticket_count=models.Count(
-                    "assigned_tickets",
-                    filter=models.Q(assigned_tickets__ticket__status="closed"),
-                    distinct=True,
-                ),
-            )
-            .prefetch_related("assigned_users__user")
-            .order_by("name")
-        )
+        queryset = cls._assigned_to_user_queryset(user)
+        queryset = queryset.annotate(**cls._ticket_count_annotations())
+        return queryset.prefetch_related("assigned_users__user").order_by("name")
+
+    @classmethod
+    def _assigned_to_user_queryset(cls, user):
+        """Return base queryset for departments assigned to user."""
+        return cls.objects.filter(assigned_users__user=user).select_related("created_by").distinct()
+
+    @staticmethod
+    def _ticket_count_annotations():
+        """Return annotations for active and completed ticket counts."""
+        return {
+            "active_ticket_count": models.Count(
+                "assigned_tickets",
+                filter=models.Q(assigned_tickets__ticket__status__in=["open", "pending"]),
+                distinct=True,
+            ),
+            "completed_ticket_count": models.Count(
+                "assigned_tickets",
+                filter=models.Q(assigned_tickets__ticket__status="closed"),
+                distinct=True,
+            ),
+        }
 
     def can_view(self, user):
         """Check if user may view this department."""
@@ -125,38 +130,61 @@ class Department(models.Model):
 
     def process_staff_change(self, *, actor, user_id, action):
         """Apply add/remove/remove_invite staff action for this department."""
-        from .department_invitation import DepartmentInvitation
-        from .user_departments import UserDepartments
-
         if not user_id:
             return None
 
         user = get_object_or_404(User, id=user_id)
-        if action == "add":
-            return self.invite_staff(actor=actor, user=user)
-        if action == "remove":
-            UserDepartments.objects.filter(user=user, department=self).delete()
-            return None
-        if action == "remove_invite":
-            DepartmentInvitation.objects.filter(
-                department=self,
-                recipient=user,
-                status="pending",
-            ).delete()
-            return None
+        handlers = self._staff_change_handlers(actor, user)
+        handler = handlers.get(action)
+        return handler() if handler else None
+
+    def _staff_change_handlers(self, actor, user):
+        """Return handlers for staff management actions."""
+        return {
+            "add": lambda: self.invite_staff(actor=actor, user=user),
+            "remove": lambda: self._remove_staff(user),
+            "remove_invite": lambda: self._remove_pending_invite(user),
+        }
+
+    def _remove_staff(self, user):
+        """Remove a user from this department."""
+        from .user_departments import UserDepartments
+
+        UserDepartments.objects.filter(user=user, department=self).delete()
+        return None
+
+    def _remove_pending_invite(self, user):
+        """Delete any pending invite for a user in this department."""
+        from .department_invitation import DepartmentInvitation
+
+        DepartmentInvitation.objects.filter(
+            department=self,
+            recipient=user,
+            status="pending",
+        ).delete()
         return None
 
     def invite_staff(self, *, actor, user):
         """Create a pending invite for a staff user if allowed."""
-        from .department_invitation import DepartmentInvitation
+        validation = self._validate_invitable_staff(user)
+        if validation:
+            return validation
+        return self._create_staff_invite(actor=actor, user=user)
+
+    def _validate_invitable_staff(self, user):
+        """Return validation error/warning tuple when user cannot be invited."""
         from .user_departments import UserDepartments
 
         if not user.is_staff:
             return ("error", "Only staff users can be invited to a department.")
-
         if UserDepartments.objects.filter(user=user, department=self).exists():
             name = user.get_full_name() or user.username
             return ("warning", f"{name} is already in this department.")
+        return None
+
+    def _create_staff_invite(self, *, actor, user):
+        """Create or reuse a pending invite and return message tuple."""
+        from .department_invitation import DepartmentInvitation
 
         _invite, created = DepartmentInvitation.objects.get_or_create(
             department=self,

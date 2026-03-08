@@ -58,25 +58,35 @@ class DepartmentInvitation(models.Model):
         if not invite_id or not action:
             return ("error", "Invalid request.")
 
-        invite = get_object_or_404(
-            cls,
-            pk=invite_id,
-            recipient=user,
-            status='pending',
-        )
+        invite = cls._pending_invite_for_user_or_404(user=user, invite_id=invite_id)
+        handlers = cls._action_handlers(invite, user)
+        handler = handlers.get(action)
+        return handler() if handler else ("error", "Invalid action.")
 
-        if action == 'accept':
-            invite.status = 'accepted'
-            invite.save(update_fields=['status'])
-            UserDepartments.objects.get_or_create(
-                user=user,
-                department=invite.department,
-            )
-            return ("success", f'You have joined the department "{invite.department.name}".')
+    @classmethod
+    def _pending_invite_for_user_or_404(cls, *, user, invite_id):
+        """Load a pending invite for the given user."""
+        return get_object_or_404(cls, pk=invite_id, recipient=user, status='pending')
 
-        if action == 'decline':
-            invite.status = 'declined'
-            invite.save(update_fields=['status'])
-            return ("info", f'You have declined the invitation to "{invite.department.name}".')
+    @classmethod
+    def _action_handlers(cls, invite, user):
+        """Return invitation action handlers."""
+        return {
+            'accept': lambda: cls._accept_invite(invite, user),
+            'decline': lambda: cls._decline_invite(invite),
+        }
 
-        return ("error", "Invalid action.")
+    @staticmethod
+    def _accept_invite(invite, user):
+        """Accept invite and add user to the department."""
+        invite.status = 'accepted'
+        invite.save(update_fields=['status'])
+        UserDepartments.objects.get_or_create(user=user, department=invite.department)
+        return ("success", f'You have joined the department "{invite.department.name}".')
+
+    @staticmethod
+    def _decline_invite(invite):
+        """Decline invite and return user-facing message tuple."""
+        invite.status = 'declined'
+        invite.save(update_fields=['status'])
+        return ("info", f'You have declined the invitation to "{invite.department.name}".')
