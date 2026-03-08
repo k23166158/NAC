@@ -1,6 +1,6 @@
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.views import redirect_to_login
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.views import View
 
@@ -22,13 +22,20 @@ class ProfileEditView(View):
             return redirect_to_login(request.get_full_path())
         user = request.user
         password_changed = self._apply_profile_updates(request, user)
-        try:
-            user.save()
-        except IntegrityError:
+        if not self._save_profile(user):
             return self._render_duplicate_error(request, user)
         if password_changed:
             update_session_auth_hash(request, user)
         return redirect("profile", profile_slug=user.profile_slug)
+
+    def _save_profile(self, user):
+        """Save profile changes with rollback-safe duplicate handling."""
+        try:
+            with transaction.atomic():
+                user.save()
+        except IntegrityError:
+            return False
+        return True
 
     def _apply_profile_updates(self, request, user):
         """Update basic profile fields and password, returns if password changed."""
