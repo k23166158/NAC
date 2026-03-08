@@ -73,6 +73,11 @@ class Ticket(models.Model):
         }
 
     @classmethod
+    def admin_ticket_stats(cls):
+        """Return admin ticket statistics payload."""
+        return {"total": cls.objects.count(), **cls.status_counts()}
+
+    @classmethod
     def base_for_scope(cls, user, scope="personal"):
         """Return tickets visible to a user for a dashboard scope."""
         if scope == "personal":
