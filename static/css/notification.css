@@ -1,0 +1,79 @@
+/* Notification list page
+ * Reuses the ticket list look but simplifies interactions. */
+
+.notification-list {
+    margin-top: 12px;
+}
+
+.notification-row {
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.notification-row-unread {
+    box-shadow: var(--shadow);
+}
+
+.notification-row-unread .ticket-bar {
+    background: var(--card);
+}
+
+.notification-row-unread .ticket-title {
+    color: var(--text);
+}
+
+.notification-row-unread .ticket-bar:hover {    
+    background: #f3f4f6;
+}
+
+.notification-row-read .ticket-bar {
+    background: #f3f4f6;
+}
+
+.notification-row-read .ticket-title {
+    color: var(--muted);
+}
+
+.notification-row .ticket-bar {
+    cursor: pointer;
+    padding-right: 20px;
+}
+
+.notification-row .ticket-bar:hover {
+    background: #f9fafb;
+}
+
+.notification-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+}
+
+.notification-link:hover .ticket-bar {
+    background: #f9fafb;
+}
+
+.notification-body {
+    padding-top: 10px;
+}
+
+.notification-body p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+    .notification-row .ticket-bar {
+        padding: 14px 14px;
+    }
+
+    .notification-body {
+        padding: 12px 14px 14px;
+    }
+}
+
