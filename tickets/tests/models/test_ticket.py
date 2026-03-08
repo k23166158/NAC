@@ -88,6 +88,26 @@ class TicketModelTests(TestCase):
             1,
         )
 
+    def test_create_with_initial_message_allows_empty_departments(self):
+        """create_with_initial_message should create ticket/message when no departments are selected."""
+        cleaned_data = {
+            "title": "No departments",
+            "body": "Body text",
+            "departments": [],
+        }
+
+        ticket = Ticket.create_with_initial_message(
+            creator=self.user,
+            cleaned_data=cleaned_data,
+            files=None,
+        )
+
+        self.assertEqual(ticket.title, "No departments")
+        self.assertEqual(ticket.created_by, self.user)
+        self.assertTrue(Ticket.objects.filter(id=ticket.id).exists())
+        self.assertEqual(TicketMessage.objects.filter(ticket=ticket).count(), 1)
+        self.assertEqual(TicketAssigned.objects.filter(ticket=ticket).count(), 0)
+
 
 class TicketThreadLogicModelTests(TestCase):
     """Tests for ticket-thread business logic extracted to Ticket model."""

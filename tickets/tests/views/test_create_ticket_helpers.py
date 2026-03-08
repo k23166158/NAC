@@ -3,18 +3,13 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from tickets.models import Ticket, TicketMessage, TicketAssigned, Department, TicketMessageAttachment
-from tickets.views.ticket_create import (
-    create_attachments,
-    create_ticket_objects,
-    build_assignments,
-)
 
 
 User = get_user_model()
 
 
 class CreateAttachmentsTests(TestCase):
-    """Tests for the create_attachments helper function."""
+    """Tests for the TicketMessageAttachment.create_for_message model helper."""
 
     def setUp(self):
         """Set up test data."""
@@ -39,19 +34,34 @@ class CreateAttachmentsTests(TestCase):
         )
 
     def test_create_attachments_with_none_files(self):
-        """Test that create_attachments handles None files gracefully."""
-        create_attachments(self.ticket, self.message, None, self.user)
+        """Test that create_for_message handles None files gracefully."""
+        TicketMessageAttachment.create_for_message(
+            self.ticket,
+            self.message,
+            None,
+            self.user,
+        )
         self.assertEqual(TicketMessageAttachment.objects.count(), 0)
 
     def test_create_attachments_with_empty_list(self):
-        """Test that create_attachments handles empty file list gracefully."""
-        create_attachments(self.ticket, self.message, [], self.user)
+        """Test that create_for_message handles empty file list gracefully."""
+        TicketMessageAttachment.create_for_message(
+            self.ticket,
+            self.message,
+            [],
+            self.user,
+        )
         self.assertEqual(TicketMessageAttachment.objects.count(), 0)
 
     def test_create_attachments_with_single_file(self):
         """Test creating attachment with a single file."""
         file = SimpleUploadedFile("test.txt", b"content", content_type="text/plain")
-        create_attachments(self.ticket, self.message, [file], self.user)
+        TicketMessageAttachment.create_for_message(
+            self.ticket,
+            self.message,
+            [file],
+            self.user,
+        )
         
         self.assertEqual(TicketMessageAttachment.objects.count(), 1)
         attachment = TicketMessageAttachment.objects.first()
@@ -67,7 +77,12 @@ class CreateAttachmentsTests(TestCase):
             SimpleUploadedFile("test1.txt", b"content1", content_type="text/plain"),
             SimpleUploadedFile("test2.pdf", b"content2", content_type="application/pdf"),
         ]
-        create_attachments(self.ticket, self.message, files, self.user)
+        TicketMessageAttachment.create_for_message(
+            self.ticket,
+            self.message,
+            files,
+            self.user,
+        )
         
         self.assertEqual(TicketMessageAttachment.objects.count(), 2)
 
@@ -75,7 +90,12 @@ class CreateAttachmentsTests(TestCase):
         """Test creating attachment when content_type is not provided."""
         file = SimpleUploadedFile("test.bin", b"binary content")
         file.content_type = None
-        create_attachments(self.ticket, self.message, [file], self.user)
+        TicketMessageAttachment.create_for_message(
+            self.ticket,
+            self.message,
+            [file],
+            self.user,
+        )
         
         attachment = TicketMessageAttachment.objects.first()
         self.assertEqual(attachment.content_type, "")
@@ -84,7 +104,12 @@ class CreateAttachmentsTests(TestCase):
         """Test that file size is correctly stored."""
         content = b"test content"
         file = SimpleUploadedFile("test.txt", content, content_type="text/plain")
-        create_attachments(self.ticket, self.message, [file], self.user)
+        TicketMessageAttachment.create_for_message(
+            self.ticket,
+            self.message,
+            [file],
+            self.user,
+        )
         
         attachment = TicketMessageAttachment.objects.first()
         self.assertEqual(attachment.size_bytes, len(content))
@@ -95,20 +120,30 @@ class CreateAttachmentsTests(TestCase):
             SimpleUploadedFile("test.txt", b"content", content_type="text/plain"),
             None,
         ]
-        create_attachments(self.ticket, self.message, files, self.user)
+        TicketMessageAttachment.create_for_message(
+            self.ticket,
+            self.message,
+            files,
+            self.user,
+        )
         
         self.assertEqual(TicketMessageAttachment.objects.count(), 1)
 
     def test_create_attachments_with_all_none_files(self):
         """Test that empty attachments list is handled when all files are None."""
         files = [None, None]
-        create_attachments(self.ticket, self.message, files, self.user)
+        TicketMessageAttachment.create_for_message(
+            self.ticket,
+            self.message,
+            files,
+            self.user,
+        )
         
         self.assertEqual(TicketMessageAttachment.objects.count(), 0)
 
 
 class CreateTicketObjectsTests(TestCase):
-    """Tests for the create_ticket_objects helper function."""
+    """Tests for Ticket.create_with_initial_message model helper."""
 
     def setUp(self):
         """Set up test data."""
@@ -132,7 +167,11 @@ class CreateTicketObjectsTests(TestCase):
             "body": "Test body",
             "departments": [self.dept1],
         }
-        ticket = create_ticket_objects(self.user, cleaned_data, files=None)
+        ticket = Ticket.create_with_initial_message(
+            creator=self.user,
+            cleaned_data=cleaned_data,
+            files=None,
+        )
         
         self.assertIsNotNone(ticket)
         self.assertEqual(ticket.title, "Test Ticket")
@@ -151,7 +190,11 @@ class CreateTicketObjectsTests(TestCase):
             "body": "Test body",
             "departments": [self.dept1],
         }
-        ticket = create_ticket_objects(self.user, cleaned_data, files=files)
+        ticket = Ticket.create_with_initial_message(
+            creator=self.user,
+            cleaned_data=cleaned_data,
+            files=files,
+        )
         
         self.assertIsNotNone(ticket)
         self.assertEqual(TicketMessageAttachment.objects.count(), 1)
@@ -163,7 +206,11 @@ class CreateTicketObjectsTests(TestCase):
             "body": "Test body",
             "departments": [self.dept1, self.dept2],
         }
-        ticket = create_ticket_objects(self.user, cleaned_data, files=None)
+        ticket = Ticket.create_with_initial_message(
+            creator=self.user,
+            cleaned_data=cleaned_data,
+            files=None,
+        )
         
         self.assertEqual(TicketAssigned.objects.count(), 2)
         departments = [
@@ -180,7 +227,11 @@ class CreateTicketObjectsTests(TestCase):
             "body": "Test body",
             "departments": [self.dept1],
         }
-        ticket = create_ticket_objects(self.user, cleaned_data, files=None)
+        ticket = Ticket.create_with_initial_message(
+            creator=self.user,
+            cleaned_data=cleaned_data,
+            files=None,
+        )
         
         # Verify all related objects were created
         self.assertEqual(Ticket.objects.filter(id=ticket.id).count(), 1)
@@ -200,14 +251,18 @@ class CreateTicketObjectsTests(TestCase):
             "body": "Test body",
             "departments": [self.dept1],
         }
-        ticket = create_ticket_objects(self.user, cleaned_data, files=None)
+        ticket = Ticket.create_with_initial_message(
+            creator=self.user,
+            cleaned_data=cleaned_data,
+            files=None,
+        )
         
         message = TicketMessage.objects.get(ticket=ticket)
         self.assertEqual(message.sender, self.user)
 
 
 class BuildAssignmentsTests(TestCase):
-    """Tests for the build_assignments helper function."""
+    """Tests for the TicketAssigned.build_for_departments model helper."""
 
     def setUp(self):
         """Set up test data."""
@@ -230,7 +285,7 @@ class BuildAssignmentsTests(TestCase):
 
     def test_build_assignments_single_department(self):
         """Test building assignment for a single department."""
-        assignments = build_assignments(self.ticket, [self.dept1])
+        assignments = TicketAssigned.build_for_departments(self.ticket, [self.dept1])
         
         self.assertEqual(len(assignments), 1)
         self.assertEqual(assignments[0].ticket, self.ticket)
@@ -238,7 +293,7 @@ class BuildAssignmentsTests(TestCase):
 
     def test_build_assignments_multiple_departments(self):
         """Test building assignments for multiple departments."""
-        assignments = build_assignments(
+        assignments = TicketAssigned.build_for_departments(
             self.ticket,
             [self.dept1, self.dept2]
         )
@@ -250,6 +305,6 @@ class BuildAssignmentsTests(TestCase):
 
     def test_build_assignments_empty_departments(self):
         """Test building assignments with empty department list."""
-        assignments = build_assignments(self.ticket, [])
+        assignments = TicketAssigned.build_for_departments(self.ticket, [])
         
         self.assertEqual(len(assignments), 0)
