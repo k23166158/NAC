@@ -1,6 +1,14 @@
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.db.models import OuterRef, Subquery
 from django.db import models
+from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
+
+from .ticket import Ticket
+from .ticket_message import TicketMessage
+
+User = get_user_model()
 
 
 class Department(models.Model):
@@ -23,6 +31,143 @@ class Department(models.Model):
     )
 
     created_on = models.DateTimeField(auto_now_add=True)
+
+    @classmethod
+    def get_by_slug_or_404(cls, slug):
+        """Return a department by slug or raise 404."""
+        return get_object_or_404(cls, slug=slug)
+
+    @classmethod
+    def assigned_to_user_with_ticket_counts(cls, user):
+        """Return departments assigned to user with ticket count annotations."""
+        return (
+            cls.objects.filter(assigned_users__user=user)
+            .select_related("created_by")
+            .distinct()
+            .annotate(
+                active_ticket_count=models.Count(
+                    "assigned_tickets",
+                    filter=models.Q(assigned_tickets__ticket__status__in=["open", "pending"]),
+                    distinct=True,
+                ),
+                completed_ticket_count=models.Count(
+                    "assigned_tickets",
+                    filter=models.Q(assigned_tickets__ticket__status="closed"),
+                    distinct=True,
+                ),
+            )
+            .prefetch_related("assigned_users__user")
+            .order_by("name")
+        )
+
+    def can_view(self, user):
+        """Check if user may view this department."""
+        from .user_departments import UserDepartments
+
+        return user.is_superuser or UserDepartments.objects.filter(
+            user=user,
+            department=self,
+        ).exists()
+
+    def can_manage_staff(self, user):
+        """Check if user may manage staff for this department."""
+        return user.is_staff and self.created_by == user
+
+    def get_current_staff(self):
+        """Return users currently assigned to this department."""
+        return [assignment.user for assignment in self.assigned_users.select_related("user").all()]
+
+    def get_pending_invitations(self):
+        """Return pending invitations for this department."""
+        from .department_invitation import DepartmentInvitation
+
+        return DepartmentInvitation.objects.filter(
+            department=self,
+            status="pending",
+        ).select_related("recipient")
+
+    def get_available_staff(self, current_staff, invited_users):
+        """Return staff users who are not assigned and not already invited."""
+        current_ids = [u.id for u in current_staff] + [u.id for u in invited_users]
+        return User.objects.filter(is_staff=True).exclude(id__in=current_ids)
+
+    @staticmethod
+    def annotate_tickets(queryset):
+        """Annotate tickets with latest message metadata."""
+        last_msg = TicketMessage.objects.filter(ticket_id=OuterRef("pk")).order_by("-edited_at")
+        return queryset.annotate(
+            last_message_at=Subquery(last_msg.values("edited_at")[:1]),
+            last_message_body=Subquery(last_msg.values("body")[:1]),
+            last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
+            last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
+            last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
+            last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
+        )
+
+    def get_tickets(self, status_list):
+        """Return department tickets for the provided status list."""
+        qs = Ticket.objects.filter(assignments__department=self, status__in=status_list)
+        return Department.annotate_tickets(qs).order_by("-updated_at")
+
+    def build_view_context(self):
+        """Build the context payload for the department details page."""
+        current_staff = self.get_current_staff()
+        pending_invitations = self.get_pending_invitations()
+        invited_users = [invite.recipient for invite in pending_invitations]
+        return {
+            "department": self,
+            "staff": current_staff,
+            "invited_staff": invited_users,
+            "available_staff": self.get_available_staff(current_staff, invited_users),
+            "active_tickets": self.get_tickets([Ticket.Status.OPEN, Ticket.Status.PENDING]),
+            "closed_tickets": self.get_tickets([Ticket.Status.CLOSED]),
+        }
+
+    def process_staff_change(self, *, actor, user_id, action):
+        """Apply add/remove/remove_invite staff action for this department."""
+        from .department_invitation import DepartmentInvitation
+        from .user_departments import UserDepartments
+
+        if not user_id:
+            return None
+
+        user = get_object_or_404(User, id=user_id)
+        if action == "add":
+            return self.invite_staff(actor=actor, user=user)
+        if action == "remove":
+            UserDepartments.objects.filter(user=user, department=self).delete()
+            return None
+        if action == "remove_invite":
+            DepartmentInvitation.objects.filter(
+                department=self,
+                recipient=user,
+                status="pending",
+            ).delete()
+            return None
+        return None
+
+    def invite_staff(self, *, actor, user):
+        """Create a pending invite for a staff user if allowed."""
+        from .department_invitation import DepartmentInvitation
+        from .user_departments import UserDepartments
+
+        if not user.is_staff:
+            return ("error", "Only staff users can be invited to a department.")
+
+        if UserDepartments.objects.filter(user=user, department=self).exists():
+            name = user.get_full_name() or user.username
+            return ("warning", f"{name} is already in this department.")
+
+        _invite, created = DepartmentInvitation.objects.get_or_create(
+            department=self,
+            recipient=user,
+            status="pending",
+            defaults={"sender": actor},
+        )
+        name = user.get_full_name() or user.username
+        if created:
+            return ("success", f"Invitation sent to {name}.")
+        return ("info", f"{name} was already invited.")
 
     def save(self, *args, **kwargs):
         """Override save to generate a slug from the name."""
