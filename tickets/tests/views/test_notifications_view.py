@@ -71,3 +71,27 @@ class NotificationViewTests(TestCase):
         self.assertIn(str(self.ticket.uuid), response.url)
         notification.refresh_from_db()
         self.assertTrue(notification.is_read)
+
+    def test_open_without_target_redirects_notifications(self):
+        """Opening notification without target should redirect to notifications list."""
+        notification = Notification.objects.create(
+            user=self.user,
+            actor=self.actor,
+            notification_type=Notification.NotificationType.TICKET_CREATED,
+            short_message="Created",
+            long_message="Created long",
+        )
+        self._login()
+        response = self.client.get(reverse("notification_open", kwargs={"notification_id": notification.id}))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("notifications"))
+
+    def test_open_already_read_still_redirects(self):
+        """Already-read notifications should still redirect to their ticket."""
+        notification = self._create_reply_notification()
+        notification.is_read = True
+        notification.save(update_fields=["is_read"])
+        self._login()
+        response = self.client.get(reverse("notification_open", kwargs={"notification_id": notification.id}))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(str(self.ticket.uuid), response.url)
