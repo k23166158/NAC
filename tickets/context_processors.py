@@ -2,6 +2,7 @@ from tickets.models.notification import Notification
 
 
 def notifications_context(request):
+    """Return unread notification count for the authenticated user."""
     if not request.user.is_authenticated:
         return {"unread_notifications_count": 0}
 

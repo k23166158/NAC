@@ -18,6 +18,7 @@ class NotificationOpenView(LoginRequiredMixin, View):
     """Mark a notification as read and redirect to its target if available."""
 
     def get(self, request, notification_id):
+        """Open one notification, mark it read, and redirect to destination."""
         notification = get_object_or_404(
             Notification,
             id=notification_id,

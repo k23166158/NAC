@@ -4,6 +4,7 @@ from django.core.mail import send_mail
 from tickets.models.notification import Notification
 from tickets.models.user import User
 
+
 def create_notification(user, actor, notification_type, link=None, target_object=None):
     """Factory function to create, render, and save a notification."""
 
@@ -22,16 +23,29 @@ def create_notification(user, actor, notification_type, link=None, target_object
     )
 
 
-def notify_ticket_reply(ticket, actor, message_body):
-    """Create in-app and email notifications for a new ticket reply."""
+def _ticket_reply_recipient_ids(ticket, actor):
+    """Return recipient ids for a ticket reply event."""
     recipient_ids = {ticket.created_by_id}
     recipient_ids.update(ticket.participants.values_list("user_id", flat=True))
-    recipient_ids.update(
-        ticket.get_department_staff().values_list("id", flat=True)
-    )
+    recipient_ids.update(ticket.get_department_staff().values_list("id", flat=True))
     recipient_ids.discard(getattr(actor, "id", None))
+    return recipient_ids
 
-    recipients = User.objects.filter(id__in=recipient_ids, is_active=True)
+
+def _reply_email_message(recipient, actor, ticket, message_body):
+    """Build plain-text email body for ticket reply notifications."""
+    actor_name = actor.get_full_name() or actor.username
+    recipient_name = recipient.get_full_name() or recipient.username
+    return (
+        f"Hi {recipient_name},\n\n"
+        f"{actor_name} replied to ticket \"{ticket.title}\".\n\n"
+        f"{message_body}\n\n"
+        f"Open ticket: /tickets/{ticket.uuid}/"
+    )
+
+
+def _create_reply_notifications(recipients, ticket, actor):
+    """Create in-app reply notifications for recipients."""
     for recipient in recipients:
         create_notification(
             user=recipient,
@@ -41,17 +55,22 @@ def notify_ticket_reply(ticket, actor, message_body):
             link=f"/tickets/{ticket.uuid}/",
         )
 
-        if recipient.email:
-            send_mail(
-                subject=f"[ResolveMe] New response on: {ticket.title}",
-                message=(
-                    f"Hi {recipient.get_full_name() or recipient.username},\n\n"
-                    f"{actor.get_full_name() or actor.username} replied to "
-                    f"ticket \"{ticket.title}\".\n\n"
-                    f"{message_body}\n\n"
-                    f"Open ticket: /tickets/{ticket.uuid}/"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[recipient.email],
-                fail_silently=True,
-            )
+
+def _send_reply_emails(recipients, ticket, actor, message_body):
+    """Send reply emails to recipients with an email address."""
+    for recipient in recipients.filter(email__isnull=False).exclude(email=""):
+        send_mail(
+            subject=f"[ResolveMe] New response on: {ticket.title}",
+            message=_reply_email_message(recipient, actor, ticket, message_body),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[recipient.email],
+            fail_silently=True,
+        )
+
+
+def notify_ticket_reply(ticket, actor, message_body):
+    """Create in-app and email notifications for a new ticket reply."""
+    recipient_ids = _ticket_reply_recipient_ids(ticket, actor)
+    recipients = User.objects.filter(id__in=recipient_ids, is_active=True)
+    _create_reply_notifications(recipients, ticket, actor)
+    _send_reply_emails(recipients, ticket, actor, message_body)
