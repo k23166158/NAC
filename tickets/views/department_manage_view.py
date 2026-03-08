@@ -1,15 +1,18 @@
 from django.db.models import Count, Q
-from django.views import View
+from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 
 from tickets.models import Department, DepartmentInvitation, UserDepartments
 
-class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, View):
+class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """View for managing departments. Only accessible to staff members."""
     login_url = '/login/'
     raise_exception = False
+    template_name = "department_manage.html"
+    context_object_name = "departments"
+    paginate_by = 10
 
     def test_func(self):
         """Check if the user is a staff member."""
@@ -38,19 +41,25 @@ class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, View):
             ),
         ).prefetch_related('assigned_users__user').order_by('name')
 
-    def get_departments_queryset(self, user):
-        """Return departments the user is in, annotated with ticket counts."""
-        return self._annotate_department_ticket_counts(self._base_departments_queryset(user))
+    def get_queryset(self):
+        """Return departments the user is in, filtered by search query and annotated with ticket counts."""
+        queryset = self._base_departments_queryset(self.request.user)
+        search_query = self.request.GET.get('q')
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+        return self._annotate_department_ticket_counts(queryset)
 
-    def get(self, request):
-        """Handle GET requests for the department manage view."""
-        departments = self.get_departments_queryset(request.user)
-        invitations = DepartmentInvitation.objects.filter(
-            recipient=request.user,
+    def get_context_data(self, **kwargs):
+        """Add invitations to context."""
+        context = super().get_context_data(**kwargs)
+        context['invitations'] = DepartmentInvitation.objects.filter(
+            recipient=self.request.user,
             status='pending'
         ).select_related('department', 'sender').order_by('-created_at')
-        context = {'departments': departments, 'invitations': invitations}
-        return render(request, "department_manage.html", context)
+        return context
 
     def _accept_invite(self, request, invite):
         """Accept a department invitation and add user to department."""
