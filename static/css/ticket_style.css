@@ -178,6 +178,12 @@
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
 }
 
+/* Do not draw connector into deleted-only replies */
+.reply:has(.deleted-message)::before,
+.reply:has(.deleted-message)::after {
+    display: none;
+}
+
 
 /* System events */
 
@@ -427,15 +433,15 @@
 }
 
 .btn-close-ticket {
-    background: #fee2e2;
-    border-color: #fecaca;
-    color: #b91c1c;
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
 }
 
 .btn-close-ticket:hover {
-    background: #fecaca;
-    border-color: #ef4444;
-    color: #7f1d1d;
+    filter: brightness(0.95);
+    transform: translateY(1px);
+    box-shadow: var(--shadow-sm);
 }
 
 

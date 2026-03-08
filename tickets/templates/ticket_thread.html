@@ -75,7 +75,7 @@
               </div>
             </div>
             {% if message.hidden %}
-              <p class="message-body deleted-message"><em>[This message has been deleted]</em></p>
+              <p class="message-body deleted-message"><em>This message was deleted.</em></p>
             {% else %}
               <p class="message-body">{{ message.body }}</p>
               {% with atts=message.attachments.all %}
