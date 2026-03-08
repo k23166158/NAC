@@ -38,8 +38,6 @@
 }
 
 
-/* Header card */
-
 .ticket-header-card {
     background: var(--card);
     border-radius: var(--radius);
@@ -178,14 +176,21 @@
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
 }
 
+/* Adjust connector for system events (smaller height) */
+.reply:has(.system-event)::before {
+    top: 12px;
+}
+
+.reply:has(.system-event)::after {
+    top: 7px;
+}
+
 /* Do not draw connector into deleted-only replies */
 .reply:has(.deleted-message)::before,
 .reply:has(.deleted-message)::after {
     display: none;
 }
 
-
-/* System events */
 
 .system-event {
     display: flex;

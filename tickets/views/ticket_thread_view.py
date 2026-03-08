@@ -86,7 +86,7 @@ class TicketThreadView(LoginRequiredMixin, View):
         """Get the queryset for ticket messages."""
         return (
             TicketMessage.objects
-            .filter(ticket=self.object, hidden=False)
+            .filter(ticket=self.object)
             .select_related("sender")
             .prefetch_related("attachments")
             .order_by("created_at")
