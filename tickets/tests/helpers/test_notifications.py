@@ -42,8 +42,9 @@ class NotifyTicketReplyTests(TestCase):
     def test_creates_notifications_and_sends_emails(self):
         """Helper should notify recipients and email users with valid emails."""
         notify_ticket_reply(self.ticket, self.actor, "body text")
-        self.assertTrue(Notification.objects.filter(user=self.other).exists())
-        self.assertTrue(Notification.objects.filter(user=self.no_email).exists())
-        self.assertFalse(Notification.objects.filter(user=self.actor).exists())
+        reply_type = Notification.NotificationType.TICKET_REPLY
+        self.assertTrue(Notification.objects.filter(user=self.other, notification_type=reply_type).exists())
+        self.assertTrue(Notification.objects.filter(user=self.no_email, notification_type=reply_type).exists())
+        self.assertFalse(Notification.objects.filter(user=self.actor, notification_type=reply_type).exists())
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["other1@example.com"])
