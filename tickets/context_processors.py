@@ -1,14 +1,17 @@
+from django.contrib.auth.models import AnonymousUser
+
 from tickets.models.notification import Notification
 
 
-def notifications_context(request):
-    """Return unread notification count for the authenticated user."""
-    if not request.user.is_authenticated:
-        return {"unread_notifications_count": 0}
+def unread_notifications(request):
+    """Add unread notification count for authenticated users."""
+    user = getattr(request, 'user', None)
+    if not user or isinstance(user, AnonymousUser) or not user.is_authenticated:
+        return {'unread_notification_count': 0, 'unread_notifications_count': 0}
+    count = Notification.objects.filter(user=user, is_read=False).count()
+    return {'unread_notification_count': count, 'unread_notifications_count': count}
 
-    return {
-        "unread_notifications_count": Notification.objects.filter(
-            user=request.user,
-            is_read=False,
-        ).count()
-    }
+
+def notifications_context(request):
+    """Backward-compatible alias for unread notifications context."""
+    return unread_notifications(request)

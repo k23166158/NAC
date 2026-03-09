@@ -221,3 +221,25 @@ class DepartmentManageViewTests(TestCase):
         inv.refresh_from_db()
         self.assertEqual(inv.status, 'pending')
 
+    def test_get_departments_filters_by_search_query(self):
+        """Test that departments are filtered when search query is provided."""
+        dept1 = Department.objects.create(name="Alpha Department", created_by=self.staff_user)
+        dept2 = Department.objects.create(name="Beta Department", description="Searchable description", created_by=self.staff_user)
+
+        UserDepartments.objects.create(user=self.staff_user, department=dept1)
+        UserDepartments.objects.create(user=self.staff_user, department=dept2)
+
+        self.client.force_login(self.staff_user)
+        response = self.client.get(self.url, {"q": "Alpha"})
+        self.assertEqual(response.status_code, 200)
+        
+        departments = list(response.context["departments"])
+        self.assertEqual(len(departments), 1)
+        self.assertEqual(departments[0].name, "Alpha Department")
+
+        response = self.client.get(self.url, {"q": "Searchable"})
+        self.assertEqual(response.status_code, 200)
+        departments = list(response.context["departments"])
+        self.assertEqual(len(departments), 1)
+        self.assertEqual(departments[0].name, "Beta Department")
+

@@ -1,13 +1,15 @@
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import OuterRef, Subquery
+from django.http import HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
-from django.db.models import OuterRef, Subquery
-from django.contrib.auth import get_user_model
-from django.contrib import messages
+
 from ..models import Department, Ticket, TicketMessage, UserDepartments, DepartmentInvitation
-from django.http import HttpResponseForbidden
-from django.contrib.auth.mixins import LoginRequiredMixin
 
 User = get_user_model()
+
 
 class DepartmentView(LoginRequiredMixin, View):
     """View for displaying department details."""
@@ -19,7 +21,7 @@ class DepartmentView(LoginRequiredMixin, View):
         if not self.is_member(request.user, department) and not request.user.is_superuser:
             return HttpResponseForbidden("You are not allowed to access this.")
 
-        context = self.build_context(department)
+        context = self.build_context(request, department)
         return render(request, "department.html", context)
 
     def post(self, request, department_slug):
@@ -40,19 +42,30 @@ class DepartmentView(LoginRequiredMixin, View):
         """Check if the user can manage staff for the department."""
         return user.is_staff and department.created_by == user
 
-    def build_context(self, department):
-        """Build the context for rendering the department view."""
-        current_staff = self.get_current_staff(department)
-        pending_invitations = DepartmentInvitation.objects.filter(department=department, status='pending').select_related('recipient')
-        invited_users = [invite.recipient for invite in pending_invitations]
+    def _get_page(self, request, queryset, param, per_page=5):
+        """Return a paginated page and its total count."""
+        from django.core.paginator import Paginator
+        paginator = Paginator(queryset, per_page)
+        return paginator.get_page(request.GET.get(param, 1)), paginator.count
 
+    def _get_staff_context(self, request, department):
+        """Helper to fetch staff and invited users context."""
+        current_staff = self.get_current_staff(department)
+        pending = DepartmentInvitation.objects.filter(department=department, status='pending')
+        invited_users = [invite.recipient for invite in pending.select_related('recipient')]
+        staff_page, _ = self._get_page(request, list(current_staff) + invited_users, 'staff_page')
+        return current_staff, invited_users, staff_page
+
+    def build_context(self, request, department):
+        """Build the context for rendering the department view, including multiple paginators."""
+        c_staff, inv, s_page = self._get_staff_context(request, department)
+        act_p, act_c = self._get_page(request, self.get_tickets(department, ['open', 'pending']), 'active_page')
+        cls_p, cls_c = self._get_page(request, self.get_tickets(department, ['closed']), 'closed_page')
         return {
-            "department": department,
-            "staff": current_staff,
-            "invited_staff": invited_users,
-            "available_staff": self.get_available_staff(current_staff, invited_users),
-            "active_tickets": self.get_tickets(department, ['open', 'pending']),
-            "closed_tickets": self.get_tickets(department, ['closed']),
+            "department": department, "staff_page": s_page, "invited_users": inv,
+            "available_staff": self.get_available_staff(c_staff, inv),
+            "active_tickets_page": act_p, "closed_tickets_page": cls_p,
+            "active_tickets_count": act_c, "closed_tickets_count": cls_c,
         }
 
     def get_current_staff(self, department):
@@ -79,7 +92,7 @@ class DepartmentView(LoginRequiredMixin, View):
         last_msg = TicketMessage.objects.filter(
             ticket_id=OuterRef("pk")
         ).order_by("-edited_at")
-        
+
         return queryset.annotate(
             last_message_at=Subquery(last_msg.values("edited_at")[:1]),
             last_message_body=Subquery(last_msg.values("body")[:1]),

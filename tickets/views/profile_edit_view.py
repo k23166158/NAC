@@ -8,13 +8,13 @@ from django.views import View
 class ProfileEditView(View):
     """Allow an authenticated user to edit their own profile details."""
 
-    template_name = "profile_edit.html"
+    template_name = 'profile_edit.html'
 
     def get(self, request):
         """Render the profile edit form for authenticated users."""
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path())
-        return render(request, self.template_name, {"user": request.user})
+        return render(request, self.template_name, {'user': request.user})
 
     def post(self, request):
         """Process profile update submissions."""
@@ -28,27 +28,34 @@ class ProfileEditView(View):
             return self._render_duplicate_error(request, user)
         if password_changed:
             update_session_auth_hash(request, user)
-        return redirect("profile", profile_slug=user.profile_slug)
+        return redirect('profile', profile_slug=user.profile_slug)
 
     @transaction.atomic
     def _save_profile(self, user):
-        """Save profile changes with rollback-safe duplicate handling."""
+        """Save profile changes inside an atomic block."""
         user.save()
 
     def _apply_profile_updates(self, request, user):
-        """Update basic profile fields and password, returns if password changed."""
-        user.first_name = request.POST.get("first_name", "").strip()
-        user.last_name = request.POST.get("last_name", "").strip()
-        user.username = request.POST.get("username", "").strip()
-        user.email = request.POST.get("email", "").lower().strip()
+        """Update profile fields and password, returns if password changed."""
+        user.first_name = request.POST.get('first_name', '').strip()
+        user.last_name = request.POST.get('last_name', '').strip()
+        user.username = request.POST.get('username', '').strip()
+        user.email = request.POST.get('email', '').lower().strip()
+        self._handle_file_upload(request, user)
+        return self._handle_password_update(request, user)
 
-        if "profile_picture" in request.FILES:
-            user.profile_picture = request.FILES["profile_picture"]
-        password = request.POST.get("password", "").strip()
-        if password:
-            user.set_password(password)
-            return True
-        return False
+    def _handle_file_upload(self, request, user):
+        """Handle profile picture upload if provided."""
+        if 'profile_picture' in request.FILES:
+            user.profile_picture = request.FILES['profile_picture']
+
+    def _handle_password_update(self, request, user):
+        """Update password if provided and return whether it changed."""
+        password = request.POST.get('password', '').strip()
+        if not password:
+            return False
+        user.set_password(password)
+        return True
 
     def _render_duplicate_error(self, request, user):
         """Render the form with a duplicate username/email error."""
@@ -56,7 +63,7 @@ class ProfileEditView(View):
             request,
             self.template_name,
             {
-                "user": user,
-                "error": "Email or username already exists.",
+                'user': user,
+                'error': 'Email or username already exists.',
             },
         )

@@ -96,8 +96,8 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-height: 300px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
     justify-content: space-between;
     padding-right: 5px;
 }

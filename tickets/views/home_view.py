@@ -3,31 +3,43 @@ from django.views import View
 
 from tickets.models import Ticket, User
 
+
 class HomeView(View):
     """View for the home page/dashboard."""
 
     def get(self, request):
         """Handle GET request for home page."""
-        if not request.user.is_authenticated: 
+        if not request.user.is_authenticated:
             return render(request, "unauthenticated_home.html")
-    
+
         scope = request.GET.get("scope", "personal")
         qs, scope = self.handle_scope(request.user, scope)
         overdue = self.overdue_tickets(qs)
-        
-        ctx = self.get_context(qs, scope, overdue)
+
+        ctx = self.get_context(request, qs, scope, overdue)
         if self.is_admin(request.user):
             ctx.update(self.get_admin_stats())
-            
+
         return render(request, "home_view.html", ctx)
 
-    def get_context(self, qs, scope, overdue):
-        """Build the base context dictionary for the view."""
+    def _get_page(self, request, queryset, param_name, per_page=10):
+        """Helper method to return a paginated page."""
+        from django.core.paginator import Paginator
+        return Paginator(queryset, per_page).get_page(request.GET.get(param_name, 1))
+
+    def get_context(self, request, qs, scope, overdue):
+        """Build the base context dictionary for the view, with pagination for the lists."""
+        active_qs = self.active_tickets(qs, overdue)
+        completed_qs = self.completed_tickets(qs)
+
         return {
             "scope": scope,
-            "completed_tickets": self.completed_tickets(qs),
+            "completed_tickets": completed_qs,
             "overdue_tickets": overdue,
-            "active_tickets": self.active_tickets(qs, overdue),
+            "active_tickets": active_qs,
+            "active_tickets_page": self._get_page(request, active_qs, 'active_page'),
+            "overdue_tickets_page": self._get_page(request, overdue, 'overdue_page'),
+            "completed_tickets_page": self._get_page(request, completed_qs, 'completed_page'),
         }
 
     def get_admin_stats(self):
@@ -66,8 +78,9 @@ class HomeView(View):
 
     def _annotate_last_message(self, qs, user):
         """Annotate the queryset with details of the last message and last read timestamp."""
-        return Ticket._annotate_last_message_for_user(qs, user)
-    
+        return Ticket._annotate_last_message_for_user(qs, user
+                                                      )
+
     def _annotate_unread_count(self, qs, user):
         """Annotate the queryset with the count of unread messages for the user."""
         return Ticket._annotate_unread_count_for_user(qs, user)
