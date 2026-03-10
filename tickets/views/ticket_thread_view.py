@@ -102,7 +102,7 @@ class TicketThreadView(LoginRequiredMixin, View):
 
     def get_last_user_message_id(self, messages):
         """Get the ID of the last visible user message."""
-        last_user_message = messages.filter(sender=self.request.user).last()
+        last_user_message = messages.filter(sender=self.request.user, hidden=False).last()
         return last_user_message.id if last_user_message else None
 
     def get_ticket_staff(self):

@@ -146,7 +146,7 @@ class Ticket(models.Model):
 
     def get_ticket_staff(self):
         """Return users explicitly assigned as participants on this ticket."""
-        return [p.user for p in self.participants.select_related("user")]
+        return [p.user for p in self.participants.select_related("user") if not p.removed_self]
 
     def get_department_staff(self):
         """Return users from departments assigned to this ticket."""
