@@ -4,7 +4,10 @@
 {% block title %}Ticket #{{ ticket.uuid }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/ticket_style.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_layout.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_timeline.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_messages.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_staff.css' %}">
 <link rel="stylesheet" href="{% static 'css/create_ticket.css' %}">
 <link rel="stylesheet" href="{% static 'css/attachments.css' %}">
 {% endblock %}
