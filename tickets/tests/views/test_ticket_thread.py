@@ -529,6 +529,27 @@ class TicketThreadViewTests(TestCase):
             ).exists()
         )
 
+    def test_post_remove_self_marks_removed_self_true(self):
+        """POST to remove self sets removed_self flag instead of deleting participant."""
+        # Make the current user a staff participant
+        self.user.is_staff = True
+        self.user.save()
+        self.ticket.participants.create(user=self.user)
+        self.client.force_login(self.user)
+        self.client.get(self._url())
+        response = self.client.post(self._url(),data=self._csrf_data(action="remove",
+        target_type="staff", target_id=str(self.user.id),),)
+        self.assertEqual(response.status_code, 200)
+        participant = self.ticket.participants.filter(user=self.user).first()
+        self.assertIsNotNone(participant)
+        self.assertTrue(participant.removed_self)
+        self.assertTrue(
+            TicketMessage.objects.filter(
+                ticket=self.ticket,
+                body__contains="was removed from the ticket"
+            ).exists()
+        )
+
     def test_post_add_staff_invalid_user_does_nothing(self):
         """POST action=add with missing user_id does nothing."""
         self.client.force_login(self.user)
