@@ -145,16 +145,10 @@ class TicketThreadView(LoginRequiredMixin, View):
         staff = self.get_ticket_staff()
         departments = self.get_ticket_departments()
         user_removed_self = self.user_has_removed_themselves(self.request.user)
-        return {
-            "ticket": self.object,
-            "staff": staff,
-            "available_staff": self.get_available_staff(staff),
-            "ticket_departments": departments,
-            "available_departments": self.get_available_departments(departments),
-            "first_message": self.get_first_message(messages),
-            "messages": self.get_reply_messages(messages),
-            "last_user_message_id": self.get_last_user_message_id(messages),
-            "edit_message": self.get_edit_message(),
+        return {"ticket": self.object, "staff": staff,"available_staff": self.get_available_staff(staff),
+            "ticket_departments": departments,"available_departments": self.get_available_departments(departments),
+            "first_message": self.get_first_message(messages),"messages": self.get_reply_messages(messages),
+            "last_user_message_id": self.get_last_user_message_id(messages),"edit_message": self.get_edit_message(),
             "user_has_removed": user_removed_self,
         }
 
