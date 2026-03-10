@@ -162,7 +162,7 @@
                   <div class="pill staff-row">
                     <div class="staff-info">
                       {% if staff_user.profile_picture %}<img src="{{ staff_user.profile_picture.url }}" alt="{{ staff_user.first_name }}" class="avatar">{% else %}{% include "partials/empty_avatar.html" with user=staff_user %}{% endif %}
-                      <span class="staff-name">{{ staff_user.full_name }}</span>
+                      <span class="staff-name">{% if staff_user == user %}{{ staff_user.full_name }} [You]{% else %}{{ staff_user.full_name }}{% endif %}</span>
                     </div>
                     {% if staff|length > 1 or staff_user != user %}
                       <form method="post" class="remove-staff-form">{% csrf_token %}<input type="hidden" name="action" value="remove"><input type="hidden" name="target_type" value="staff"><input type="hidden" name="target_id" value="{{ staff_user.id }}"><button type="submit" class="btn-icon-remove" title="Remove staff"><i class="bi bi-trash3"></i></button></form>
