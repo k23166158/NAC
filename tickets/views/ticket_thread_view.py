@@ -27,9 +27,9 @@ class TicketThreadView(LoginRequiredMixin, View):
             """Add a staff user to the ticket."""
             self.view._add_staff(user, actor)
 
-        def remove(self, user):
+        def remove(self, user, actor):
             """Remove a staff user from the ticket and log the action."""
-            self.view._remove_staff(user)
+            self.view._remove_staff(user, actor)
 
     class DepartmentAssignmentHandler:
         """Handler for adding or removing department assignments to a ticket."""
@@ -42,7 +42,7 @@ class TicketThreadView(LoginRequiredMixin, View):
             """Add a department to the ticket."""
             self.view._add_department(department, actor)
 
-        def remove(self, department):
+        def remove(self, department, actor):
             """Remove a department to the ticket and log the action."""
             self.view._remove_department(department)
 
@@ -131,11 +131,20 @@ class TicketThreadView(LoginRequiredMixin, View):
         current_ids = [d.id for d in current_departments]
         return Department.objects.exclude(id__in=current_ids)
 
+    def user_has_removed_themselves(self, user):
+        """Check if the current user has removed themselves from this ticket."""
+        return TicketParticipant.objects.filter(
+            ticket=self.object,
+            user=user,
+            removed_self=True
+        ).exists()
+
     def get_context_data(self):
         """Add ticket messages to the context."""
         messages = self.get_messages_queryset()
         staff = self.get_ticket_staff()
         departments = self.get_ticket_departments()
+        user_removed_self = self.user_has_removed_themselves(self.request.user)
         return {
             "ticket": self.object,
             "staff": staff,
@@ -146,6 +155,7 @@ class TicketThreadView(LoginRequiredMixin, View):
             "messages": self.get_reply_messages(messages),
             "last_user_message_id": self.get_last_user_message_id(messages),
             "edit_message": self.get_edit_message(),
+            "user_has_removed": user_removed_self,
         }
 
     def touch_ticket(self):
@@ -198,13 +208,20 @@ class TicketThreadView(LoginRequiredMixin, View):
         """Assign a staff member to the ticket."""
         TicketParticipant.assign_staff(self.object, user, added_by=added_by)
 
-    def _remove_staff(self, user):
+    def _remove_staff(self, user, removed_by):
         """Remove a staff member from the ticket and log it."""
-        TicketParticipant.remove_participant(self.object, user)
-        TicketMessage.create_system_message(
-            self.object,
-            f"{user.get_full_name()} was removed from the ticket.",
-        )
+        # Check if the user is removing themselves
+        if user == removed_by:
+            # Mark as removed_self instead of deleting
+            participant = TicketParticipant.objects.get(ticket=self.object, user=user)
+            participant.removed_self = True
+            participant.save()
+        else:
+            # Remove the participant if another user is removing them
+            TicketParticipant.remove_participant(self.object, user)
+        # Log a clear, human-readable system message for any removal (self or other).
+        message = f"{user.get_full_name()} was removed from the ticket."
+        TicketMessage.create_system_message(self.object, message)
 
     def handle_staff_change(self, request):
         """Handle adding or removing a staff user from the ticket."""
@@ -215,7 +232,7 @@ class TicketThreadView(LoginRequiredMixin, View):
         user = get_object_or_404(User, id=user_id, is_staff=True)
         handlers = {
             "add": lambda: self._add_staff(user, request.user),
-            "remove": lambda: self._remove_staff(user),
+            "remove": lambda: self._remove_staff(user, request.user),
         }
         handler = handlers.get(action)
         if handler:
@@ -258,7 +275,7 @@ class TicketThreadView(LoginRequiredMixin, View):
         """Apply the add or remove action for staff or department assignments."""
         actions = {
             "add": lambda: handler.add(target, actor),
-            "remove": lambda: handler.remove(target),
+            "remove": lambda: handler.remove(target, actor),
         }
         action = actions.get(handler.action)
         if action:

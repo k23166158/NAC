@@ -227,6 +227,17 @@
     padding: 10px 12px 12px;
 }
 
+.ticket-card:has(.deleted-message) {
+    background: #f9fafb;
+    border-color: var(--border);
+}
+
+.ticket-card:has(.deleted-message) .sender-name,
+.ticket-card:has(.deleted-message) .timestamp {
+    color: var(--muted);
+    opacity: 0.7;
+}
+
 .my-message {
     background: #eff6ff;
     border-color: rgba(37, 99, 235, 0.45);

@@ -11,6 +11,10 @@ def assign_staff_to_ticket(ticket, staff_user, *, added_by=None):
         user=staff_user,
         defaults={"added_by": added_by} if added_by and hasattr(TicketParticipant, "added_by") else {},
     )
+    # If the participant previously removed themselves, reset the flag
+    if not created and participant.removed_self:
+        participant.removed_self = False
+        participant.save()
     if not created: return False
     TicketMessage.objects.create(
         ticket=ticket,
@@ -29,10 +33,14 @@ def assign_department_to_ticket(ticket, department, added_by):
     TicketDepartment.objects.get_or_create(ticket=ticket,department=department,
     )
     for user in department.members.all():
-        TicketParticipant.objects.get_or_create(
+        participant, created = TicketParticipant.objects.get_or_create(
             ticket=ticket,
             user=user,
         )
+        # If the participant previously removed themselves, reset the flag
+        if not created and participant.removed_self:
+            participant.removed_self = False
+            participant.save()
     TicketMessage.objects.create(
         ticket=ticket,
         sender=None,

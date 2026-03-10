@@ -578,7 +578,7 @@ class TicketThreadViewTests(TestCase):
         view = TicketThreadView()
         view.ticket = self.ticket # Fix: Set ticket on view
         view.object = self.ticket
-        view._remove_staff(staff_user)
+        view._remove_staff(staff_user, self.user)
         self.assertFalse(self.ticket.participants.filter(user=staff_user).exists())
         self.assertTrue(
             TicketMessage.objects.filter(ticket=self.ticket, body__contains="was removed").exists()
