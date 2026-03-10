@@ -132,23 +132,14 @@ class AssignStaffToTicketTests(TestCase):
             user=self.staff_user,
             removed_self=True
         )
-        
         old_updated_at = self.ticket.updated_at
         initial_message_count = TicketMessage.objects.count()
-        
-        # Reassign the staff member
         result = assign_staff_to_ticket(self.ticket, self.staff_user)
-        
-        # Verify restoration happened but returns False (participant already existed)
         self.assertFalse(result)
         participant.refresh_from_db()
         self.assertFalse(participant.removed_self)
-        
-        # Verify ticket was NOT updated (since participant already existed)
         self.ticket.refresh_from_db()
         self.assertEqual(self.ticket.updated_at, old_updated_at)
-        
-        # Verify no message was created (since participant already existed)
         self.assertEqual(TicketMessage.objects.count(), initial_message_count)
 
 
@@ -169,7 +160,6 @@ class AssignDepartmentToTicketTests(TestCase):
             name="Support",
             created_by=self.creator,
         )
-
         self.department.members.add(self.staff1, self.staff2)
         
     def test_assign_department_creates_ticket_department_relation(self):
