@@ -1,8 +1,70 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/tickets_home.css' %}">
+  <link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
+  <link rel="stylesheet" href="{% static 'css/notification.css' %}">
+{% endblock %}
 
 {% block content %}
-<h1>Notifications</h1>
+<div class="tickets-wrap tickets-centered">
+  <div class="tickets-header tickets-header-centered">
+    <div>
+      <h1 class="tickets-title">Notifications</h1>
+      <p class="tickets-subtitle">
+        Stay up to date with activity on your tickets.
+      </p>
+    </div>
+  </div>
 
-<p>No notifications yet.</p>
+  {% if notifications %}
+    <div class="ticket-list notification-list">
+      {% for n in notifications %}
+        <article class="ticket-row notification-row {% if n.is_read %}notification-row-read{% else %}notification-row-unread{% endif %}">
+          {% if n.target_object %}
+            <a href="{% url 'ticket_thread' n.target_object.uuid %}" class="notification-link">
+          {% endif %}
+              <div class="ticket-bar">
+                <div class="ticket-bar-main">
+                  <div class="ticket-bar-left">
+                    <div class="ticket-title-wrap">
+                      <span class="ticket-title">
+                        {{ n.short_message|striptags }}
+                      </span>
+                    </div>
 
+                    <div class="meta-row">
+                      <span class="meta-item">
+                        <span class="meta-ico">🗓</span>
+                        <span>
+                          <strong>{{ n.created_at|date:"M j, Y" }}</strong>
+                          at
+                          <strong>{{ n.created_at|date:"H:i" }}</strong>
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="ticket-bar-right">
+                    {% if not n.is_read %}
+                      <span class="pill status status-active">New</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+          {% if n.target_object %}
+            </a>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">
+      You don’t have any notifications yet.
+    </div>
+  {% endif %}
+</div>
 {% endblock %}

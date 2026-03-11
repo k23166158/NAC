@@ -50,9 +50,9 @@ class DepartmentViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "department.html")
-        self.assertIn("active_tickets", response.context)
+        self.assertIn("active_tickets_page", response.context)
         self.assertIn("available_staff", response.context)
-        self.assertIn("invited_staff", response.context)
+        self.assertIn("invited_users", response.context)
 
     def test_get_context_includes_active_and_closed_tickets(self):
         """Test that build_context includes active and closed tickets with annotations."""
@@ -67,9 +67,9 @@ class DepartmentViewTests(TestCase):
         self.client.force_login(self.member)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context["active_tickets"]), 1)
-        self.assertEqual(len(response.context["closed_tickets"]), 1)
-        self.assertIn("staff", response.context)
+        self.assertEqual(len(response.context["active_tickets_page"]), 1)
+        self.assertEqual(len(response.context["closed_tickets_page"]), 1)
+        self.assertIn("staff_page", response.context)
         self.assertIn("department", response.context)
 
     def test_post_add_staff_sends_invite(self):

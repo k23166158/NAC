@@ -1,0 +1,126 @@
+/* Individual Message Cards */
+
+.ticket-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    padding: 10px 12px 12px;
+}
+
+.ticket-card:has(.deleted-message) {
+    background: #f9fafb;
+    border-color: var(--border);
+}
+
+.ticket-card:has(.deleted-message) .sender-name,
+.ticket-card:has(.deleted-message) .timestamp {
+    color: var(--muted);
+    opacity: 0.7;
+}
+
+/* Current user's message highlight */
+
+.my-message {
+    background: #eff6ff;
+    border-color: rgba(37, 99, 235, 0.45);
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.18), var(--shadow-sm);
+}
+
+/* Message Header (Sender info) */
+
+.ticket-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.sender-name {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* Metadata on the right (timestamp, actions) */
+
+.meta-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.timestamp {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* Message Content */
+
+.message-body {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.deleted-message {
+    background: #f9fafb;
+    border-radius: 10px;
+    border: 1px dashed var(--border);
+    padding: 6px 8px;
+    color: var(--muted);
+    font-style: italic;
+}
+
+/* Message action buttons */
+
+.message-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-tiny {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #f8fafc;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.06s ease;
+}
+
+.btn-tiny:hover {
+    background: #eff6ff;
+    border-color: rgba(37, 99, 235, 0.4);
+    color: var(--text);
+    transform: translateY(1px);
+}
+
+.delete-btn {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.delete-btn:hover {
+    background: #fee2e2;
+    border-color: #ef4444;
+    color: #7f1d1d;
+}
+
+/* Responsive adjustments */
+
+@media (max-width: 800px) {
+    .meta-right {
+        justify-content: flex-start;
+    }
+}

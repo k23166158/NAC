@@ -4,7 +4,10 @@
 {% block title %}Ticket #{{ ticket.uuid }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/ticket_style.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_layout.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_timeline.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_messages.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_staff.css' %}">
 <link rel="stylesheet" href="{% static 'css/create_ticket.css' %}">
 <link rel="stylesheet" href="{% static 'css/attachments.css' %}">
 {% endblock %}
@@ -59,11 +62,11 @@
             <span class="system-timestamp">{{ message.created_at|date:"M d, Y H:i" }}</span>
           </div>
         {% else %}
-          <div class="ticket-card {% if message.sender == user %}my-message{% endif %}">
+          <div class="ticket-card {% if message.sender == user and not message.hidden %}my-message{% endif %}">
             <div class="ticket-top">
               <strong class="sender-name">{{ message.sender.username }}</strong>
               <div class="meta-right">
-                <span class="timestamp">{% if message.edited %}Edited: {{ message.edited_at|date:"M d, Y H:i" }}{% else %}{{ message.created_at|date:"M d, Y H:i" }}{% endif %}</span>
+                {% if not message.hidden %}<span class="timestamp">{% if message.edited %}Edited: {{ message.edited_at|date:"M d, Y H:i" }}{% else %}{{ message.created_at|date:"M d, Y H:i" }}{% endif %}</span>{% endif %}
                 {% if not message.hidden and message.sender == user and ticket.status != 'closed' %}
                   <div class="message-actions">
                     {% if message.id == last_user_message_id %}
@@ -99,7 +102,9 @@
     {% endfor %}
   </div>
   <div class="line-break"></div>
-  {% if ticket.status == 'closed' %}
+  {% if user_has_removed %}
+    <div class="ticket-closed-notice">You have removed yourself from the ticket.</div>
+  {% elif ticket.status == 'closed' %}
     <div class="ticket-closed-notice">This ticket is closed.</div>
   {% else %}
     {% if permission %}
@@ -157,10 +162,10 @@
                   <div class="pill staff-row">
                     <div class="staff-info">
                       {% if staff_user.profile_picture %}<img src="{{ staff_user.profile_picture.url }}" alt="{{ staff_user.first_name }}" class="avatar">{% else %}{% include "partials/empty_avatar.html" with user=staff_user %}{% endif %}
-                      <span class="staff-name">{{ staff_user.full_name }}</span>
+                      <span class="staff-name">{% if staff_user == user %}{{ staff_user.full_name }} [You]{% else %}{{ staff_user.full_name }}{% endif %}</span>
                     </div>
-                    {% if department.created_by != staff_user %}
-                      <form method="post" class="remove-staff-form">{% csrf_token %}<input type="hidden" name="action" value="remove"><input type="hidden" name="user_id" value="{{ staff_user.id }}"><button type="submit" class="btn-icon-remove" title="Remove staff"><i class="bi bi-trash3"></i></button></form>
+                    {% if staff|length > 1 or staff_user != user %}
+                      <form method="post" class="remove-staff-form">{% csrf_token %}<input type="hidden" name="action" value="remove"><input type="hidden" name="target_type" value="staff"><input type="hidden" name="target_id" value="{{ staff_user.id }}"><button type="submit" class="btn-icon-remove" title="Remove staff"><i class="bi bi-trash3"></i></button></form>
                     {% endif %}
                   </div>
                 {% empty %}<div class="empty empty-state">No staff assigned yet.</div>{% endfor %}

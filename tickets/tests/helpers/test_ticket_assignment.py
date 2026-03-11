@@ -5,7 +5,7 @@ from unittest import mock
 from datetime import timedelta
 
 # Adjust this import to match where your function is located
-from tickets.helpers.ticket_assignment import assign_staff_to_ticket
+from tickets.helpers.ticket_assignment import assign_staff_to_ticket, _restore_participant
 from tickets.models import Ticket, TicketParticipant, TicketMessage
 from tickets.helpers.ticket_assignment import assign_department_to_ticket, assign_staff_to_ticket
 from tickets.models import TicketDepartment
@@ -121,6 +121,27 @@ class AssignStaffToTicketTests(TestCase):
         call_kwargs = MockParticipant.objects.get_or_create.call_args[1]
         self.assertEqual(call_kwargs['defaults'], {})
 
+    def test_assign_staff_restores_removed_participant(self):
+        """
+        Test that if a participant exists but had removed themselves (removed_self=True),
+        reassigning them should restore them (but return False since they already existed).
+        """
+        # Create a participant who has removed themselves
+        participant = TicketParticipant.objects.create(
+            ticket=self.ticket,
+            user=self.staff_user,
+            removed_self=True
+        )
+        old_updated_at = self.ticket.updated_at
+        initial_message_count = TicketMessage.objects.count()
+        result = assign_staff_to_ticket(self.ticket, self.staff_user)
+        self.assertFalse(result)
+        participant.refresh_from_db()
+        self.assertFalse(participant.removed_self)
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.updated_at, old_updated_at)
+        self.assertEqual(TicketMessage.objects.count(), initial_message_count)
+
 
 class AssignDepartmentToTicketTests(TestCase):
     """Test cases for the assign_department_to_ticket helper function."""
@@ -139,7 +160,6 @@ class AssignDepartmentToTicketTests(TestCase):
             name="Support",
             created_by=self.creator,
         )
-
         self.department.members.add(self.staff1, self.staff2)
         
     def test_assign_department_creates_ticket_department_relation(self):
@@ -222,3 +242,78 @@ class AssignDepartmentToTicketTests(TestCase):
             ).count(),
             1,
         )
+
+    def test_assign_department_restores_removed_member(self):
+        """
+        Test that if a department member had removed themselves from the ticket,
+        assigning the department again should restore them.
+        """
+        # Create a participant who has removed themselves
+        participant = TicketParticipant.objects.create(
+            ticket=self.ticket,
+            user=self.staff1,
+            removed_self=True
+        )
+        
+        # Assign the department
+        assign_department_to_ticket(
+            self.ticket,
+            self.department,
+            added_by=self.creator,
+        )
+        
+        # Verify the participant was restored
+        participant.refresh_from_db()
+        self.assertFalse(participant.removed_self)
+
+
+class RestoreParticipantTests(TestCase):
+    """Test cases for the _restore_participant helper function."""
+
+    def setUp(self):
+        """Create test data."""
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='password'
+        )
+        self.creator = User.objects.create_user(
+            username='creator',
+            email='creator@example.com',
+            password='password'
+        )
+        self.ticket = Ticket.objects.create(
+            title="Test Ticket",
+            created_by=self.creator
+        )
+
+    def test_restore_participant_when_removed_self_true(self):
+        """
+        Test that _restore_participant correctly restores a participant
+        who had removed_self=True.
+        """
+        participant = TicketParticipant.objects.create(
+            ticket=self.ticket,
+            user=self.user,
+            removed_self=True
+        )
+        
+        _restore_participant(participant)
+        
+        participant.refresh_from_db()
+        self.assertFalse(participant.removed_self)
+
+    def test_restore_participant_when_removed_self_false(self):
+        """
+        Test that _restore_participant is no-op when removed_self=False.
+        """
+        participant = TicketParticipant.objects.create(
+            ticket=self.ticket,
+            user=self.user,
+            removed_self=False
+        )
+        
+        _restore_participant(participant)
+        
+        participant.refresh_from_db()
+        self.assertFalse(participant.removed_self)
