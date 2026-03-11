@@ -56,9 +56,7 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         messages = self.get_messages_queryset()
         staff = self.get_ticket_staff()
         departments = self.get_ticket_departments()
-        return {
-            "ticket": self.object,
-            "staff": staff,
+        return {"ticket": self.object, "staff": staff,
             "available_staff": self.get_available_staff(staff),
             "ticket_departments": departments,
             "available_departments": self.get_available_departments(departments),
