@@ -10,6 +10,7 @@ class TicketParticipant(models.Model):
     added_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="participants_added")
     added_at = models.DateTimeField(auto_now_add=True)
     last_read_at = models.DateTimeField(null=True, blank=True)
+    removed_self = models.BooleanField(default=False, help_text="Whether the user removed themselves from the ticket")
     
     class Meta:
         """Meta information for the TicketParticipant model."""
