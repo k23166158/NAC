@@ -13,13 +13,10 @@ def create_notification(user, actor, notification_type, link=None, target_object
     short_message = render_to_string(short_template, context).strip()
     long_message = render_to_string(long_template, context).strip()
 
-    # send the email
     send_email(user, short_message, long_message)
-
     return Notification.objects.create(
         user=user, actor=actor, target_object=target_object,
-        notification_type=notification_type,
-        short_message=short_message
+        notification_type=notification_type, short_message=short_message
     )
 
 def send_email(user, short_message, long_message):
