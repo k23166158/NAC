@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.paginator import Paginator
 from django.db.models import OuterRef, Subquery
 from django.db import models
 from django.shortcuts import get_object_or_404
@@ -38,9 +39,10 @@ class Department(models.Model):
         return get_object_or_404(cls, slug=slug)
 
     @classmethod
-    def assigned_to_user_with_ticket_counts(cls, user):
+    def assigned_to_user_with_ticket_counts(cls, user, search_query=""):
         """Return departments assigned to user with ticket count annotations."""
         queryset = cls._assigned_to_user_queryset(user)
+        queryset = cls._filter_manage_search(queryset, search_query)
         queryset = queryset.annotate(**cls._ticket_count_annotations())
         return queryset.prefetch_related("assigned_users__user").order_by("name")
 
@@ -64,6 +66,16 @@ class Department(models.Model):
                 distinct=True,
             ),
         }
+
+    @staticmethod
+    def _filter_manage_search(queryset, search_query):
+        """Filter manage departments queryset by name/description."""
+        if not search_query:
+            return queryset
+        return queryset.filter(
+            models.Q(name__icontains=search_query)
+            | models.Q(description__icontains=search_query)
+        )
 
     def can_view(self, user):
         """Check if user may view this department."""
@@ -114,19 +126,51 @@ class Department(models.Model):
         qs = Ticket.objects.filter(assignments__department=self, status__in=status_list)
         return Department.annotate_tickets(qs).order_by("-updated_at")
 
-    def build_view_context(self):
+    def build_view_context(self, request):
         """Build the context payload for the department details page."""
         current_staff = self.get_current_staff()
         pending_invitations = self.get_pending_invitations()
         invited_users = [invite.recipient for invite in pending_invitations]
+        staff_page = self._paginate_queryset(
+            request,
+            current_staff + invited_users,
+            "staff_page",
+            per_page=8,
+        )
+        active_tickets = self.get_tickets([Ticket.Status.OPEN, Ticket.Status.PENDING])
+        closed_tickets = self.get_tickets([Ticket.Status.CLOSED])
+        active_tickets_page = self._paginate_queryset(
+            request,
+            active_tickets,
+            "active_page",
+            per_page=10,
+        )
+        closed_tickets_page = self._paginate_queryset(
+            request,
+            closed_tickets,
+            "closed_page",
+            per_page=10,
+        )
         return {
             "department": self,
             "staff": current_staff,
+            "staff_page": staff_page,
             "invited_staff": invited_users,
+            "invited_users": invited_users,
             "available_staff": self.get_available_staff(current_staff, invited_users),
-            "active_tickets": self.get_tickets([Ticket.Status.OPEN, Ticket.Status.PENDING]),
-            "closed_tickets": self.get_tickets([Ticket.Status.CLOSED]),
+            "active_tickets": active_tickets,
+            "active_tickets_page": active_tickets_page,
+            "active_tickets_count": active_tickets.count(),
+            "closed_tickets": closed_tickets,
+            "closed_tickets_page": closed_tickets_page,
+            "closed_tickets_count": closed_tickets.count(),
         }
+
+    @staticmethod
+    def _paginate_queryset(request, queryset, page_param, *, per_page):
+        """Return a page object for the given queryset/list."""
+        paginator = Paginator(queryset, per_page)
+        return paginator.get_page(request.GET.get(page_param))
 
     def process_staff_change(self, *, actor, user_id, action):
         """Apply add/remove/remove_invite staff action for this department."""
