@@ -129,40 +129,41 @@ class Department(models.Model):
     def build_view_context(self, request):
         """Build the context payload for the department details page."""
         current_staff = self.get_current_staff()
-        pending_invitations = self.get_pending_invitations()
-        invited_users = [invite.recipient for invite in pending_invitations]
-        staff_page = self._paginate_queryset(
-            request,
-            current_staff + invited_users,
-            "staff_page",
-            per_page=8,
-        )
-        active_tickets = self.get_tickets([Ticket.Status.OPEN, Ticket.Status.PENDING])
-        closed_tickets = self.get_tickets([Ticket.Status.CLOSED])
-        active_tickets_page = self._paginate_queryset(
-            request,
-            active_tickets,
-            "active_page",
-            per_page=10,
-        )
-        closed_tickets_page = self._paginate_queryset(
-            request,
-            closed_tickets,
-            "closed_page",
-            per_page=10,
-        )
+        invited_users = self._get_invited_users()
+        context = {"department": self, "staff": current_staff}
+        context.update(self._staff_context(request, current_staff, invited_users))
+        context.update(self._ticket_context(request))
+        return context
+
+    def _get_invited_users(self):
+        """Return users with pending invitations for this department."""
+        return [invite.recipient for invite in self.get_pending_invitations()]
+
+    def _staff_context(self, request, current_staff, invited_users):
+        """Return staff-related context for the department page."""
         return {
-            "department": self,
-            "staff": current_staff,
-            "staff_page": staff_page,
+            "staff_page": self._paginate_queryset(
+                request, current_staff + invited_users, "staff_page", per_page=8
+            ),
             "invited_staff": invited_users,
             "invited_users": invited_users,
             "available_staff": self.get_available_staff(current_staff, invited_users),
+        }
+
+    def _ticket_context(self, request):
+        """Return ticket-related context for the department page."""
+        active_tickets = self.get_tickets([Ticket.Status.OPEN, Ticket.Status.PENDING])
+        closed_tickets = self.get_tickets([Ticket.Status.CLOSED])
+        return {
             "active_tickets": active_tickets,
-            "active_tickets_page": active_tickets_page,
+            "active_tickets_page": self._paginate_queryset(
+                request, active_tickets, "active_page", per_page=10
+            ),
             "active_tickets_count": active_tickets.count(),
             "closed_tickets": closed_tickets,
-            "closed_tickets_page": closed_tickets_page,
+            "closed_tickets_page": self._paginate_queryset(
+                request, closed_tickets, "closed_page", per_page=10
+            ),
             "closed_tickets_count": closed_tickets.count(),
         }
 
