@@ -18,7 +18,7 @@ def render_create_ticket(request, form):
 
 
 def build_assignments(ticket, departments):
-    """Build TicketAssigned objects for the selected departments."""
+    """Build TicketAssigned rows for selected departments (legacy compatibility)."""
     return [TicketAssigned(ticket=ticket, department=dept) for dept in departments]
 
 
@@ -44,12 +44,34 @@ def create_attachments(ticket, message, files, user):
         TicketMessageAttachment.objects.bulk_create(attachments)
 
 
+def _create_ticket(user, cleaned):
+    """Create and return a new ticket instance."""
+    return Ticket.objects.create(
+        title=cleaned["title"],
+        created_by=user,
+    )
+
+
+def _create_first_message(ticket, user, cleaned):
+    """Create and return the initial ticket message."""
+    return TicketMessage.objects.create(
+        ticket=ticket,
+        body=cleaned["body"],
+        sender=user,
+    )
+
+
+def _assign_departments(ticket, departments, user):
+    """Persist legacy department assignments for the ticket."""
+    TicketAssigned.objects.bulk_create(build_assignments(ticket, departments))
+
+
 def create_ticket_objects(user, cleaned, files=None):
-    """Create Ticket, first TicketMessage, TicketAssigned rows, and attachments"""
+    """Create ticket, initial message, assignments, and attachments."""
     with transaction.atomic():
-        ticket = Ticket.objects.create(title=cleaned["title"], created_by=user)
-        message = TicketMessage.objects.create(ticket=ticket, body=cleaned["body"], sender=user)
-        TicketAssigned.objects.bulk_create(build_assignments(ticket, cleaned["departments"]))
+        ticket = _create_ticket(user, cleaned)
+        message = _create_first_message(ticket, user, cleaned)
+        _assign_departments(ticket, cleaned["departments"], user)
         create_attachments(ticket, message, files, user)
     return ticket
 
