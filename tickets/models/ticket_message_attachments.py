@@ -24,7 +24,7 @@ class TicketMessageAttachment(models.Model):
         related_name="attachments",
     )
 
-    file = models.FileField(upload_to="ticket_attachments/%Y/%m/%d/")
+    file = models.FileField(upload_to="ticket_attachments/")
 
     original_name = models.CharField(max_length=255, blank=True)
     content_type = models.CharField(max_length=127, blank=True)
