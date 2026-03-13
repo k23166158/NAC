@@ -27,7 +27,7 @@ class TicketMessage(models.Model):
    class Meta:
       """Meta information for the TicketMessage model."""
       db_table = "ticket_messages"
-      ordering = ["created_at"]
+      ordering = ["-created_at"]
 
    @classmethod
    def create_system_message(cls, ticket, body):

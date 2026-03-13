@@ -220,6 +220,22 @@
     transform: translateY(1px);
 }
 
+/* Utility classes */
+
+.hidden {
+    display: none;
+}
+
+.delete-form {
+    display: inline;
+}
+
+/* Message content visibility */
+
+.message-content {
+    display: block;
+}
+
 /* Responsive adjustments */
 
 @media (max-width: 800px) {
