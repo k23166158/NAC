@@ -45,7 +45,7 @@
 
         items.forEach(item => {
             const name = item.getAttribute('data-name');
-            if (name.includes(query)) {
+            if (name.startsWith(query)) {
                 item.style.display = 'block';
                 hasVisibleItems = true;
             } else {
