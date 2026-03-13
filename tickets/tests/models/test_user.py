@@ -8,6 +8,7 @@ User = get_user_model()
 
 class UserModelTests(TestCase):
     "Test suite for the custom User model."
+    
     def setUp(self):
         """Set up a base user for testing."""
         self.user = User.objects.create_user(
@@ -111,8 +112,6 @@ class UserModelTests(TestCase):
         )
         self.assertEqual(u.profile_slug, "johndoe-99")
 
-
-
     def test_profile_slug_not_overwritten_if_set(self):
         """Existing profile_slug is preserved on save()."""
         self.user.profile_slug = "custom-slug"
@@ -127,24 +126,6 @@ class UserModelTests(TestCase):
             email="bang@example.com",
             first_name="Bang",
             last_name="Bang",
-            password="password123",
-        )
-        self.assertTrue(u.profile_slug.startswith("user"))
-
-    def test_profile_slug_not_overwritten_if_set(self):
-        """Existing profile_slug should not be regenerated on save()."""
-        self.user.profile_slug = "custom-slug"
-        self.user.save()
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.profile_slug, "custom-slug")
-
-    def test_profile_slug_fallback_when_slugify_empty(self):
-        """Slug defaults to 'user' if slugify(username) is empty."""
-        u = User.objects.create_user(
-            username="!!!",
-            email="empty@example.com",
-            first_name="Empty",
-            last_name="Slug",
             password="password123",
         )
         self.assertTrue(u.profile_slug.startswith("user"))
@@ -166,7 +147,5 @@ class UserModelTests(TestCase):
             password="password123",
         )
         self.assertEqual(u1.profile_slug, "john-doe")
-        self.assertNotEqual(u2.profile_slug, "john-doe")
-        self.assertTrue(u2.profile_slug.startswith("john-doe-"))
         self.assertNotEqual(u2.profile_slug, "john-doe")
         self.assertTrue(u2.profile_slug.startswith("john-doe-"))
