@@ -35,9 +35,21 @@ class TicketDepartment(models.Model):
         )
 
     @classmethod
-    def remove_department(cls, ticket, department):
+    def remove_department(cls, ticket, department, removed_by=None):
         """Remove a ticket-department relation and log system message."""
         from .ticket_message import TicketMessage
+        from tickets.models.notification import Notification
+        from tickets.helpers.notifications import create_notification
 
+        members = list(department.members.all())
         cls.objects.filter(ticket=ticket, department=department).delete()
         TicketMessage.create_system_message(ticket, f"{department.name} was removed from the ticket.")
+        for user in members:
+            if user != removed_by:
+                create_notification(
+                    user=user,
+                    actor=removed_by,
+                    notification_type=Notification.NotificationType.DEPT_REMOVED,
+                    link=f"/tickets/{ticket.uuid}/",
+                    target_object=ticket,
+                )

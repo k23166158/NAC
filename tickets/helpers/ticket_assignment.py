@@ -2,6 +2,8 @@ from django.utils import timezone
 from tickets.models import TicketMessage
 from tickets.models.ticket_participant import TicketParticipant
 from tickets.models import Ticket
+from tickets.models.notification import Notification
+from tickets.helpers.notifications import create_notification
 
 
 def assign_staff_to_ticket(ticket, staff_user, *, added_by=None):
@@ -17,6 +19,13 @@ def assign_staff_to_ticket(ticket, staff_user, *, added_by=None):
     if not created: return False
     TicketMessage.objects.create(ticket=ticket,sender=None,body=f"{staff_user.get_full_name()} was added to the ticket.",)
     Ticket.objects.filter(id=ticket.id).update(updated_at=timezone.now())
+    create_notification(
+        user=staff_user,
+        actor=added_by,
+        notification_type=Notification.NotificationType.STAFF_ASSIGNED,
+        link=f"/tickets/{ticket.uuid}/",
+        target_object=ticket,
+    )
     return True
 
 from tickets.models import TicketParticipant, TicketMessage
@@ -52,3 +61,12 @@ def assign_department_to_ticket(ticket, department, added_by):
     )
 
     Ticket.objects.filter(id=ticket.id).update(updated_at=timezone.now())
+    for user in department.members.all():
+        if user != added_by:
+            create_notification(
+                user=user,
+                actor=added_by,
+                notification_type=Notification.NotificationType.DEPT_ASSIGNED,
+                link=f"/tickets/{ticket.uuid}/",
+                target_object=ticket,
+            )
