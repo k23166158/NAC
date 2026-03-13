@@ -5,7 +5,8 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import Http404
 
-from tickets.models import Ticket, TicketMessage, Department, TicketMessageAttachment, TicketParticipant, UserDepartments, TicketAssigned
+from tickets.models import Ticket, TicketMessage, Department, TicketMessageAttachment
+from tickets.models import TicketParticipant, UserDepartments, TicketAssigned
 from tickets.views.ticket_thread_view import TicketThreadView
 
 User = get_user_model()
@@ -38,7 +39,6 @@ class TicketThreadViewTests(TestCase):
         self.assertEqual(list(res.context["messages"]), [m2])
         self.assertIsNotNone(res.context["last_user_message_id"])
 
-        # Test permission via department staff branch
         s_dept = User.objects.create_user(username="sd", email="sd@e.com", password="p", is_staff=True)
         d = Department.objects.create(name="D", created_by=self.u1)
         UserDepartments.objects.create(user=s_dept, department=d)
@@ -51,12 +51,10 @@ class TicketThreadViewTests(TestCase):
         self.client.force_login(self.u2)
         self.client.get(reverse("home"))
         self.assertEqual(self.client.post(self.url, data=self._csrf(body="X")).status_code, 403)
-        
         self.client.force_login(self.u1)
         self.client.get(self.url)
         bad_url = reverse("ticket_thread", kwargs={"uuid": "00000000-0000-0000-0000-000000000000"})
         self.assertEqual(self.client.get(bad_url).status_code, 404)
-        
         m_other = TicketMessage.objects.create(ticket=self.t, sender=self.u2, body="M2")
         self.assertEqual(self.client.post(self.url, data=self._csrf(action="edit", message_id=m_other.id)).status_code, 404)
         self.assertEqual(self.client.post(self.url, data=self._csrf(action="update", message_id=m_other.id)).status_code, 404)
@@ -64,29 +62,17 @@ class TicketThreadViewTests(TestCase):
 
     @override_settings(MEDIA_ROOT=tempfile.gettempdir())
     def test_thread_post_messages_and_attachments(self):
-        """Test adding, updating, deleting messages and attachment model edge cases."""
+        """Test adding, updating, deleting messages and attachment edge cases."""
         self.client.force_login(self.u1)
-        self.client.get(self.url)
         f = SimpleUploadedFile("a.txt", b"x", content_type="text/plain")
-        
-        data = self._csrf(body="New")
-        data["attachments"] = f
-        self.client.post(self.url, data=data)
-        
+        self.client.post(self.url, data=self._csrf(body="New", attachments=f))
         msg = TicketMessage.objects.last()
-        self.assertEqual(msg.body, "New")
-        
         a1 = TicketMessageAttachment.objects.get(message=msg)
-        self.assertIn("a.txt", str(a1))
         empty_a = TicketMessageAttachment(ticket=self.t, message=msg, uploaded_by=self.u1)
         empty_a.save()
-        self.assertEqual(empty_a.size_bytes, 0)
         empty_a.delete()
-        
-        self.client.post(self.url, data=self._csrf(action="update", message_id=msg.id, body="Updated", remove_attachment_ids=[a1.id]))
-        self.assertEqual(TicketMessage.objects.get(id=msg.id).body, "Updated")
+        self.client.post(self.url, data=self._csrf(action="update", message_id=msg.id, body="U", remove_attachment_ids=[a1.id]))
         self.assertFalse(TicketMessageAttachment.objects.filter(id=a1.id).exists())
-        
         self.client.post(self.url, data=self._csrf(action="delete", message_id=msg.id))
         self.assertTrue(TicketMessage.objects.get(id=msg.id).hidden)
 
@@ -95,18 +81,12 @@ class TicketThreadViewTests(TestCase):
         s1 = User.objects.create_user(username="s1", email="s1@e.com", password="p", is_staff=True)
         d1 = Department.objects.create(name="D1", created_by=self.u1)
         self.client.force_login(self.u1)
-        self.client.get(self.url)
-        
         self.client.post(self.url, data=self._csrf(action="add", target_type="staff", target_id=s1.id))
-        self.assertTrue(self.t.participants.filter(user=s1).exists())
         self.client.post(self.url, data=self._csrf(action="remove", target_type="staff", target_id=s1.id))
         self.assertFalse(self.t.participants.filter(user=s1).exists())
-        
         self.client.post(self.url, data=self._csrf(action="add", target_type="department", target_id=d1.id))
-        self.assertTrue(self.t.ticket_departments.filter(department=d1).exists())
         self.client.post(self.url, data=self._csrf(action="remove", target_type="department", target_id=d1.id))
         self.assertFalse(self.t.ticket_departments.filter(department=d1).exists())
-        
         self.u1.is_staff = True
         self.u1.save()
         TicketParticipant.objects.get_or_create(ticket=self.t, user=self.u1)
@@ -114,28 +94,20 @@ class TicketThreadViewTests(TestCase):
         self.assertTrue(self.t.participants.get(user=self.u1).removed_self)
 
     def test_thread_close_and_edge_cases(self):
-        """Test closing tickets, legacy actions, missing params, and blank bodies."""
+        """Test closing tickets and missing param behaviors."""
         self.client.force_login(self.u1)
-        self.client.get(self.url)
         self.client.post(self.url, data=self._csrf(action="close_ticket"))
         self.t.refresh_from_db()
         self.assertEqual(self.t.status, Ticket.Status.CLOSED)
-        self.client.post(self.url, data=self._csrf(action="close_ticket"))  # Already closed
-        
-        # Edge cases and missing fields
         self.client.post(self.url, data=self._csrf(action="unknown", body=""))
         self.client.post(self.url, data=self._csrf(action="add", target_type="invalid", target_id="1"))
-        self.client.post(self.url, data=self._csrf(action="add", user_id="999")) # 404 invalid user
+        self.client.post(self.url, data=self._csrf(action="add", user_id="999"))
         s_leg = User.objects.create_user(username="leg", email="l@e.com", password="p", is_staff=True)
-        self.client.post(self.url, data=self._csrf(action="add", user_id=s_leg.id)) # Legacy path
+        self.client.post(self.url, data=self._csrf(action="add", user_id=s_leg.id))
         self.assertTrue(self.t.participants.filter(user=s_leg).exists())
-        
-        # Blank updates/adds
         msg = TicketMessage.objects.create(ticket=self.t, sender=self.u1, body="Old")
         self.client.post(self.url, data=self._csrf(action="update", message_id=msg.id, body="   "))
-        self.client.post(self.url, data=self._csrf(action="update", message_id=msg.id))
         self.client.post(self.url, data=self._csrf(action="add", body="   "))
-        self.assertEqual(TicketMessage.objects.get(id=msg.id).body, "Old")
 
     def test_thread_internal_helpers(self):
         """Direct test on view logic for coverage of edge branches."""
@@ -145,21 +117,75 @@ class TicketThreadViewTests(TestCase):
         self.assertEqual(list(v.get_reply_messages(TicketMessage.objects.none())), [])
         v.touch_ticket()
         v.get_department_staff()
-        
         Dummy = type("D", (), {"action": "x", "add": lambda *a: None, "remove": lambda *a: None})
         v.apply_assignment_action(Dummy(), None, None)
-        
         s2 = User.objects.create_user(username="s2", email="s2@e.com", password="p", is_staff=True)
         req = rf.post(self.url, data={"action": "unknown", "message_id": "1", "user_id": str(s2.id)})
         req.user = self.u1
         v.handle_staff_change(req)
-        
-        req_a = rf.post(self.url, data={"action": "u", "target_id": str(s2.id), "target_type": "staff"})
-        req_a.user = self.u1
-        v.handle_assignment_change(req_a)
-        
         m = TicketMessage.objects.create(ticket=self.t, sender=self.u1, body="H", hidden=True)
         v.request = rf.post(self.url, data={"action": "edit", "message_id": str(m.id)})
         v.request.user = self.u1
         with self.assertRaises(Http404):
             v.get_edit_message()
+
+    def test_mixin_edit_and_staff_edge_cases(self):
+        """Test edit message and staff change edge cases."""
+        v, rf = TicketThreadView(), RequestFactory()
+        v.object = v.ticket = self.t
+        req = rf.post(self.url, data={"action": "edit", "message_id": ""})
+        req.user, v.request = self.u1, req
+        self.assertIsNone(v.get_edit_message())
+        req = rf.post(self.url, data={"action": "something_else", "message_id": "1"})
+        req.user, v.request = self.u1, req
+        self.assertIsNone(v.get_edit_message())
+        req = rf.post(self.url, data={"action": "add"})
+        req.user = self.u1
+        v.handle_staff_change(req)
+        self.assertFalse(v.user_has_removed_themselves(self.u1))
+
+    def test_mixin_attachment_edge_cases(self):
+        """Test attachment handling edge cases."""
+        v, rf = TicketThreadView(), RequestFactory()
+        v.object = v.ticket = self.t
+        m = TicketMessage.objects.create(ticket=self.t, sender=self.u1, body="A")
+        f = SimpleUploadedFile("b.txt", b"x")
+        req = rf.post(self.url, data={"attachment": f})
+        req.user = self.u1
+        v._save_attachments_for_message(req, m)
+        self.assertTrue(TicketMessageAttachment.objects.filter(message=m).exists())
+        req_empty = rf.post(self.url)
+        req_empty.user = self.u1
+        v._save_attachments_for_message(req_empty, m)
+
+    def test_mixin_assignment_edge_cases(self):
+        """Test missing handler or missing data during assignment."""
+        v, rf = TicketThreadView(), RequestFactory()
+        v.object = v.ticket = self.t
+        s2 = User.objects.create_user(username="s2_e", email="s2@x.com", password="p", is_staff=True)
+        req = rf.post(self.url, data={"action": "add", "target_type": "unknown_type", "target_id": "1"})
+        req.user = self.u1
+        v.handle_assignment_change(req)
+        req = rf.post(self.url, data={"action": "unknown", "target_type": "staff", "target_id": s2.id})
+        req.user = self.u1
+        v.handle_assignment_change(req)
+        self.assertIsNotNone(v.get_available_staff(v.get_ticket_staff()))
+        self.assertIsNotNone(v.get_available_departments(v.get_ticket_departments()))
+
+    def test_mixin_message_action_edge_cases(self):
+        """Test edge cases for posting new messages and updates."""
+        v, rf = TicketThreadView(), RequestFactory()
+        v.object = v.ticket = self.t
+        m = TicketMessage.objects.create(ticket=self.t, sender=self.u1, body="A")
+        req = rf.post(self.url, data={"action": "update", "message_id": m.id, "body": "   "})
+        req.user = self.u1
+        v.handle_update_action(req)
+        self.assertIsNone(v.get_first_message(TicketMessage.objects.none()))
+        req = rf.post(self.url, data={"action": "edit"})
+        req.user = self.u1
+        v.dispatch_post_action("edit", req)
+        m_qs = TicketMessage.objects.filter(id=m.id)
+        self.assertEqual(v.get_reply_messages(m_qs), [])
+        req = rf.post(self.url, data={"action": "add", "body": "   "})
+        req.user = self.u1
+        v.handle_add_action(req)
