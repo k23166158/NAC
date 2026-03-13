@@ -63,7 +63,5 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
             "first_message": self.get_first_message(messages),
             "messages": self.get_reply_messages(messages),
             "last_user_message_id": self.get_last_user_message_id(messages),
-            "edit_message": self.get_edit_message(),
             "user_has_removed": self.user_has_removed_themselves(self.request.user),
         }
-

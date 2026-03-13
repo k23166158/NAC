@@ -117,6 +117,109 @@
     color: #7f1d1d;
 }
 
+/* Inline Edit Form */
+
+.message-edit-form {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.inline-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.edit-textarea-wrapper {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-textarea {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 13.5px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 120px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.edit-textarea:focus {
+    border-color: rgba(9, 105, 218, 0.45);
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.12);
+    outline: none;
+}
+
+.edit-attachments-section {
+    margin-top: 8px;
+    padding: 10px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.edit-attachments-section .label {
+    display: block;
+    margin: 0 0 8px 0;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text);
+}
+
+.edit-attachments-list {
+    margin: 0 !important;
+}
+
+.edit-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.btn-submit-sm,
+.btn-cancel-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.06s ease, box-shadow 0.12s ease;
+}
+
+.btn-submit-sm {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: white;
+}
+
+.btn-submit-sm:hover {
+    filter: brightness(0.95);
+    transform: translateY(1px);
+}
+
+.btn-cancel-sm {
+    background: #f8fafc;
+    border-color: var(--border);
+    color: var(--muted);
+}
+
+.btn-cancel-sm:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: var(--text);
+    transform: translateY(1px);
+}
+
 /* Responsive adjustments */
 
 @media (max-width: 800px) {
