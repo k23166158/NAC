@@ -84,7 +84,7 @@ class TicketThreadViewTests(TestCase):
         self.client.force_login(self.u1)
         self.client.post(self.url, data=self._csrf(action="add", target_type="staff", target_id=s1.id))
         self.client.post(self.url, data=self._csrf(action="remove", target_type="staff", target_id=s1.id))
-        self.assertFalse(self.t.participants.filter(user=s1).exists())
+        self.assertTrue(self.t.participants.filter(user=s1, removed_self=True).exists())
         self.client.post(self.url, data=self._csrf(action="add", target_type="department", target_id=d1.id))
         self.client.post(self.url, data=self._csrf(action="remove", target_type="department", target_id=d1.id))
         self.assertFalse(self.t.ticket_departments.filter(department=d1).exists())
