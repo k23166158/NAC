@@ -1,8 +1,9 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, RequestFactory
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
 from tickets.models import Department, UserDepartments, DepartmentInvitation, Ticket, TicketAssigned, Notification
+from tickets.views.department_view import DepartmentView
 
 User = get_user_model()
 
@@ -97,3 +98,16 @@ class DepartmentViewTests(TestCase):
         self.assertEqual(self.client.post(self.url, {'action': 'add', 'user_id': self.out.id}).status_code, 403)
         self.client.force_login(s_other)
         self.assertEqual(self.client.post(self.url, {'action': 'add', 'user_id': self.out.id}).status_code, 403)
+
+    def test_update_staff_assignment_unknown_action_noop(self):
+        """update_staff_assignment should be a no-op when action key is unknown."""
+        rf = RequestFactory()
+        request = rf.post(self.url, data={"user_id": self.out.id, "action": "unknown_action"})
+        request.user = self.owner
+
+        view = DepartmentView()
+        view.update_staff_assignment(request, user_id=self.out.id, department=self.dept, action="unknown_action")
+
+        # No new invitations or membership changes should have been made
+        self.assertFalse(DepartmentInvitation.objects.filter(recipient=self.out).exists())
+        self.assertTrue(UserDepartments.objects.filter(user=self.out, department=self.dept).count() in (0, 1))
