@@ -1,0 +1,6 @@
+Hello {{ user.first_name }},
+
+{{ actor.get_full_name }} has closed the ticket: "{{ target.title }}".
+
+You can view the ticket details here:
+{{ link }}
