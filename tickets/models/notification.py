@@ -16,6 +16,10 @@ class Notification(models.Model):
         DEPT_REMOVED = 'DEPT_REMOVED', 'Department Removed'
         NEW_MESSAGE = 'NEW_MESSAGE', 'New Message'
         TICKET_FORWARDED = 'TICKET_FORWARDED', 'Ticket Forwarded'
+        DEPT_INVITED = 'DEPT_INVITED', 'Department Invitation Sent'
+        DEPT_MEMBER_REMOVED = 'DEPT_MEMBER_REMOVED', 'Removed From Department'
+        DEPT_INVITE_ACCEPTED = 'DEPT_INVITE_ACCEPTED', 'Department Invite Accepted'
+        DEPT_INVITE_DECLINED = 'DEPT_INVITE_DECLINED', 'Department Invite Declined'
     
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

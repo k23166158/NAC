@@ -1,0 +1,9 @@
+Hello {{ user.get_full_name|default:user.username }},
+
+You have been invited by {{ actor.get_full_name|default:actor.username }} to join the department "{{ target.name }}".
+
+Visit the department management page to accept or decline this invitation.
+
+Best regards,
+The Support Team
+

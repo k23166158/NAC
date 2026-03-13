@@ -7,6 +7,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 
 from ..models import Department, Ticket, TicketMessage, UserDepartments, DepartmentInvitation
+from tickets.models.notification import Notification
+from tickets.helpers.notifications import create_notification
 
 User = get_user_model()
 
@@ -121,6 +123,12 @@ class DepartmentView(LoginRequiredMixin, View):
         name = user.get_full_name() or user.username
         if created:
             messages.success(request, f'Invitation sent to {name}.')
+            create_notification(
+                user=user,
+                actor=request.user,
+                notification_type=Notification.NotificationType.DEPT_INVITED,
+                target_object=department,
+            )
         else:
             messages.info(request, f'{name} was already invited.')
 
@@ -142,7 +150,14 @@ class DepartmentView(LoginRequiredMixin, View):
             self._invite_staff_to_department(request, user, department)
             return
         if action == 'remove':
-            UserDepartments.objects.filter(user=user, department=department).delete()
+            if UserDepartments.objects.filter(user=user, department=department).exists():
+                UserDepartments.objects.filter(user=user, department=department).delete()
+                create_notification(
+                    user=user,
+                    actor=request.user,
+                    notification_type=Notification.NotificationType.DEPT_MEMBER_REMOVED,
+                    target_object=department,
+                )
             return
         if action == 'remove_invite':
             DepartmentInvitation.objects.filter(department=department, recipient=user, status='pending').delete()

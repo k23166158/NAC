@@ -4,7 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 
-from tickets.models import Department, DepartmentInvitation, UserDepartments
+from tickets.models import Department, DepartmentInvitation, UserDepartments, Notification
+from tickets.helpers.notifications import create_notification
 
 class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """View for managing departments. Only accessible to staff members."""
@@ -73,6 +74,12 @@ class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             request,
             f'You have joined the department "{invite.department.name}".',
         )
+        create_notification(
+            user=invite.sender,
+            actor=request.user,
+            notification_type=Notification.NotificationType.DEPT_INVITE_ACCEPTED,
+            target_object=invite.department,
+        )
 
     def _decline_invite(self, request, invite):
         """Decline a department invitation."""
@@ -81,6 +88,12 @@ class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         messages.info(
             request,
             f'You have declined the invitation to "{invite.department.name}".',
+        )
+        create_notification(
+            user=invite.sender,
+            actor=request.user,
+            notification_type=Notification.NotificationType.DEPT_INVITE_DECLINED,
+            target_object=invite.department,
         )
 
     def _get_invite_and_action(self, request):
