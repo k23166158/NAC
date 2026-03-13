@@ -179,12 +179,16 @@ class TicketThreadView(LoginRequiredMixin, View):
     def handle_delete_action(self, request):
         """Handle deleting a message by hiding it."""
         message_id = request.POST.get("message_id")
+        get_object_or_404(TicketMessage, id=message_id, ticket=self.object, sender=request.user)
         TicketMessage.hide_user_message(self.object, message_id, request.user)
 
     def handle_update_action(self, request):
         """Handle updating an existing message."""
         message_id = request.POST.get("message_id")
-        body = request.POST.get("body")
+        get_object_or_404(TicketMessage, id=message_id, ticket=self.object, sender=request.user)
+        body = request.POST.get("body", "")
+        if body.isspace():
+            return
         message = TicketMessage.update_user_message(self.object, message_id, request.user, body)
         if message:
             remove_ids = request.POST.getlist("remove_attachment_ids")
@@ -295,4 +299,3 @@ class TicketThreadView(LoginRequiredMixin, View):
     def handle_close_ticket_action(self):
         """Close the ticket."""
         self.ticket.close()
-    
