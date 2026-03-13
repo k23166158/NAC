@@ -47,38 +47,23 @@ class HomeViewTests(TestCase):
 
     def test_home_ticket_visibility(self):
         """Test ticket scoping (personal/dept/assigned) and active/closed statuses."""
-        t1 = Ticket.objects.create(
-            title="My Open", created_by=self.u, status=Ticket.Status.OPEN
-        )
-        t2 = Ticket.objects.create(
-            title="Other Open", created_by=self.s1, status=Ticket.Status.OPEN
-        )
-        t3 = Ticket.objects.create(
-            title="Closed", created_by=self.u, status=Ticket.Status.CLOSED
-        )
+        t1 = Ticket.objects.create(title="My Open", created_by=self.u, status=Ticket.Status.OPEN)
+        t2 = Ticket.objects.create(title="Other Open", created_by=self.s1, status=Ticket.Status.OPEN)
+        t3 = Ticket.objects.create(title="Closed", created_by=self.u, status=Ticket.Status.CLOSED)
         TicketParticipant.objects.create(ticket=t2, user=self.s2)
         dept = Department.objects.create(name="D", created_by=self.s1)
         UserDepartments.objects.create(user=self.s1, department=dept)
         TicketAssigned.objects.create(ticket=t2, department=dept)
-
         self.c.force_login(self.u)
         res_u = self.c.get(self.url, {"scope": "department"})
         self.assertIn(t1, res_u.context["active_tickets"])
         self.assertIn(t3, res_u.context["completed_tickets"])
         self.assertNotIn(t2, res_u.context["active_tickets"])
-
         self.c.force_login(self.s2)
-        self.assertIn(
-            t2, self.c.get(self.url, {"scope": "assigned"}).context["active_tickets"]
-        )
-        self.assertNotIn(
-            t2, self.c.get(self.url, {"scope": "personal"}).context["active_tickets"]
-        )
-
+        self.assertIn(t2, self.c.get(self.url, {"scope": "assigned"}).context["active_tickets"])
+        self.assertNotIn(t2, self.c.get(self.url, {"scope": "personal"}).context["active_tickets"])
         self.c.force_login(self.s1)
-        self.assertIn(
-            t2, self.c.get(self.url, {"scope": "department"}).context["active_tickets"]
-        )
+        self.assertIn(t2, self.c.get(self.url, {"scope": "department"}).context["active_tickets"])
 
     def test_home_overdue_and_annotations(self):
         """Test overdue logic criteria and message attribute annotations."""
@@ -113,22 +98,14 @@ class HomeViewTests(TestCase):
 
     def test_removed_user_does_not_see_ticket_in_any_scope(self):
         """Once removed (by self or others), a user should not see the ticket in any scope."""
-        # Ticket created by staff user and assigned to their department and as participant
         dept = Department.objects.create(name="D", created_by=self.s1)
         UserDepartments.objects.create(user=self.s1, department=dept)
-        t = Ticket.objects.create(
-            title="Scoped ticket", created_by=self.s1, status=Ticket.Status.OPEN
-        )
+        t = Ticket.objects.create(title="Scoped ticket", created_by=self.s1, status=Ticket.Status.OPEN)
         TicketAssigned.objects.create(ticket=t, department=dept)
-        # Participant row exists initially (e.g. via forwarding/assignment)
         TicketParticipant.objects.create(ticket=t, user=self.s1)
-
-        # Simulate removal (by self or others) by marking removed_self on participant
         TicketParticipant.objects.filter(ticket=t, user=self.s1).update(removed_self=True)
 
         self.c.force_login(self.s1)
-
-        # Personal scope
         res_personal = self.c.get(self.url, {"scope": "personal"})
         self.assertNotIn(t, res_personal.context["active_tickets"])
 

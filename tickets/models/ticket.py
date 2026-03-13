@@ -49,29 +49,14 @@ class Ticket(models.Model):
         """Return tickets visible to a user for a dashboard scope."""
         if scope == "personal":
             return (
-                cls.objects.filter(created_by=user)
-                .exclude(
-                    participants__user=user,
-                    participants__removed_self=True,
-                )
-                .distinct()
+                cls.objects.filter(created_by=user).exclude(participants__user=user,participants__removed_self=True,).distinct()
             )
         if scope == "department":
             return (
-                cls.objects.filter(
-                    assignments__department__assigned_users__user=user
-                )
-                .exclude(
-                    participants__user=user,
-                    participants__removed_self=True,
-                )
-                .distinct()
+                cls.objects.filter(assignments__department__assigned_users__user=user).exclude(participants__user=user,participants__removed_self=True,).distinct()
             )
         if scope == "assigned":
-            return cls.objects.filter(
-                participants__user=user,
-                participants__removed_self=False,
-            ).distinct()
+            return cls.objects.filter(participants__user=user,participants__removed_self=False,).distinct()
         return None
 
     @classmethod
