@@ -7,8 +7,10 @@ from django.views import View
 
 from tickets.forms import ForwardTicketForm
 from tickets.models import Ticket
+from tickets.models.notification import Notification
 from tickets.models.ticket_participant import TicketParticipant
 from tickets.models.ticket_message import TicketMessage
+from tickets.helpers.notifications import create_notification
 
 def _q(value):
     """URL-encode a value as a string."""
@@ -91,3 +93,10 @@ class ForwardTicketView(LoginRequiredMixin, View):
             f"Ticket forwarded to {staff_user.full_name()}",
         )
         self.touch_ticket(ticket)
+        create_notification(
+            user=staff_user,
+            actor=self.request.user,
+            notification_type=Notification.NotificationType.TICKET_FORWARDED,
+            link=f"/tickets/{ticket.uuid}/",
+            target_object=ticket,
+        )
