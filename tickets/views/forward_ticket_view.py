@@ -50,6 +50,32 @@ class ForwardTicketView(LoginRequiredMixin, View):
         """Update the ticket's updated_at timestamp."""
         ticket.touch()
 
+    def _add_forwarded_participant(self, ticket, staff_user):
+        """Add the forwarded-to staff user as a participant."""
+        TicketParticipant.add_participant(
+            ticket,
+            staff_user,
+            actor=self.request.user,
+            defaults=self._defaults(self.request),
+        )
+
+    def _log_forward_message(self, ticket, staff_user):
+        """Create a system message for the forward action."""
+        TicketMessage.create_system_message(
+            ticket,
+            f"Ticket forwarded to {staff_user.full_name()}",
+        )
+
+    def _notify_forwarded_user(self, ticket, staff_user):
+        """Notify the forwarded-to staff user."""
+        create_notification(
+            user=staff_user,
+            actor=self.request.user,
+            notification_type=Notification.NotificationType.TICKET_FORWARDED,
+            link=f"/tickets/{ticket.uuid}/",
+            target_object=ticket,
+        )
+
     def post(self, request, ticket_id):
         """Handle POST to forward a ticket to a staff user."""
         if not request.user.is_authenticated or not request.user.is_staff:
@@ -82,21 +108,7 @@ class ForwardTicketView(LoginRequiredMixin, View):
 
     def _forward_ticket(self, ticket, staff_user):
         """Forward the ticket to the given staff user."""
-        TicketParticipant.add_participant(
-            ticket,
-            staff_user,
-            actor=self.request.user,
-            defaults=self._defaults(self.request),
-        )
-        TicketMessage.create_system_message(
-            ticket,
-            f"Ticket forwarded to {staff_user.full_name()}",
-        )
+        self._add_forwarded_participant(ticket, staff_user)
+        self._log_forward_message(ticket, staff_user)
         self.touch_ticket(ticket)
-        create_notification(
-            user=staff_user,
-            actor=self.request.user,
-            notification_type=Notification.NotificationType.TICKET_FORWARDED,
-            link=f"/tickets/{ticket.uuid}/",
-            target_object=ticket,
-        )
+        self._notify_forwarded_user(ticket, staff_user)

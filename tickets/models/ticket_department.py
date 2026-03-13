@@ -4,6 +4,22 @@ from .ticket import Ticket
 from .department import Department
 
 
+def _notify_department_removed_members(ticket, department, removed_by):
+    """Notify department members that a ticket was unassigned."""
+    from tickets.models.notification import Notification
+    from tickets.helpers.notifications import create_notification
+
+    recipients = [u for u in department.members.all() if u != removed_by]
+    for user in recipients:
+        create_notification(
+            user=user,
+            actor=removed_by,
+            notification_type=Notification.NotificationType.DEPT_REMOVED,
+            link=f"/tickets/{ticket.uuid}/",
+            target_object=ticket,
+        )
+
+
 class TicketDepartment(models.Model):
     """Model representing the assignment of a ticket to a department."""
     ticket = models.ForeignKey(
@@ -38,18 +54,7 @@ class TicketDepartment(models.Model):
     def remove_department(cls, ticket, department, removed_by=None):
         """Remove a ticket-department relation and log system message."""
         from .ticket_message import TicketMessage
-        from tickets.models.notification import Notification
-        from tickets.helpers.notifications import create_notification
 
-        members = list(department.members.all())
         cls.objects.filter(ticket=ticket, department=department).delete()
         TicketMessage.create_system_message(ticket, f"{department.name} was removed from the ticket.")
-        for user in members:
-            if user != removed_by:
-                create_notification(
-                    user=user,
-                    actor=removed_by,
-                    notification_type=Notification.NotificationType.DEPT_REMOVED,
-                    link=f"/tickets/{ticket.uuid}/",
-                    target_object=ticket,
-                )
+        _notify_department_removed_members(ticket, department, removed_by)

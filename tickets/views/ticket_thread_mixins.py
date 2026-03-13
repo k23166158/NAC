@@ -205,20 +205,28 @@ class TicketThreadAssignmentMixin:
     def _remove_staff(self, user, removed_by):
         """Remove staff from ticket and record a system message."""
         if user == removed_by:
-            participant = TicketParticipant.objects.get(ticket=self.object, user=user)
-            participant.removed_self = True
-            participant.save()
+            self._mark_participant_removed_self(user)
         else:
-            TicketParticipant.remove_participant(self.object, user)
-            create_notification(
-                user=user,
-                actor=removed_by,
-                notification_type=Notification.NotificationType.STAFF_REMOVED,
-                link=f"/tickets/{self.object.uuid}/",
-                target_object=self.object,
-            )
+            self._remove_other_participant(user, removed_by)
         message = f"{user.get_full_name()} was removed from the ticket."
         TicketMessage.create_system_message(self.object, message)
+
+    def _mark_participant_removed_self(self, user):
+        """Mark that the participant removed themselves."""
+        participant = TicketParticipant.objects.get(ticket=self.object, user=user)
+        participant.removed_self = True
+        participant.save()
+
+    def _remove_other_participant(self, user, removed_by):
+        """Remove a participant and notify them of removal."""
+        TicketParticipant.remove_participant(self.object, user)
+        create_notification(
+            user=user,
+            actor=removed_by,
+            notification_type=Notification.NotificationType.STAFF_REMOVED,
+            link=f"/tickets/{self.object.uuid}/",
+            target_object=self.object,
+        )
 
     def handle_staff_change(self, request):
         """Handle legacy add/remove operations using user_id."""

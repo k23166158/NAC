@@ -112,6 +112,24 @@ class DepartmentView(LoginRequiredMixin, View):
         if user_id:
             self.update_staff_assignment(request, user_id, department, action)
 
+    def _notify_invited_user(self, request, user, department):
+        """Notify a staff user that they were invited to a department."""
+        create_notification(
+            user=user,
+            actor=request.user,
+            notification_type=Notification.NotificationType.DEPT_INVITED,
+            target_object=department,
+        )
+
+    def _notify_removed_member(self, request, user, department):
+        """Notify a staff user that they were removed from a department."""
+        create_notification(
+            user=user,
+            actor=request.user,
+            notification_type=Notification.NotificationType.DEPT_MEMBER_REMOVED,
+            target_object=department,
+        )
+
     def _send_department_invite(self, request, user, department):
         """Create or get pending invite and set success/info message."""
         invite, created = DepartmentInvitation.objects.get_or_create(
@@ -123,12 +141,7 @@ class DepartmentView(LoginRequiredMixin, View):
         name = user.get_full_name() or user.username
         if created:
             messages.success(request, f'Invitation sent to {name}.')
-            create_notification(
-                user=user,
-                actor=request.user,
-                notification_type=Notification.NotificationType.DEPT_INVITED,
-                target_object=department,
-            )
+            self._notify_invited_user(request, user, department)
         else:
             messages.info(request, f'{name} was already invited.')
 
@@ -146,19 +159,20 @@ class DepartmentView(LoginRequiredMixin, View):
     def update_staff_assignment(self, request, user_id, department, action):
         """Add, remove, or invite a staff member for the department."""
         user = get_object_or_404(User, id=user_id)
-        if action == 'add':
-            self._invite_staff_to_department(request, user, department)
+        actions = {
+            "add": lambda: self._invite_staff_to_department(request, user, department),
+            "remove": lambda: self._remove_staff_from_department(request, user, department),
+            "remove_invite": lambda: DepartmentInvitation.objects.filter(
+                department=department, recipient=user, status="pending"
+            ).delete(),
+        }
+        handler = actions.get(action)
+        if handler:
+            handler()
+
+    def _remove_staff_from_department(self, request, user, department):
+        """Remove staff membership and notify the removed user."""
+        if not UserDepartments.objects.filter(user=user, department=department).exists():
             return
-        if action == 'remove':
-            if UserDepartments.objects.filter(user=user, department=department).exists():
-                UserDepartments.objects.filter(user=user, department=department).delete()
-                create_notification(
-                    user=user,
-                    actor=request.user,
-                    notification_type=Notification.NotificationType.DEPT_MEMBER_REMOVED,
-                    target_object=department,
-                )
-            return
-        if action == 'remove_invite':
-            DepartmentInvitation.objects.filter(department=department, recipient=user, status='pending').delete()
-            return
+        UserDepartments.objects.filter(user=user, department=department).delete()
+        self._notify_removed_member(request, user, department)
