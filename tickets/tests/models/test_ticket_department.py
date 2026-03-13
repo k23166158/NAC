@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from tickets.models import Department, Ticket, TicketMessage, TicketParticipant
+from tickets.models import Department, Ticket, TicketMessage, TicketParticipant, Notification
 from tickets.models.ticket_department import TicketDepartment
 
 User = get_user_model()
@@ -63,3 +63,15 @@ class TicketDepartmentModelTests(TestCase):
                 sender=None,
             ).exists()
         )
+
+    def test_remove_department_notifies_members(self):
+        """remove_department should notify department members."""
+        TicketDepartment.objects.create(ticket=self.ticket, department=self.department)
+        TicketDepartment.remove_department(self.ticket, self.department, removed_by=self.creator)
+        notifications = Notification.objects.filter(
+            user=self.staff,
+            notification_type=Notification.NotificationType.DEPT_REMOVED,
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications[0].actor, self.creator)
+        self.assertEqual(notifications[0].target_object, self.ticket)

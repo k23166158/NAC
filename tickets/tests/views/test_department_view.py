@@ -2,7 +2,14 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
-from tickets.models import Department, UserDepartments, DepartmentInvitation, Ticket, TicketAssigned
+from tickets.models import (
+    Department,
+    UserDepartments,
+    DepartmentInvitation,
+    Ticket,
+    TicketAssigned,
+    Notification,
+)
 
 User = get_user_model()
 
@@ -90,6 +97,13 @@ class DepartmentViewTests(TestCase):
         )
         messages = list(get_messages(response.wsgi_request))
         self.assertTrue(any("Invitation sent to" in str(m) for m in messages))
+        notifications = Notification.objects.filter(
+            user=new_staff,
+            notification_type=Notification.NotificationType.DEPT_INVITED,
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications[0].actor, self.owner)
+        self.assertEqual(notifications[0].target_object, self.department)
 
     def test_post_remove_staff_success(self):
         """Test that the owner can remove staff."""
@@ -105,6 +119,13 @@ class DepartmentViewTests(TestCase):
         self.assertFalse(
             UserDepartments.objects.filter(user=self.outsider, department=self.department).exists()
         )
+        notifications = Notification.objects.filter(
+            user=self.outsider,
+            notification_type=Notification.NotificationType.DEPT_MEMBER_REMOVED,
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications[0].actor, self.owner)
+        self.assertEqual(notifications[0].target_object, self.department)
 
     def test_post_remove_invite_success(self):
         """Test that the owner can revoke a pending invite."""

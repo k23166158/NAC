@@ -1,7 +1,14 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from tickets.models import Department, DepartmentInvitation, UserDepartments, Ticket, TicketAssigned
+from tickets.models import (
+    Department,
+    DepartmentInvitation,
+    UserDepartments,
+    Ticket,
+    TicketAssigned,
+    Notification,
+)
 
 User = get_user_model()
 
@@ -242,4 +249,42 @@ class DepartmentManageViewTests(TestCase):
         departments = list(response.context["departments"])
         self.assertEqual(len(departments), 1)
         self.assertEqual(departments[0].name, "Beta Department")
+
+    def test_accept_invitation_creates_notification_for_sender(self):
+        """Accepting an invite creates a notification for the sender."""
+        dept = Department.objects.create(name="Notify Dept", created_by=self.other_staff)
+        inv = DepartmentInvitation.objects.create(
+            sender=self.other_staff,
+            recipient=self.staff_user,
+            department=dept,
+            status="pending",
+        )
+        self.client.force_login(self.staff_user)
+        self.client.post(self.url, {"invite_id": inv.id, "action": "accept"})
+        notifications = Notification.objects.filter(
+            user=self.other_staff,
+            notification_type=Notification.NotificationType.DEPT_INVITE_ACCEPTED,
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications[0].actor, self.staff_user)
+        self.assertEqual(notifications[0].target_object, dept)
+
+    def test_decline_invitation_creates_notification_for_sender(self):
+        """Declining an invite creates a notification for the sender."""
+        dept = Department.objects.create(name="Decline Notify Dept", created_by=self.other_staff)
+        inv = DepartmentInvitation.objects.create(
+            sender=self.other_staff,
+            recipient=self.staff_user,
+            department=dept,
+            status="pending",
+        )
+        self.client.force_login(self.staff_user)
+        self.client.post(self.url, {"invite_id": inv.id, "action": "decline"})
+        notifications = Notification.objects.filter(
+            user=self.other_staff,
+            notification_type=Notification.NotificationType.DEPT_INVITE_DECLINED,
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications[0].actor, self.staff_user)
+        self.assertEqual(notifications[0].target_object, dept)
 
