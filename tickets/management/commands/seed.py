@@ -538,5 +538,5 @@ class Command(BaseCommand):
             user=recipient, actor=actor, content_type=ct, object_id=ticket.id,
             notification_type=Notification.NotificationType.TICKET_CREATED,
             short_message=f"{actor.username} interacted with ticket: {ticket.title}",
-            long_message=msg, is_read=is_read
+            is_read=is_read
         )
