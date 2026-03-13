@@ -1,10 +1,165 @@
-from django.test import TestCase
+import tempfile
+from django.test import TestCase, override_settings, RequestFactory
+from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import Http404
+
+from tickets.models import Ticket, TicketMessage, Department, TicketMessageAttachment, TicketParticipant, UserDepartments, TicketAssigned
+from tickets.views.ticket_thread_view import TicketThreadView
 
 User = get_user_model()
 
 
 class TicketThreadViewTests(TestCase):
-    """Tests for TicketThreadView (ticket thread page and post actions)."""
-    pass
-    
+    """Tests for TicketThreadView."""
+
+    def setUp(self):
+        """Setup core thread elements."""
+        self.u1 = User.objects.create_user(username="u1", email="u1@e.com", password="p")
+        self.u2 = User.objects.create_user(username="u2", email="u2@e.com", password="p")
+        self.t = Ticket.objects.create(title="T", created_by=self.u1)
+        self.url = reverse("ticket_thread", kwargs={"uuid": self.t.uuid})
+
+    def _csrf(self, **kwargs):
+        """Inject CSRF token into payload."""
+        tkn = self.client.cookies.get("csrftoken")
+        return {**kwargs, "csrfmiddlewaretoken": tkn.value if tkn else ""}
+
+    def test_thread_access_and_context(self):
+        """Test permissions, reading context, and basic GET."""
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+        self.client.force_login(self.u1)
+        m1 = TicketMessage.objects.create(ticket=self.t, sender=self.u1, body="M1")
+        m2 = TicketMessage.objects.create(ticket=self.t, sender=self.u2, body="M2")
+        res = self.client.get(self.url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context["first_message"], m1)
+        self.assertEqual(list(res.context["messages"]), [m2])
+        self.assertIsNotNone(res.context["last_user_message_id"])
+
+        # Test permission via department staff branch
+        s_dept = User.objects.create_user(username="sd", email="sd@e.com", password="p", is_staff=True)
+        d = Department.objects.create(name="D", created_by=self.u1)
+        UserDepartments.objects.create(user=s_dept, department=d)
+        TicketAssigned.objects.create(ticket=self.t, department=d)
+        self.client.force_login(s_dept)
+        self.assertTrue(self.client.get(self.url).context["permission"])
+
+    def test_thread_permissions_and_errors(self):
+        """Test 403/404 handling for thread access and edits."""
+        self.client.force_login(self.u2)
+        self.client.get(reverse("home"))
+        self.assertEqual(self.client.post(self.url, data=self._csrf(body="X")).status_code, 403)
+        
+        self.client.force_login(self.u1)
+        self.client.get(self.url)
+        bad_url = reverse("ticket_thread", kwargs={"uuid": "00000000-0000-0000-0000-000000000000"})
+        self.assertEqual(self.client.get(bad_url).status_code, 404)
+        
+        m_other = TicketMessage.objects.create(ticket=self.t, sender=self.u2, body="M2")
+        self.assertEqual(self.client.post(self.url, data=self._csrf(action="edit", message_id=m_other.id)).status_code, 404)
+        self.assertEqual(self.client.post(self.url, data=self._csrf(action="update", message_id=m_other.id)).status_code, 404)
+        self.assertEqual(self.client.post(self.url, data=self._csrf(action="delete", message_id=m_other.id)).status_code, 404)
+
+    @override_settings(MEDIA_ROOT=tempfile.gettempdir())
+    def test_thread_post_messages_and_attachments(self):
+        """Test adding, updating, deleting messages and attachment model edge cases."""
+        self.client.force_login(self.u1)
+        self.client.get(self.url)
+        f = SimpleUploadedFile("a.txt", b"x", content_type="text/plain")
+        
+        data = self._csrf(body="New")
+        data["attachments"] = f
+        self.client.post(self.url, data=data)
+        
+        msg = TicketMessage.objects.last()
+        self.assertEqual(msg.body, "New")
+        
+        a1 = TicketMessageAttachment.objects.get(message=msg)
+        self.assertIn("a.txt", str(a1))
+        empty_a = TicketMessageAttachment(ticket=self.t, message=msg, uploaded_by=self.u1)
+        empty_a.save()
+        self.assertEqual(empty_a.size_bytes, 0)
+        empty_a.delete()
+        
+        self.client.post(self.url, data=self._csrf(action="update", message_id=msg.id, body="Updated", remove_attachment_ids=[a1.id]))
+        self.assertEqual(TicketMessage.objects.get(id=msg.id).body, "Updated")
+        self.assertFalse(TicketMessageAttachment.objects.filter(id=a1.id).exists())
+        
+        self.client.post(self.url, data=self._csrf(action="delete", message_id=msg.id))
+        self.assertTrue(TicketMessage.objects.get(id=msg.id).hidden)
+
+    def test_thread_assignments(self):
+        """Test assigning/removing staff and departments."""
+        s1 = User.objects.create_user(username="s1", email="s1@e.com", password="p", is_staff=True)
+        d1 = Department.objects.create(name="D1", created_by=self.u1)
+        self.client.force_login(self.u1)
+        self.client.get(self.url)
+        
+        self.client.post(self.url, data=self._csrf(action="add", target_type="staff", target_id=s1.id))
+        self.assertTrue(self.t.participants.filter(user=s1).exists())
+        self.client.post(self.url, data=self._csrf(action="remove", target_type="staff", target_id=s1.id))
+        self.assertFalse(self.t.participants.filter(user=s1).exists())
+        
+        self.client.post(self.url, data=self._csrf(action="add", target_type="department", target_id=d1.id))
+        self.assertTrue(self.t.ticket_departments.filter(department=d1).exists())
+        self.client.post(self.url, data=self._csrf(action="remove", target_type="department", target_id=d1.id))
+        self.assertFalse(self.t.ticket_departments.filter(department=d1).exists())
+        
+        self.u1.is_staff = True
+        self.u1.save()
+        TicketParticipant.objects.get_or_create(ticket=self.t, user=self.u1)
+        self.client.post(self.url, data=self._csrf(action="remove", target_type="staff", target_id=self.u1.id))
+        self.assertTrue(self.t.participants.get(user=self.u1).removed_self)
+
+    def test_thread_close_and_edge_cases(self):
+        """Test closing tickets, legacy actions, missing params, and blank bodies."""
+        self.client.force_login(self.u1)
+        self.client.get(self.url)
+        self.client.post(self.url, data=self._csrf(action="close_ticket"))
+        self.t.refresh_from_db()
+        self.assertEqual(self.t.status, Ticket.Status.CLOSED)
+        self.client.post(self.url, data=self._csrf(action="close_ticket"))  # Already closed
+        
+        # Edge cases and missing fields
+        self.client.post(self.url, data=self._csrf(action="unknown", body=""))
+        self.client.post(self.url, data=self._csrf(action="add", target_type="invalid", target_id="1"))
+        self.client.post(self.url, data=self._csrf(action="add", user_id="999")) # 404 invalid user
+        s_leg = User.objects.create_user(username="leg", email="l@e.com", password="p", is_staff=True)
+        self.client.post(self.url, data=self._csrf(action="add", user_id=s_leg.id)) # Legacy path
+        self.assertTrue(self.t.participants.filter(user=s_leg).exists())
+        
+        # Blank updates/adds
+        msg = TicketMessage.objects.create(ticket=self.t, sender=self.u1, body="Old")
+        self.client.post(self.url, data=self._csrf(action="update", message_id=msg.id, body="   "))
+        self.client.post(self.url, data=self._csrf(action="update", message_id=msg.id))
+        self.client.post(self.url, data=self._csrf(action="add", body="   "))
+        self.assertEqual(TicketMessage.objects.get(id=msg.id).body, "Old")
+
+    def test_thread_internal_helpers(self):
+        """Direct test on view logic for coverage of edge branches."""
+        v, rf = TicketThreadView(), RequestFactory()
+        v.object = v.ticket = self.t
+        self.assertIsNone(v.get_assignment_target("unknown", 1))
+        self.assertEqual(list(v.get_reply_messages(TicketMessage.objects.none())), [])
+        v.touch_ticket()
+        v.get_department_staff()
+        
+        Dummy = type("D", (), {"action": "x", "add": lambda *a: None, "remove": lambda *a: None})
+        v.apply_assignment_action(Dummy(), None, None)
+        
+        s2 = User.objects.create_user(username="s2", email="s2@e.com", password="p", is_staff=True)
+        req = rf.post(self.url, data={"action": "unknown", "message_id": "1", "user_id": str(s2.id)})
+        req.user = self.u1
+        v.handle_staff_change(req)
+        
+        req_a = rf.post(self.url, data={"action": "u", "target_id": str(s2.id), "target_type": "staff"})
+        req_a.user = self.u1
+        v.handle_assignment_change(req_a)
+        
+        m = TicketMessage.objects.create(ticket=self.t, sender=self.u1, body="H", hidden=True)
+        v.request = rf.post(self.url, data={"action": "edit", "message_id": str(m.id)})
+        v.request.user = self.u1
+        with self.assertRaises(Http404):
+            v.get_edit_message()
