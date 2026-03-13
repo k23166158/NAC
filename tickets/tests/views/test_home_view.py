@@ -100,12 +100,17 @@ class HomeViewTests(TestCase):
         """Once removed (by self or others), a user should not see the ticket in any scope."""
         dept = Department.objects.create(name="D", created_by=self.s1)
         UserDepartments.objects.create(user=self.s1, department=dept)
-        t = Ticket.objects.create(title="Scoped ticket", created_by=self.s1, status=Ticket.Status.OPEN)
+        t = Ticket.objects.create(
+            title="Scoped ticket", created_by=self.s1, status=Ticket.Status.OPEN
+        )
         TicketAssigned.objects.create(ticket=t, department=dept)
         TicketParticipant.objects.create(ticket=t, user=self.s1)
+
         TicketParticipant.objects.filter(ticket=t, user=self.s1).update(removed_self=True)
 
         self.c.force_login(self.s1)
+
+        # Personal scope
         res_personal = self.c.get(self.url, {"scope": "personal"})
         self.assertNotIn(t, res_personal.context["active_tickets"])
 
