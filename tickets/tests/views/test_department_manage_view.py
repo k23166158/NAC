@@ -1,7 +1,14 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from tickets.models import Department, DepartmentInvitation, UserDepartments, Ticket, TicketAssigned
+from tickets.models import (
+    Department,
+    DepartmentInvitation,
+    UserDepartments,
+    Ticket,
+    TicketAssigned,
+    Notification,
+)
 
 User = get_user_model()
 
@@ -65,21 +72,59 @@ class DepartmentManageViewTests(TestCase):
         self.client.force_login(self.staff)
         dept_a = Department.objects.create(name="A", created_by=self.other)
         dept_d = Department.objects.create(name="D", created_by=self.other)
-        
+
         inv_a = DepartmentInvitation.objects.create(
             sender=self.other, recipient=self.staff, department=dept_a, status='pending'
         )
         inv_d = DepartmentInvitation.objects.create(
             sender=self.other, recipient=self.staff, department=dept_d, status='pending'
         )
-        
+
         self.assertRedirects(self.client.post(self.url, {'action': 'accept'}), self.url)
         self.assertRedirects(self.client.post(self.url, {'invite_id': inv_a.id, 'action': 'invalid'}), self.url)
-        
+
         self.client.post(self.url, {'invite_id': inv_a.id, 'action': 'accept'})
         inv_a.refresh_from_db()
         self.assertEqual(inv_a.status, 'accepted')
-        
+
         self.client.post(self.url, {'invite_id': inv_d.id, 'action': 'decline'})
         inv_d.refresh_from_db()
         self.assertEqual(inv_d.status, 'declined')
+
+    def test_accept_invitation_creates_notification_for_sender(self):
+        """Accepting an invite creates a notification for the sender."""
+        dept = Department.objects.create(name="Notify Dept", created_by=self.other)
+        inv = DepartmentInvitation.objects.create(
+            sender=self.other,
+            recipient=self.staff,
+            department=dept,
+            status="pending",
+        )
+        self.client.force_login(self.staff)
+        self.client.post(self.url, {"invite_id": inv.id, "action": "accept"})
+        notifications = Notification.objects.filter(
+            user=self.other,
+            notification_type=Notification.NotificationType.DEPT_INVITE_ACCEPTED,
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications[0].actor, self.staff)
+        self.assertEqual(notifications[0].target_object, dept)
+
+    def test_decline_invitation_creates_notification_for_sender(self):
+        """Declining an invite creates a notification for the sender."""
+        dept = Department.objects.create(name="Decline Notify Dept", created_by=self.other)
+        inv = DepartmentInvitation.objects.create(
+            sender=self.other,
+            recipient=self.staff,
+            department=dept,
+            status="pending",
+        )
+        self.client.force_login(self.staff)
+        self.client.post(self.url, {"invite_id": inv.id, "action": "decline"})
+        notifications = Notification.objects.filter(
+            user=self.other,
+            notification_type=Notification.NotificationType.DEPT_INVITE_DECLINED,
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications[0].actor, self.staff)
+        self.assertEqual(notifications[0].target_object, dept)

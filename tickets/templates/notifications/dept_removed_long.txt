@@ -1,0 +1,3 @@
+Hello {{ user.first_name }},
+
+Your department has been removed from the ticket: "{{ target.title }}".

@@ -3,9 +3,11 @@ from django.shortcuts import get_object_or_404
 
 from tickets.models import Ticket, TicketMessage
 from tickets.models.department import Department
+from tickets.models.notification import Notification
 from tickets.models.ticket_department import TicketDepartment
 from tickets.models.ticket_message_attachments import TicketMessageAttachment
 from tickets.models.ticket_participant import TicketParticipant
+from tickets.helpers.notifications import create_notification, notify_ticket_participants
 
 
 User = get_user_model()
@@ -144,7 +146,13 @@ class TicketThreadContextMixin:
 
     def handle_close_ticket_action(self):
         """Close the ticket instance associated with the view."""
-        self.ticket.close()
+        closed = self.ticket.close()
+        if closed and hasattr(self, 'request'):
+            notify_ticket_participants(
+                self.ticket,
+                actor=self.request.user,
+                notification_type=Notification.NotificationType.TICKET_CLOSED,
+            )
 
 
 class TicketThreadAssignmentMixin:
@@ -180,15 +188,15 @@ class TicketThreadAssignmentMixin:
 
         def remove(self, department, actor):
             """Remove a department from the ticket."""
-            self.view._remove_department(department)
+            self.view._remove_department(department, removed_by=actor)
 
     def _add_department(self, department, added_by):
         """Assign a department to the ticket."""
         TicketDepartment.assign_department(self.object, department, added_by=added_by)
 
-    def _remove_department(self, department):
+    def _remove_department(self, department, removed_by=None):
         """Remove a department from the ticket."""
-        TicketDepartment.remove_department(self.object, department)
+        TicketDepartment.remove_department(self.object, department, removed_by=removed_by)
 
     def _add_staff(self, user, added_by):
         """Assign a staff user to the ticket."""
@@ -197,13 +205,28 @@ class TicketThreadAssignmentMixin:
     def _remove_staff(self, user, removed_by):
         """Remove staff from ticket and record a system message."""
         if user == removed_by:
-            participant = TicketParticipant.objects.get(ticket=self.object, user=user)
-            participant.removed_self = True
-            participant.save()
+            self._mark_participant_removed_self(user)
         else:
-            TicketParticipant.remove_participant(self.object, user)
+            self._remove_other_participant(user, removed_by)
         message = f"{user.get_full_name()} was removed from the ticket."
         TicketMessage.create_system_message(self.object, message)
+
+    def _mark_participant_removed_self(self, user):
+        """Mark that the participant removed themselves."""
+        participant = TicketParticipant.objects.get(ticket=self.object, user=user)
+        participant.removed_self = True
+        participant.save()
+
+    def _remove_other_participant(self, user, removed_by):
+        """Remove a participant and notify them of removal."""
+        TicketParticipant.remove_participant(self.object, user)
+        create_notification(
+            user=user,
+            actor=removed_by,
+            notification_type=Notification.NotificationType.STAFF_REMOVED,
+            link=f"/tickets/{self.object.uuid}/",
+            target_object=self.object,
+        )
 
     def handle_staff_change(self, request):
         """Handle legacy add/remove operations using user_id."""
