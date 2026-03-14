@@ -90,21 +90,21 @@ class TicketThreadContextMixin:
 
     def _save_attachments_for_message(self, request, message):
         """Persist uploaded files as TicketMessageAttachment rows."""
-        getlist = getattr(request.FILES, "getlist", None)
-        files = (getlist("attachments") + getlist("attachment")) if getlist else []
-        files = files or [f for _, f in getattr(request.FILES, "items", lambda: [])()]
+        files = request.FILES.getlist("attachments") + request.FILES.getlist("attachment")
         TicketMessageAttachment.create_for_message(self.object, message, files, request.user)
 
     def handle_delete_action(self, request):
         """Handle delete action for a user message."""
         message_id = request.POST.get("message_id")
+        get_object_or_404(TicketMessage, id=message_id, ticket=self.object, sender=request.user)
         TicketMessage.hide_user_message(self.object, message_id, request.user)
 
     def _update_message_body(self, request):
         """Return updated message instance for valid update body."""
         message_id = request.POST.get("message_id")
-        body = request.POST.get("body")
-        if not body:
+        get_object_or_404(TicketMessage, id=message_id, ticket=self.object, sender=request.user)
+        body = request.POST.get("body", "")
+        if not body or body.isspace():
             return None
         return TicketMessage.update_user_message(self.object, message_id, request.user, body)
 
@@ -119,8 +119,10 @@ class TicketThreadContextMixin:
 
     def _create_message_from_body(self, request):
         """Create a message from POST body and return it."""
-        body = request.POST.get("body")
-        return TicketMessage.add_user_message(self.object, request.user, body)
+        body = request.POST.get("body", "")
+        if body and not body.isspace():
+            return TicketMessage.add_user_message(self.object, request.user, body)
+        return None
 
     def handle_add_action(self, request):
         """Handle adding a new reply message and attachments."""
@@ -140,9 +142,7 @@ class TicketThreadContextMixin:
         if action in handlers:
             handlers[action]()
             return
-        body = (request.POST.get("body") or "").strip()
-        if body:
-            self.handle_add_action(request)
+        self.handle_add_action(request)
 
     def handle_close_ticket_action(self):
         """Close the ticket instance associated with the view."""
@@ -280,11 +280,8 @@ class TicketThreadAssignmentMixin:
             return
         handlers = self._assignment_handlers()
         handler_class = handlers.get(data.get("target_type"))
-        if handler_class is None:
+        if not handler_class:
             return
         target = self.get_assignment_target(data["target_type"], data["target_id"])
-        if target is None:
-            return
         handler = handler_class(self, data["action"])
         self.apply_assignment_action(handler, target, request.user)
-
