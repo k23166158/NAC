@@ -82,6 +82,14 @@ class DepartmentViewTests(TestCase):
         self.assertEqual(notifications[0].actor, self.owner)
         self.assertEqual(notifications[0].target_object, self.dept)
 
+    def test_remove_non_member_does_nothing(self):
+        """Removing a user who is not a department member should not create notifications."""
+        self.client.force_login(self.owner)
+        self.client.post(self.url, {'action': 'remove', 'user_id': self.out.id})
+        self.assertFalse(Notification.objects.filter(
+            user=self.out, notification_type=Notification.NotificationType.DEPT_MEMBER_REMOVED,
+        ).exists())
+
     def test_department_post_permissions_non_owner(self):
         """Test that non-owners and regular staff are forbidden from management actions."""
         s_other = User.objects.create_user(username="so", email="so@e.com", password="p", is_staff=True)
