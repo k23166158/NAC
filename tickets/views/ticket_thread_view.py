@@ -23,6 +23,7 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         self.ticket.mark_read_for(request.user)
         context = self.get_context_data()
         context["permission"] = self.has_edit_permissions(self.ticket, request.user)
+        context["scope"] = request.GET.get("scope", "personal")
         return render(request, self.template_name, context)
 
     def post(self, request, uuid):

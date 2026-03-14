@@ -15,7 +15,7 @@
 {% block content %}
 <div class="tickets-wrap">
   <div class="back-link-container">
-    <a href="{% url 'home' %}" class="ticket-link">← Back to tickets</a>
+    <a href="{% url 'home' %}?scope={{ scope }}" class="ticket-link">← Back to tickets</a>
   </div>
   <div class="ticket-header-card">
     <div class="col-head">
