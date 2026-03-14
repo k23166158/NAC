@@ -7,6 +7,7 @@ from datetime import timedelta
 # Adjust this import to match where your function is located
 from tickets.helpers.ticket_assignment import assign_staff_to_ticket, _restore_participant
 from tickets.models import Ticket, TicketParticipant, TicketMessage
+from tickets.models.notification import Notification
 from tickets.helpers.ticket_assignment import assign_department_to_ticket, assign_staff_to_ticket
 from tickets.models import TicketDepartment
 from tickets.models import Department
@@ -142,6 +143,25 @@ class AssignStaffToTicketTests(TestCase):
         self.assertEqual(self.ticket.updated_at, old_updated_at)
         self.assertEqual(TicketMessage.objects.count(), initial_message_count)
 
+    @mock.patch("tickets.helpers.ticket_assignment.create_notification")
+    def test_assign_staff_creates_staff_assigned_notification(self, mock_create):
+        """Assigning staff should create a STAFF_ASSIGNED notification."""
+        assign_staff_to_ticket(self.ticket, self.staff_user, added_by=self.admin_user)
+        mock_create.assert_called_once_with(
+            user=self.staff_user,
+            actor=self.admin_user,
+            notification_type=Notification.NotificationType.STAFF_ASSIGNED,
+            link=f"/tickets/{self.ticket.uuid}/",
+            target_object=self.ticket,
+        )
+
+    @mock.patch("tickets.helpers.ticket_assignment.create_notification")
+    def test_assign_existing_staff_does_not_notify(self, mock_create):
+        """Assigning staff who is already a participant should not create a notification."""
+        TicketParticipant.objects.create(ticket=self.ticket, user=self.staff_user)
+        assign_staff_to_ticket(self.ticket, self.staff_user, added_by=self.admin_user)
+        mock_create.assert_not_called()
+
 
 class AssignDepartmentToTicketTests(TestCase):
     """Test cases for the assign_department_to_ticket helper function."""
@@ -254,17 +274,50 @@ class AssignDepartmentToTicketTests(TestCase):
             user=self.staff1,
             removed_self=True
         )
-        
+
         # Assign the department
         assign_department_to_ticket(
             self.ticket,
             self.department,
             added_by=self.creator,
         )
-        
+
         # Verify the participant was restored
         participant.refresh_from_db()
         self.assertFalse(participant.removed_self)
+
+    @mock.patch("tickets.helpers.ticket_assignment.create_notification")
+    def test_assign_department_creates_dept_assigned_notifications(self, mock_create):
+        """Assigning a department should create DEPT_ASSIGNED notifications for each member (except actor)."""
+        assign_department_to_ticket(
+            self.ticket,
+            self.department,
+            added_by=self.creator,
+        )
+        # staff1 and staff2 are members; creator is the actor so excluded
+        calls = mock_create.call_args_list
+        notified_users = [c.kwargs["user"] for c in calls]
+        self.assertIn(self.staff1, notified_users)
+        self.assertIn(self.staff2, notified_users)
+        self.assertNotIn(self.creator, notified_users)
+        for call in calls:
+            self.assertEqual(
+                call.kwargs["notification_type"],
+                Notification.NotificationType.DEPT_ASSIGNED,
+            )
+
+    @mock.patch("tickets.helpers.ticket_assignment.create_notification")
+    def test_assign_department_actor_member_not_notified(self, mock_create):
+        """When the actor is a department member, they should not receive a notification."""
+        # Make creator a member of the department
+        self.department.members.add(self.creator)
+        assign_department_to_ticket(
+            self.ticket,
+            self.department,
+            added_by=self.creator,
+        )
+        notified_users = [c.kwargs["user"] for c in mock_create.call_args_list]
+        self.assertNotIn(self.creator, notified_users)
 
 
 class RestoreParticipantTests(TestCase):
