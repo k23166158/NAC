@@ -37,11 +37,19 @@ class TicketMessage(models.Model):
    @classmethod
    def add_user_message(cls, ticket, user, body):
       """Create a user reply message for a ticket."""
+      from tickets.models.notification import Notification
+      from tickets.helpers.notifications import notify_ticket_participants
+
       text = (body or "").strip()
       if not text:
          return None
       message = cls.objects.create(ticket=ticket, sender=user, body=text)
       ticket.touch()
+      notify_ticket_participants(
+         ticket,
+         actor=user,
+         notification_type=Notification.NotificationType.NEW_MESSAGE,
+      )
       return message
 
    @classmethod

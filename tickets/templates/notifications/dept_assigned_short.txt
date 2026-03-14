@@ -1,0 +1,1 @@
+Your department was assigned to ticket: "<a href="{{ link }}">{{ target.title }}</a>"

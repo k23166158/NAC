@@ -7,6 +7,7 @@ from django.http import Http404
 
 from tickets.models import Ticket, TicketMessage, Department, TicketMessageAttachment
 from tickets.models import TicketParticipant, UserDepartments, TicketAssigned
+from tickets.models.notification import Notification
 from tickets.views.ticket_thread_view import TicketThreadView
 
 User = get_user_model()
@@ -189,3 +190,125 @@ class TicketThreadViewTests(TestCase):
         req = rf.post(self.url, data={"action": "add", "body": "   "})
         req.user = self.u1
         v.handle_add_action(req)
+
+
+class TicketClosedNotificationTests(TestCase):
+    """Tests for TICKET_CLOSED notification in handle_close_ticket_action."""
+
+    def setUp(self):
+        """Set up users, ticket, and view for close notification tests."""
+        self.creator = User.objects.create_user(
+            username="close_creator", email="closecreator@example.com", password="p"
+        )
+        self.staff = User.objects.create_user(
+            username="close_staff", email="closestaff@example.com", password="p", is_staff=True
+        )
+        self.ticket = Ticket.objects.create(
+            title="Close notification ticket",
+            created_by=self.creator,
+            status=Ticket.Status.OPEN,
+        )
+        TicketParticipant.objects.create(ticket=self.ticket, user=self.staff)
+
+    @staticmethod
+    def _make_view(ticket, user):
+        """Create a TicketThreadView wired up with a request user."""
+        view = TicketThreadView()
+        view.ticket = ticket
+        view.object = ticket
+        view.request = type("Request", (), {"user": user})()
+        return view
+
+    def test_close_ticket_creates_ticket_closed_notification(self):
+        """Closing an open ticket should create TICKET_CLOSED notifications for participants."""
+        view = self._make_view(self.ticket, self.staff)
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            view.handle_close_ticket_action()
+        notifications = Notification.objects.filter(
+            notification_type=Notification.NotificationType.TICKET_CLOSED,
+        )
+        self.assertTrue(notifications.exists())
+        notified_users = list(notifications.values_list("user_id", flat=True))
+        self.assertIn(self.creator.id, notified_users)
+        self.assertNotIn(self.staff.id, notified_users)
+
+    def test_close_already_closed_ticket_does_not_notify(self):
+        """Closing an already-closed ticket should not create notifications."""
+        self.ticket.status = Ticket.Status.CLOSED
+        self.ticket.save(update_fields=["status"])
+        view = self._make_view(self.ticket, self.staff)
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            view.handle_close_ticket_action()
+        notifications = Notification.objects.filter(
+            notification_type=Notification.NotificationType.TICKET_CLOSED,
+        )
+        self.assertEqual(notifications.count(), 0)
+
+    def test_close_ticket_notification_has_correct_actor(self):
+        """TICKET_CLOSED notification should have the closing user as actor."""
+        view = self._make_view(self.ticket, self.staff)
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            view.handle_close_ticket_action()
+        notification = Notification.objects.filter(
+            notification_type=Notification.NotificationType.TICKET_CLOSED,
+            user=self.creator,
+        ).first()
+        self.assertIsNotNone(notification)
+        self.assertEqual(notification.actor, self.staff)
+
+
+class StaffRemovedNotificationTests(TestCase):
+    """Tests for STAFF_REMOVED notification in _remove_other_participant."""
+
+    def setUp(self):
+        """Set up users and ticket for staff removal notification tests."""
+        self.remover = User.objects.create_user(
+            username="remover", email="remover@example.com", password="p", is_staff=True
+        )
+        self.removed_user = User.objects.create_user(
+            username="removed", email="removed@example.com", password="p", is_staff=True
+        )
+        self.ticket = Ticket.objects.create(
+            title="Staff removal ticket",
+            created_by=self.remover,
+        )
+        TicketParticipant.objects.create(ticket=self.ticket, user=self.removed_user)
+
+    def test_remove_other_participant_creates_staff_removed_notification(self):
+        """Removing another participant should create a STAFF_REMOVED notification."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            view._remove_other_participant(self.removed_user, self.remover)
+        notifications = Notification.objects.filter(
+            user=self.removed_user,
+            notification_type=Notification.NotificationType.STAFF_REMOVED,
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications[0].actor, self.remover)
+        self.assertEqual(notifications[0].target_object, self.ticket)
+
+    def test_remove_self_does_not_create_staff_removed_notification(self):
+        """Removing yourself should not create a STAFF_REMOVED notification."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+        view._mark_participant_removed_self(self.removed_user)
+        notifications = Notification.objects.filter(
+            notification_type=Notification.NotificationType.STAFF_REMOVED,
+        )
+        self.assertEqual(notifications.count(), 0)
+
+    def test_staff_removed_notification_link_contains_ticket_uuid(self):
+        """STAFF_REMOVED notification should have a link containing the ticket UUID."""
+        view = TicketThreadView()
+        view.ticket = self.ticket
+        view.object = self.ticket
+        with self.settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            view._remove_other_participant(self.removed_user, self.remover)
+        notification = Notification.objects.get(
+            user=self.removed_user,
+            notification_type=Notification.NotificationType.STAFF_REMOVED,
+        )
+        self.assertIsNotNone(notification.short_message)

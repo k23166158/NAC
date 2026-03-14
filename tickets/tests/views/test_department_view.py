@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
-from tickets.models import Department, UserDepartments, DepartmentInvitation, Ticket, TicketAssigned
+from tickets.models import Department, UserDepartments, DepartmentInvitation, Ticket, TicketAssigned, Notification
 
 User = get_user_model()
 
@@ -51,10 +51,44 @@ class DepartmentViewTests(TestCase):
         
         self.client.post(self.url, {'action': 'remove_invite', 'user_id': s1.id})
         self.assertFalse(DepartmentInvitation.objects.filter(recipient=s1, status='pending').exists())
-        
+
         self.client.post(self.url, {'action': 'remove', 'user_id': self.mem.id})
         self.assertFalse(UserDepartments.objects.filter(user=self.mem).exists())
         self.client.post(self.url, {'action': 'unknown'})
+
+    def test_add_staff_creates_dept_invited_notification(self):
+        """Adding staff should create a DEPT_INVITED notification."""
+        new_staff = User.objects.create_user(username="ns", email="ns@e.com", password="p", is_staff=True)
+        self.client.force_login(self.owner)
+        self.client.post(self.url, {'action': 'add', 'user_id': new_staff.id})
+        notifications = Notification.objects.filter(
+            user=new_staff,
+            notification_type=Notification.NotificationType.DEPT_INVITED,
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications[0].actor, self.owner)
+        self.assertEqual(notifications[0].target_object, self.dept)
+
+    def test_remove_staff_creates_dept_member_removed_notification(self):
+        """Removing staff should create a DEPT_MEMBER_REMOVED notification."""
+        UserDepartments.objects.create(user=self.out, department=self.dept)
+        self.client.force_login(self.owner)
+        self.client.post(self.url, {'action': 'remove', 'user_id': self.out.id})
+        notifications = Notification.objects.filter(
+            user=self.out,
+            notification_type=Notification.NotificationType.DEPT_MEMBER_REMOVED,
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications[0].actor, self.owner)
+        self.assertEqual(notifications[0].target_object, self.dept)
+
+    def test_remove_non_member_does_nothing(self):
+        """Removing a user who is not a department member should not create notifications."""
+        self.client.force_login(self.owner)
+        self.client.post(self.url, {'action': 'remove', 'user_id': self.out.id})
+        self.assertFalse(Notification.objects.filter(
+            user=self.out, notification_type=Notification.NotificationType.DEPT_MEMBER_REMOVED,
+        ).exists())
 
     def test_department_post_permissions_non_owner(self):
         """Test that non-owners and regular staff are forbidden from management actions."""

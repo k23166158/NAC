@@ -9,6 +9,17 @@ class Notification(models.Model):
     class NotificationType(models.TextChoices):
         """Defines the types of notifications that can be created."""
         TICKET_CREATED = 'TICKET_CREATED', 'Ticket Created'
+        TICKET_CLOSED = 'TICKET_CLOSED', 'Ticket Closed'
+        STAFF_ASSIGNED = 'STAFF_ASSIGNED', 'Staff Assigned'
+        STAFF_REMOVED = 'STAFF_REMOVED', 'Staff Removed'
+        DEPT_ASSIGNED = 'DEPT_ASSIGNED', 'Department Assigned'
+        DEPT_REMOVED = 'DEPT_REMOVED', 'Department Removed'
+        NEW_MESSAGE = 'NEW_MESSAGE', 'New Message'
+        TICKET_FORWARDED = 'TICKET_FORWARDED', 'Ticket Forwarded'
+        DEPT_INVITED = 'DEPT_INVITED', 'Department Invitation Sent'
+        DEPT_MEMBER_REMOVED = 'DEPT_MEMBER_REMOVED', 'Removed From Department'
+        DEPT_INVITE_ACCEPTED = 'DEPT_INVITE_ACCEPTED', 'Department Invite Accepted'
+        DEPT_INVITE_DECLINED = 'DEPT_INVITE_DECLINED', 'Department Invite Declined'
     
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -29,7 +40,7 @@ class Notification(models.Model):
     target_object = GenericForeignKey('content_type', 'object_id')
 
     notification_type = models.CharField(
-        max_length=20,
+        max_length=30,
         choices=NotificationType.choices
     )
     
