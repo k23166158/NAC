@@ -4,7 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 
-from tickets.models import Department, DepartmentInvitation, UserDepartments
+from tickets.models import Department, DepartmentInvitation, UserDepartments, Notification
+from tickets.helpers.notifications import create_notification
 
 class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """View for managing departments. Only accessible to staff members."""
@@ -61,17 +62,33 @@ class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         ).select_related('department', 'sender').order_by('-created_at')
         return context
 
+    def _notify_invite_sender(self, *, sender, actor, notification_type, department):
+        """Notify the inviter about an invite outcome."""
+        create_notification(
+            user=sender,
+            actor=actor,
+            notification_type=notification_type,
+            target_object=department,
+        )
+
+    def _add_user_to_department(self, request, department):
+        """Persist department membership for the current user."""
+        UserDepartments.objects.get_or_create(user=request.user, department=department)
+
     def _accept_invite(self, request, invite):
         """Accept a department invitation and add user to department."""
         invite.status = 'accepted'
         invite.save()
-        UserDepartments.objects.get_or_create(
-            user=request.user,
-            department=invite.department,
-        )
+        self._add_user_to_department(request, invite.department)
         messages.success(
             request,
             f'You have joined the department "{invite.department.name}".',
+        )
+        self._notify_invite_sender(
+            sender=invite.sender,
+            actor=request.user,
+            notification_type=Notification.NotificationType.DEPT_INVITE_ACCEPTED,
+            department=invite.department,
         )
 
     def _decline_invite(self, request, invite):
@@ -81,6 +98,12 @@ class DepartmentManageView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         messages.info(
             request,
             f'You have declined the invitation to "{invite.department.name}".',
+        )
+        self._notify_invite_sender(
+            sender=invite.sender,
+            actor=request.user,
+            notification_type=Notification.NotificationType.DEPT_INVITE_DECLINED,
+            department=invite.department,
         )
 
     def _get_invite_and_action(self, request):

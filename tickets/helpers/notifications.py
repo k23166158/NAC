@@ -26,5 +26,20 @@ def send_email(user, short_message, long_message):
         message=long_message,
         from_email="noreply@example.com",
         recipient_list=[user.email],
-        fail_silently=False, 
+        fail_silently=False,
     )
+
+def get_ticket_participants(ticket, exclude_user=None):
+    """Return a deduplicated set of users involved in a ticket."""
+    participants = {ticket.created_by}
+    participants.update(ticket.get_ticket_staff())
+    participants.update(ticket.get_department_staff())
+    if exclude_user:
+        participants.discard(exclude_user)
+    return participants
+
+def notify_ticket_participants(ticket, actor, notification_type):
+    """Send notifications to all ticket participants except the actor."""
+    link = f"/tickets/{ticket.uuid}/"
+    for user in get_ticket_participants(ticket, exclude_user=actor):
+        create_notification(user, actor, notification_type, link=link, target_object=ticket)
