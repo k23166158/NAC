@@ -20,31 +20,19 @@ class GetTicketParticipantsTests(TestCase):
     def setUp(self):
         """Create users and ticket fixtures."""
         self.creator = User.objects.create_user(
-            username="creator",
-            email="creator@example.com",
-            password="password123",
-            first_name="Creator",
-            last_name="User",
+            username="creator", email="creator@example.com",
+            password="p", first_name="Creator", last_name="User",
         )
         self.staff1 = User.objects.create_user(
-            username="staff1",
-            email="staff1@example.com",
-            password="password123",
-            first_name="Staff",
-            last_name="One",
-            is_staff=True,
+            username="staff1", email="staff1@example.com",
+            password="p", first_name="Staff", last_name="One", is_staff=True,
         )
         self.staff2 = User.objects.create_user(
-            username="staff2",
-            email="staff2@example.com",
-            password="password123",
-            first_name="Staff",
-            last_name="Two",
-            is_staff=True,
+            username="staff2", email="staff2@example.com",
+            password="p", first_name="Staff", last_name="Two", is_staff=True,
         )
         self.ticket = Ticket.objects.create(
-            title="Participants ticket",
-            created_by=self.creator,
+            title="Participants ticket", created_by=self.creator,
         )
 
     def test_includes_ticket_creator(self):
