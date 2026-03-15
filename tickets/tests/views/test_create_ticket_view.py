@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from tickets.models import Department, Ticket, TicketMessage, TicketAssigned
+from tickets.models import Department, Ticket, TicketMessage, TicketAssigned, TicketMessageAttachment
 
 class CreateTicketViewTests(TestCase):
     """Tests for the CreateTicketView handling."""
@@ -44,3 +44,15 @@ class CreateTicketViewTests(TestCase):
         t = Ticket.objects.first()
         self.assertEqual(t.title, "H")
         self.assertEqual(t.created_by, self.s)
+
+    def test_post_valid_creates_ticket_without_attachments(self):
+        """Test POST with valid data but NO files creates records properly."""
+        self.client.login(username="s", password="p")
+        res = self.client.post(self.url, data={
+            "title": "No Attachment Ticket", 
+            "departments": [self.d.id], 
+            "body": "This ticket has no files."
+        }, files={"attachments": None})
+
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(TicketMessageAttachment.objects.count(), 0)

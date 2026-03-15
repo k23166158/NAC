@@ -29,8 +29,7 @@ def create_attachments(ticket, message, files, user):
     if not files:
         return
     attachments = [_build_attachment(ticket, message, f, user) for f in files if f]
-    if attachments:
-        TicketMessageAttachment.objects.bulk_create(attachments)
+    TicketMessageAttachment.objects.bulk_create(attachments)
 
 
 def _create_ticket(user, cleaned):
