@@ -1,0 +1,238 @@
+.search-page {
+  gap: 1.5rem;
+}
+
+.search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.search-header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.search-link-back,
+.search-create-btn,
+.search-reset-link,
+.search-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.search-link-back,
+.search-reset-link {
+  color: var(--text-primary, #172033);
+}
+
+.search-link-back:hover,
+.search-reset-link:hover {
+  transform: translateY(-1px);
+}
+
+.search-create-btn,
+.search-submit-btn {
+  background: #172033;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 0.75rem 1.1rem;
+}
+
+.search-create-btn:hover,
+.search-submit-btn:hover {
+  background: #24314d;
+}
+
+.search-form-card {
+  background: #fff;
+  border: 1px solid #d6dce8;
+  border-radius: 20px;
+  padding: 1.25rem;
+  box-shadow: 0 10px 24px rgba(23, 32, 51, 0.05);
+}
+
+.search-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.search-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.search-field-wide {
+  grid-column: span 2;
+}
+
+.search-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #4a5975;
+}
+
+.search-input,
+.search-select {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 12px;
+  border: 1px solid #c8d2e3;
+  background: #f8fafc;
+  padding: 0.9rem 1rem;
+  font-size: 0.96rem;
+  color: #172033;
+}
+
+.search-input:focus,
+.search-select:focus {
+  outline: none;
+  border-color: #3a6ed8;
+  box-shadow: 0 0 0 3px rgba(58, 110, 216, 0.15);
+}
+
+.search-select-shell,
+.search-date-shell {
+  position: relative;
+}
+
+.search-select-shell::after,
+.search-date-shell::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  pointer-events: none;
+  transform: translateY(-50%);
+  opacity: 0.75;
+}
+
+.search-select-shell::after {
+  border-left: 2px solid #4a5975;
+  border-bottom: 2px solid #4a5975;
+  transform: translateY(-65%) rotate(-45deg);
+}
+
+.search-date-shell::after {
+  border: 2px solid #4a5975;
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+
+.search-date-shell::before {
+  content: "";
+  position: absolute;
+  top: calc(50% - 8px);
+  right: 1.22rem;
+  width: 0.7rem;
+  height: 2px;
+  background: #4a5975;
+  pointer-events: none;
+  box-shadow: 0 5px 0 #4a5975;
+  z-index: 1;
+}
+
+.search-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2.8rem;
+}
+
+.search-date-input {
+  padding-right: 2.8rem;
+}
+
+.search-date-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.search-select-shell:focus-within::after,
+.search-date-shell:focus-within::after,
+.search-date-shell:focus-within::before {
+  opacity: 1;
+}
+
+.search-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.search-results-count {
+  margin-left: auto;
+  color: #55637d;
+  font-weight: 600;
+}
+
+.search-empty-state {
+  border: 1px dashed #c7d1e0;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f5f7fb 100%);
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.search-empty-state h2 {
+  margin: 0 0 0.75rem;
+  color: #172033;
+}
+
+.search-empty-state p {
+  margin: 0;
+  color: #596883;
+}
+
+@media (max-width: 1000px) {
+  .search-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .search-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-header-actions {
+    justify-content: space-between;
+  }
+
+  .search-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-field-wide {
+    grid-column: span 1;
+  }
+
+  .search-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-results-count {
+    margin-left: 0;
+  }
+}
