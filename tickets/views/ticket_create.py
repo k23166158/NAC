@@ -6,17 +6,6 @@ from django.views import View
 from tickets.forms.ticket_create import CreateTicketForm
 from tickets.models import Ticket, TicketMessage, TicketAssigned, TicketMessageAttachment
 
-
-def build_create_ticket_form(post_data=None, file_data=None):
-    """Return a CreateTicketForm instance for GET or POST."""
-    return CreateTicketForm(post_data, file_data) if post_data is not None else CreateTicketForm()
-
-
-def render_create_ticket(request, form):
-    """Render the create ticket page with the given form."""
-    return render(request, "create_ticket.html", {"form": form})
-
-
 def build_assignments(ticket, departments):
     """Build TicketAssigned rows for selected departments (legacy compatibility)."""
     return [TicketAssigned(ticket=ticket, department=dept) for dept in departments]
@@ -40,8 +29,7 @@ def create_attachments(ticket, message, files, user):
     if not files:
         return
     attachments = [_build_attachment(ticket, message, f, user) for f in files if f]
-    if attachments:
-        TicketMessageAttachment.objects.bulk_create(attachments)
+    TicketMessageAttachment.objects.bulk_create(attachments)
 
 
 def _create_ticket(user, cleaned):
@@ -82,13 +70,18 @@ class CreateTicketView(LoginRequiredMixin, View):
 
     def get(self, request):
         """Render the ticket creation form."""
-        return render_create_ticket(request, build_create_ticket_form())
+        return render(request, "create_ticket.html", {"form": CreateTicketForm()})
 
     def post(self, request):
         """Validate and create ticket data, then redirect home."""
-        form = build_create_ticket_form(request.POST, request.FILES)
+        form = CreateTicketForm(request.POST, request.FILES)
         if not form.is_valid():
-            return render_create_ticket(request, form)
-        files = request.FILES.getlist('attachments') if request.FILES else None
-        create_ticket_objects(request.user, form.cleaned_data, files)
+            return render(request, "create_ticket.html", {"form": form})
+
+        files = request.FILES.getlist("attachments") if request.FILES else None
+        Ticket.create_with_initial_message(
+            creator=request.user,
+            cleaned_data=form.cleaned_data,
+            files=files,
+        )
         return redirect("home")
