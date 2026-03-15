@@ -2,9 +2,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-
-from tickets.models import Department, Ticket, TicketMessage, TicketAssigned, TicketMessageAttachment
 from tickets.views.ticket_create import create_attachments
+from tickets.models import Department, Ticket, TicketMessage, TicketAssigned, TicketMessageAttachment
 
 class CreateTicketViewTests(TestCase):
     """Tests for the CreateTicketView handling."""

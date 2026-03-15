@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 
+from django.db import transaction
 from django.db import models
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -36,6 +37,33 @@ class Ticket(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     @classmethod
+    def create_with_initial_message(cls, *, creator, cleaned_data, files=None):
+        """Create a ticket with initial message, department assignments, and attachments."""
+        from .ticket_message_attachments import TicketMessageAttachment
+
+        with transaction.atomic():
+            ticket = cls.objects.create(title=cleaned_data["title"], created_by=creator)
+            message = cls._create_initial_message(ticket, creator, cleaned_data["body"])
+            cls._create_ticket_assignments(ticket, cleaned_data["departments"])
+            TicketMessageAttachment.create_for_message(ticket, message, files, creator)
+        return ticket
+
+    @staticmethod
+    def _create_initial_message(ticket, creator, body):
+        """Create the first user message for a ticket."""
+        from .ticket_message import TicketMessage
+
+        return TicketMessage.objects.create(ticket=ticket, body=body, sender=creator)
+
+    @staticmethod
+    def _create_ticket_assignments(ticket, departments):
+        """Persist department assignments for a ticket."""
+        from .ticket_assigned import TicketAssigned
+
+        assignments = TicketAssigned.build_for_departments(ticket, departments)
+        TicketAssigned.objects.bulk_create(assignments)
+
+    @classmethod
     def status_counts(cls):
         """Return ticket counts grouped by status keys used by dashboard."""
         return {
@@ -43,6 +71,11 @@ class Ticket(models.Model):
             "pending": cls.objects.filter(status=cls.Status.PENDING).count(),
             "closed": cls.objects.filter(status=cls.Status.CLOSED).count(),
         }
+
+    @classmethod
+    def admin_ticket_stats(cls):
+        """Return admin ticket statistics payload."""
+        return {"total": cls.objects.count(), **cls.status_counts()}
 
     @classmethod
     def base_for_scope(cls, user, scope="personal"):
