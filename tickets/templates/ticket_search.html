@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
 <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
 <link rel="stylesheet" href="{% static 'css/ticket_search.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_search_scope.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -92,13 +93,13 @@
       {% if user.is_staff %}
         <label class="search-field">
           <span class="search-label">Scope</span>
-          <div class="scope-switcher" aria-label="Scope">
+          <div class="scope-button-group" role="group" aria-label="Scope">
             {% for scope_option in scope_options %}
               <button
                 type="submit"
                 name="scope"
                 value="{{ scope_option }}"
-                class="scope-switcher-btn{% if filters.scope == scope_option %} is-active{% endif %}"
+                class="scope-button{% if filters.scope == scope_option %} is-active{% endif %}"
               >
                 {{ scope_option|title }}
               </button>
