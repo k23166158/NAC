@@ -3,6 +3,8 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from .user_departments import UserDepartments
 from .department import Department
+from .notification import Notification
+from tickets.helpers.notifications import create_notification
 
 
 class DepartmentInvitation(models.Model):
@@ -82,6 +84,14 @@ class DepartmentInvitation(models.Model):
         invite.status = 'accepted'
         invite.save(update_fields=['status'])
         UserDepartments.objects.get_or_create(user=user, department=invite.department)
+
+        create_notification(
+            user=invite.sender,
+            actor=user,
+            notification_type=Notification.NotificationType.DEPT_INVITE_ACCEPTED,
+            target_object=invite.department,
+        )
+        
         return ("success", f'You have joined the department "{invite.department.name}".')
 
     @staticmethod
@@ -89,4 +99,12 @@ class DepartmentInvitation(models.Model):
         """Decline invite and return user-facing message tuple."""
         invite.status = 'declined'
         invite.save(update_fields=['status'])
+
+        create_notification(
+            user=invite.sender,
+            actor=invite.recipient,
+            notification_type=Notification.NotificationType.DEPT_INVITE_DECLINED,
+            target_object=invite.department,
+        )
+
         return ("info", f'You have declined the invitation to "{invite.department.name}".')

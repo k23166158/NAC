@@ -5,6 +5,8 @@ from django.db.models import OuterRef, Subquery
 from django.db import models
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
+from .notification import Notification
+from tickets.helpers.notifications import create_notification
 
 from .ticket import Ticket
 from .ticket_message import TicketMessage
@@ -187,15 +189,22 @@ class Department(models.Model):
         """Return handlers for staff management actions."""
         return {
             "add": lambda: self.invite_staff(actor=actor, user=user),
-            "remove": lambda: self._remove_staff(user),
+            "remove": lambda: self._remove_staff(actor=actor, user=user),
             "remove_invite": lambda: self._remove_pending_invite(user),
         }
 
-    def _remove_staff(self, user):
+    def _remove_staff(self, actor, user):
         """Remove a user from this department."""
         from .user_departments import UserDepartments
 
-        UserDepartments.objects.filter(user=user, department=self).delete()
+        deleted_count, _ = UserDepartments.objects.filter(user=user, department=self).delete()
+        if deleted_count > 0:
+            create_notification(
+                user=user,
+                actor=actor,
+                notification_type=Notification.NotificationType.DEPT_MEMBER_REMOVED,
+                target_object=self,
+            )
         return None
 
     def _remove_pending_invite(self, user):
@@ -239,6 +248,12 @@ class Department(models.Model):
         )
         name = user.get_full_name() or user.username
         if created:
+            create_notification(
+                user=user,
+                actor=actor,
+                notification_type=Notification.NotificationType.DEPT_INVITED,
+                target_object=self,
+            )
             return ("success", f"Invitation sent to {name}.")
         return ("info", f"{name} was already invited.")
 

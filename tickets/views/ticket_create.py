@@ -1,20 +1,10 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from django.shortcuts import redirect, render
 from django.views import View
 
 from tickets.forms.ticket_create import CreateTicketForm
 from tickets.models import Ticket, TicketMessage, TicketAssigned, TicketMessageAttachment
-
-
-def build_create_ticket_form(post_data=None, file_data=None):
-    """Return a CreateTicketForm instance for GET or POST."""
-    return CreateTicketForm(post_data, file_data) if post_data is not None else CreateTicketForm()
-
-
-def render_create_ticket(request, form):
-    """Render the create ticket page with the given form."""
-    return render(request, "create_ticket.html", {"form": form})
-
 
 def build_assignments(ticket, departments):
     """Build TicketAssigned rows for selected departments (legacy compatibility)."""
