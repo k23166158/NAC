@@ -241,18 +241,14 @@ class Department(models.Model):
         from .department_invitation import DepartmentInvitation
 
         _invite, created = DepartmentInvitation.objects.get_or_create(
-            department=self,
-            recipient=user,
-            status="pending",
-            defaults={"sender": actor},
+            department=self, recipient=user,
+            status="pending", defaults={"sender": actor},
         )
         name = user.get_full_name() or user.username
         if created:
             create_notification(
-                user=user,
-                actor=actor,
-                notification_type=Notification.NotificationType.DEPT_INVITED,
-                target_object=self,
+                user=user, actor=actor,
+                notification_type=Notification.NotificationType.DEPT_INVITED, target_object=self,
             )
             return ("success", f"Invitation sent to {name}.")
         return ("info", f"{name} was already invited.")
