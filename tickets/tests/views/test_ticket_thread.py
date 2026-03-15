@@ -84,7 +84,7 @@ class TicketThreadViewTests(TestCase):
         self.client.force_login(self.u1)
         self.client.post(self.url, data=self._csrf(action="add", target_type="staff", target_id=s1.id))
         self.client.post(self.url, data=self._csrf(action="remove", target_type="staff", target_id=s1.id))
-        self.assertFalse(self.t.participants.filter(user=s1).exists())
+        self.assertTrue(self.t.participants.filter(user=s1, removed_self=True).exists())
         self.client.post(self.url, data=self._csrf(action="add", target_type="department", target_id=d1.id))
         self.client.post(self.url, data=self._csrf(action="remove", target_type="department", target_id=d1.id))
         self.assertFalse(self.t.ticket_departments.filter(department=d1).exists())
@@ -172,6 +172,18 @@ class TicketThreadViewTests(TestCase):
         v.handle_assignment_change(req)
         self.assertIsNotNone(v.get_available_staff(v.get_ticket_staff()))
         self.assertIsNotNone(v.get_available_departments(v.get_ticket_departments()))
+
+    def test_handle_assignment_change_missing_fields_returns_early(self):
+        """handle_assignment_change should return immediately when required fields are missing."""
+        v, rf = TicketThreadView(), RequestFactory()
+        v.object = v.ticket = self.t
+        req = rf.post(self.url, data={})  # No target_id, target_type, or action
+        req.user = self.u1
+
+        # Should not raise and should not create any assignments
+        v.handle_assignment_change(req)
+        self.assertEqual(self.t.ticket_departments.count(), 0)
+        self.assertEqual(self.t.participants.count(), 0)
 
     def test_mixin_message_action_edge_cases(self):
         """Test edge cases for posting new messages and updates."""

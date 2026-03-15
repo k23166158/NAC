@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
+from types import SimpleNamespace
 
 from tickets.models import Ticket, TicketMessage
 from tickets.models.ticket_participant import TicketParticipant  # adjust if needed
@@ -99,6 +100,17 @@ class TicketParticipantModelTests(TestCase):
         defaults = TicketParticipant.defaults_for_actor(self.staff2)
         self.assertEqual(defaults, {"added_by": self.staff2})
 
+    def test_defaults_for_actor_without_added_by_field(self):
+        """defaults_for_actor should return empty dict when added_by field is absent."""
+        original_fields = TicketParticipant._meta.fields
+        try:
+            # Simulate a model definition without an added_by field
+            TicketParticipant._meta.fields = [SimpleNamespace(name="something_else")]
+            defaults = TicketParticipant.defaults_for_actor(self.staff2)
+            self.assertEqual(defaults, {})
+        finally:
+            TicketParticipant._meta.fields = original_fields
+
     def test_has_add_and_remove_participant_helpers(self):
         """Participant helper methods should create/check/remove participants."""
         self.assertFalse(TicketParticipant.has_participant(self.ticket, self.staff1))
@@ -108,6 +120,21 @@ class TicketParticipantModelTests(TestCase):
         self.assertEqual(tp.added_by, self.staff2)
         TicketParticipant.remove_participant(self.ticket, self.staff1)
         self.assertFalse(TicketParticipant.has_participant(self.ticket, self.staff1))
+
+    def test_add_participant_restores_removed_self_flag(self):
+        """add_participant should clear removed_self on existing participant records."""
+        # Create a participant who has previously removed themselves
+        tp = TicketParticipant.objects.create(
+            ticket=self.ticket,
+            user=self.staff1,
+            added_by=self.staff2,
+            removed_self=True,
+        )
+        # Re-add the same participant via helper
+        returned = TicketParticipant.add_participant(self.ticket, self.staff1, actor=self.staff2)
+        tp.refresh_from_db()
+        self.assertEqual(returned.id, tp.id)
+        self.assertFalse(tp.removed_self)
 
     def test_assign_staff_creates_participant_and_system_message(self):
         """assign_staff should apply ticket-assignment side effects."""

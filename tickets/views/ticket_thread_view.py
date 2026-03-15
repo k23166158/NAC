@@ -23,6 +23,7 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         self.ticket.mark_read_for(request.user)
         context = self.get_context_data()
         context["permission"] = self.has_edit_permissions(self.ticket, request.user)
+        context["scope"] = request.GET.get("scope", "personal")
         return render(request, self.template_name, context)
 
     def post(self, request, uuid):
@@ -63,7 +64,5 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
             "first_message": self.get_first_message(messages),
             "messages": self.get_reply_messages(messages),
             "last_user_message_id": self.get_last_user_message_id(messages),
-            "edit_message": self.get_edit_message(),
             "user_has_removed": self.user_has_removed_themselves(self.request.user),
         }
-

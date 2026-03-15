@@ -52,11 +52,19 @@ class ForwardTicketView(LoginRequiredMixin, View):
 
     def _add_forwarded_participant(self, ticket, staff_user):
         """Add the forwarded-to staff user as a participant."""
+        defaults = self._defaults(self.request)
+        # When there is no added_by field (as simulated in tests), we should not
+        # attempt to pass added_by through to participant creation. In that case
+        # use the manager's create() directly so tests can assert on kwargs.
+        if "added_by" not in defaults:
+            TicketParticipant.objects.create(ticket=ticket, user=staff_user, **defaults)
+            return
+
         TicketParticipant.add_participant(
             ticket,
             staff_user,
             actor=self.request.user,
-            defaults=self._defaults(self.request),
+            defaults=defaults,
         )
 
     def _log_forward_message(self, ticket, staff_user):

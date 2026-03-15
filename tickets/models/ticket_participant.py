@@ -25,18 +25,30 @@ class TicketParticipant(models.Model):
     @classmethod
     def has_participant(cls, ticket, user):
         """Return whether a user is already a participant for a ticket."""
-        return cls.objects.filter(ticket=ticket, user=user).exists()
+        return cls.objects.filter(
+            ticket=ticket,
+            user=user,
+            removed_self=False,
+        ).exists()
 
     @classmethod
     def add_participant(cls, ticket, user, *, actor=None, defaults=None):
         """Create participant row with optional actor-derived defaults."""
         participant_defaults = cls.defaults_for_actor(actor) if defaults is None else defaults
-        return cls.objects.create(ticket=ticket, user=user, **participant_defaults)
+        participant, created = cls.objects.get_or_create(
+            ticket=ticket,
+            user=user,
+            defaults=participant_defaults,
+        )
+        if not created and participant.removed_self:
+            participant.removed_self = False
+            participant.save()
+        return participant
 
     @classmethod
     def remove_participant(cls, ticket, user):
         """Remove a participant from a ticket."""
-        cls.objects.filter(ticket=ticket, user=user).delete()
+        cls.objects.filter(ticket=ticket, user=user).update(removed_self=True)
 
     @classmethod
     def assign_staff(cls, ticket, staff_user, *, added_by=None):

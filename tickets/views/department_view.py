@@ -36,3 +36,18 @@ class DepartmentView(LoginRequiredMixin, View):
             return
         level, text = outcome
         getattr(messages, level)(request, text)
+
+    def update_staff_assignment(self, request, user_id, department, action):
+        """Update staff assignment for a user in a department.
+        
+        This is a no-op for unknown actions.
+        """
+        outcome = department.process_staff_change(
+            actor=request.user,
+            user_id=user_id,
+            action=action,
+        )
+        if not outcome:
+            return
+        level, text = outcome
+        getattr(messages, level)(request, text)

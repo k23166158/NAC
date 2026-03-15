@@ -133,11 +133,12 @@ class TicketThreadContextMixin:
 
     def dispatch_post_action(self, action, request):
         """Dispatch POST action to the correct handler."""
+        self.request = request
         handlers = {
             "delete": lambda: self.handle_delete_action(request),
             "update": lambda: self.handle_update_action(request),
             "close_ticket": self.handle_close_ticket_action,
-            "edit": lambda: None,
+            "edit": lambda: self.get_edit_message(),
         }
         if action in handlers:
             handlers[action]()
