@@ -106,6 +106,37 @@
   position: relative;
 }
 
+.scope-switcher {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  padding: 0.35rem;
+  min-height: 52px;
+  border-radius: 14px;
+  border: 1px solid #c8d2e3;
+  background: #f8fafc;
+}
+
+.scope-switcher-btn {
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #4a5975;
+  font-size: 0.96rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.scope-switcher-btn:hover {
+  background: rgba(58, 110, 216, 0.08);
+}
+
+.scope-switcher-btn.is-active {
+  background: #172033;
+  color: #fff;
+}
+
 .search-select-shell::after,
 .search-date-shell::after {
   content: "";
@@ -225,6 +256,10 @@
 
   .search-field-wide {
     grid-column: span 1;
+  }
+
+  .scope-switcher {
+    grid-template-columns: 1fr;
   }
 
   .search-actions {

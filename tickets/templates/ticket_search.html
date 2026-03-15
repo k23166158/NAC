@@ -22,7 +22,7 @@
     </div>
   </div>
 
-  <form method="get" class="search-form-card">
+  <form method="get" class="search-form-card" id="ticketSearchForm">
     <div class="search-grid">
       <label class="search-field search-field-wide">
         <span class="search-label">Search</span>
@@ -92,14 +92,17 @@
       {% if user.is_staff %}
         <label class="search-field">
           <span class="search-label">Scope</span>
-          <div class="search-select-shell">
-            <select name="scope" class="search-select">
-              {% for scope_option in scope_options %}
-                <option value="{{ scope_option }}" {% if filters.scope == scope_option %}selected{% endif %}>
-                  {{ scope_option|title }}
-                </option>
-              {% endfor %}
-            </select>
+          <div class="scope-switcher" aria-label="Scope">
+            {% for scope_option in scope_options %}
+              <button
+                type="submit"
+                name="scope"
+                value="{{ scope_option }}"
+                class="scope-switcher-btn{% if filters.scope == scope_option %} is-active{% endif %}"
+              >
+                {{ scope_option|title }}
+              </button>
+            {% endfor %}
           </div>
         </label>
       {% endif %}
