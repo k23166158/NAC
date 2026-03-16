@@ -1,5 +1,6 @@
 import uuid as uuid_module
 from datetime import timedelta
+from unittest.mock import patch
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -136,3 +137,15 @@ class TicketHomeDashboardModelTests(TestCase):
         self.assertIn(t3.id, list(Ticket.overdue_from(qs).values_list("id", flat=True)))
         self.assertIn(self.t1.id, list(Ticket.active_from(qs, Ticket.overdue_from(qs)).values_list("id", flat=True)))
         self.assertIsNone(Ticket.annotated_for_home(self.staff, "bad"))
+
+    def test_search_page_queryset_returns_none_queryset_fallback(self):
+        """search_page_queryset returns an empty queryset when base scope is None."""
+        with patch.object(Ticket, "base_for_scope", return_value=None):
+            qs = Ticket.search_page_queryset(self.staff, {"scope": "personal"})
+        self.assertEqual(qs.count(), 0)
+
+    def test_search_filter_options_returns_empty_when_scope_has_no_queryset(self):
+        """search_filter_options returns empty options when base scope is None."""
+        with patch.object(Ticket, "base_for_scope", return_value=None):
+            options = Ticket.search_filter_options(self.staff, "personal")
+        self.assertEqual(options, {"departments": [], "staff_users": []})

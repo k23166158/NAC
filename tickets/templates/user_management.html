@@ -10,13 +10,34 @@
 
 {% block content %}
 <div class="user-management-container">
-    <div class="header">
-        <h1>User Management</h1>
-        <div class="header-actions">
-            <form method="get" class="search-form">
-                <input type="text" name="q" placeholder="Search users..." value="{{ search_query }}" class="search-input">
-                <button type="submit" class="btn-search"><i class="bi bi-search"></i></button>
-            </form>
+    <div class="management-hero">
+        <div class="header">
+            <div class="header-copy">
+                <span class="header-kicker">Workspace directory</span>
+                <h1>User Management</h1>
+                <p class="header-subtitle">Review team access, check department coverage, and jump straight into individual profiles.</p>
+            </div>
+            <div class="header-actions">
+                <form method="get" class="search-form">
+                    <input type="text" name="q" placeholder="Search users..." value="{{ search_query }}" class="search-input">
+                    <button type="submit" class="btn-search" aria-label="Search users"><i class="bi bi-search"></i></button>
+                </form>
+            </div>
+        </div>
+
+        <div class="management-highlights">
+            <div class="highlight-card">
+                <div class="highlight-label">Total users</div>
+                <div class="highlight-value">{{ page_obj.paginator.count }}</div>
+            </div>
+            <div class="highlight-card">
+                <div class="highlight-label">Visible on page</div>
+                <div class="highlight-value">{{ users|length }}</div>
+            </div>
+            <div class="highlight-card highlight-card-accent">
+                <div class="highlight-label">Focus</div>
+                <div class="highlight-copy">{% if search_query %}Filtered by "{{ search_query }}"{% else %}Browse and manage active accounts{% endif %}</div>
+            </div>
         </div>
     </div>
 
@@ -42,11 +63,15 @@
                             {% else %}
                                 <div class="avatar-placeholder">{{ user_obj.first_name|first }}{{ user_obj.last_name|first }}</div>
                             {% endif %}
-                            <span class="full-name">{{ user_obj.full_name }}</span>
-                            <span class="username">(@{{ user_obj.username }})</span>
+                            <div class="user-meta">
+                                <span class="full-name">{{ user_obj.full_name }}</span>
+                                <span class="username">@{{ user_obj.username }}</span>
+                            </div>
                         </div>
                     </td>
-                    <td>{{ user_obj.email }}</td>
+                    <td>
+                        <span class="user-email">{{ user_obj.email }}</span>
+                    </td>
                     <td>
                         {% if user_obj.is_staff or user_obj.is_superuser %}
                             <span class="badge badge-staff">Staff</span>
@@ -90,7 +115,7 @@
             </tbody>
         </table>
         {% else %}
-            <p class="no-users">No users found.</p>
+            <p class="no-users">No users found. Try broadening your search or clearing the filter.</p>
         {% endif %}
     </div>
 
