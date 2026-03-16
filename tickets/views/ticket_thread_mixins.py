@@ -138,6 +138,7 @@ class TicketThreadContextMixin:
             "delete": lambda: self.handle_delete_action(request),
             "update": lambda: self.handle_update_action(request),
             "close_ticket": self.handle_close_ticket_action,
+            "reopen_ticket": self.handle_reopen_ticket_action,
             "edit": lambda: self.get_edit_message(),
         }
         if action in handlers:
@@ -145,15 +146,27 @@ class TicketThreadContextMixin:
             return
         self.handle_add_action(request)
 
+    def _resolution_summary_from_request(self):
+        """Return normalized resolution summary from POST data."""
+        post = getattr(self.request, "POST", {})
+        return (post.get("resolution_summary") or "").strip()
+
     def handle_close_ticket_action(self):
         """Close the ticket instance associated with the view."""
-        closed = self.ticket.close()
+        closed = self.ticket.close_with_resolution(
+            performed_by=self.request.user,
+            resolution_summary=self._resolution_summary_from_request(),
+        )
         if closed and hasattr(self, 'request'):
             notify_ticket_participants(
                 self.ticket,
                 actor=self.request.user,
                 notification_type=Notification.NotificationType.TICKET_CLOSED,
             )
+
+    def handle_reopen_ticket_action(self):
+        """Reopen the ticket instance associated with the view."""
+        self.ticket.reopen(performed_by=self.request.user)
 
 
 class TicketThreadAssignmentMixin:
