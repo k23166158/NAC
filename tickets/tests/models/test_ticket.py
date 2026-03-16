@@ -1,5 +1,6 @@
 import uuid as uuid_module
 from datetime import timedelta
+from unittest.mock import patch
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -148,6 +149,7 @@ class TicketHomeDashboardModelTests(TestCase):
         self.assertIsNone(Ticket.base_for_scope(self.staff, "invalid"))
         d_ids = list(Ticket.base_for_scope(self.staff, "department").values_list("id", flat=True))
         self.assertNotIn(self.t1.id, d_ids)
+        self.assertEqual(Ticket.admin_ticket_stats()["total"], 3)
 
     def test_annotated_and_filters(self):
         """Test annotations and time-based filters."""
@@ -166,3 +168,15 @@ class TicketHomeDashboardModelTests(TestCase):
         self.assertIn(t3.id, list(Ticket.overdue_from(qs).values_list("id", flat=True)))
         self.assertIn(self.t1.id, list(Ticket.active_from(qs, Ticket.overdue_from(qs)).values_list("id", flat=True)))
         self.assertIsNone(Ticket.annotated_for_home(self.staff, "bad"))
+
+    def test_invalid_scope_search_helpers_and_reopen_guard(self):
+        """Defensive search helpers and reopen guards should behave correctly."""
+        filters = Ticket.search_filters_from({})
+
+        self.assertEqual(
+            Ticket.search_filter_options(self.staff, "bad"),
+            {"departments": [], "staff_users": []},
+        )
+        with patch.object(Ticket, "base_for_scope", return_value=None):
+            self.assertEqual(Ticket.search_page_queryset(self.staff, filters).count(), 0)
+        self.assertFalse(self.t1.reopen())
