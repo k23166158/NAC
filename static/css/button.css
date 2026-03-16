@@ -40,15 +40,15 @@
 /* Button Color Variants */
 .btn-primary,
 .btn-blue {
-    background: linear-gradient(135deg, #0969da 0%, #0860ca 100%);
+    background: linear-gradient(135deg, var(--blue, #2563eb) 0%, #1d4ed8 100%);
     color: #fff;
-    box-shadow: 0 4px 12px rgba(9, 105, 218, 0.3);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .btn-primary:hover,
 .btn-blue:hover {
-    background: linear-gradient(135deg, #0860ca 0%, #0757b8 100%);
-    box-shadow: 0 6px 20px rgba(9, 105, 218, 0.4);
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
 }
 
 .btn-danger,
@@ -111,13 +111,13 @@
 
 .btn-outline.btn-primary,
 .btn-outline.btn-blue {
-    color: #0969da;
-    border-color: #0969da;
+    color: var(--blue, #2563eb);
+    border-color: var(--blue, #2563eb);
 }
 
 .btn-outline.btn-primary:hover,
 .btn-outline.btn-blue:hover {
-    background: #0969da;
+    background: var(--blue, #2563eb);
     color: #fff;
 }
 
@@ -163,4 +163,3 @@
 .btn-lg i {
     font-size: 18px;
 }
-
