@@ -16,7 +16,11 @@
   {% if user.is_superuser %}
   <div class="admin-card">
     <div class="admin-header">
-        <h3>Admin Dashboard</h3>
+        <div class="admin-header-copy">
+          <span class="admin-eyebrow">Control center</span>
+          <h3>Admin Dashboard</h3>
+          <p>Keep an eye on ticket flow and jump straight into the places that need attention.</p>
+        </div>
         <div class="admin-privileges">
             {% if user.is_staff %}
             <span class="pill status status-active">Staff</span>
@@ -38,16 +42,12 @@
                     <span class="stat-value stat-value-red">{{ tickets_by_status.open|compact_number }}</span>
                 </div>
                 <div class="stat-item stat-item-flex">
-                    <span class="stat-label stat-label-block">Pending</span>
-                    <span class="stat-value stat-value-yellow">{{ tickets_by_status.pending|compact_number }}</span>
-                </div>
-                <div class="stat-item stat-item-flex">
                     <span class="stat-label stat-label-block">Closed</span>
                     <span class="stat-value stat-value-green">{{ tickets_by_status.closed|compact_number }}</span>
                 </div>
             </div>
         </div>
-        <p>Quick Actions:</p>
+        <p>Quick Actions</p>
         <div class="admin-actions">
             <a href="{% url 'manage_users' %}" class="btn-admin">
                 <i class="bi bi-people-fill"></i> Manage {{ total_users|compact_number }} Users
@@ -68,109 +68,121 @@
   </div>
   {% endif %}
 
-  <div class="tickets-header tickets-header-centered">
-    <div>
-      <h1 class="tickets-title">Tickets</h1>
-      <p class="tickets-subtitle">
-        Click a tab to view tickets. Click a ticket to expand the latest message.
-      </p>
+  <div class="tickets-hero">
+    <div class="tickets-header tickets-header-centered">
+      <div>
+        <span class="tickets-kicker">Workspace inbox</span>
+        <h1 class="tickets-title">Tickets</h1>
+        <p class="tickets-subtitle">
+          Keep conversations moving, catch what needs attention, and jump back into the latest update fast.
+        </p>
+      </div>
     </div>
   </div>
 
-  {# Only show scope dropdown to staff/superusers #}
-  {% if user.is_staff or user.is_superuser %}
-    <div class="scope-wrap">
-      <label class="scope-label">
-        <span class="scope-text">View:</span>
+  <div class="ticket-shell">
+    <div class="ticket-toolbar">
+      <div class="ticket-toolbar-copy">
+        <h2 class="ticket-shell-title">Your queue</h2>
+        <p class="ticket-shell-subtitle">Open any ticket to preview the latest message before diving in.</p>
+      </div>
 
-        <select id="scopeSelect" class="scope-select">
-          <option value="personal" {% if scope == "personal" %}selected{% endif %}>Personal tickets</option>
-          <option value="department" {% if scope == "department" %}selected{% endif %}>Department tickets</option>
-          <option value="assigned" {% if scope == "assigned" %}selected{% endif %}>Assigned tickets</option>
-        </select>
-      </label>
+      <div class="ticket-toolbar-actions">
+        {% if user.is_staff or user.is_superuser %}
+          <div class="scope-wrap">
+            <label class="scope-label">
+              <span class="scope-text">View</span>
+              <select id="scopeSelect" class="scope-select">
+                <option value="personal" {% if scope == "personal" %}selected{% endif %}>Personal tickets</option>
+                <option value="department" {% if scope == "department" %}selected{% endif %}>Department tickets</option>
+                <option value="assigned" {% if scope == "assigned" %}selected{% endif %}>Assigned tickets</option>
+              </select>
+            </label>
+          </div>
+        {% endif %}
+
+        <a href="{% url 'ticket_create' %}" class="tab-plus" aria-label="Create new ticket" title="Create new ticket">+</a>
+      </div>
     </div>
-  {% endif %}
 
-  <div class="tabs tabs-centered" role="tablist" aria-label="Ticket tabs">
-    <button class="tab-btn is-active" type="button" role="tab" aria-selected="true"
-            aria-controls="panel-active" data-tab="active">
-      <span class="tab-dot dot-active"></span>
-      Active <span class="tab-count">{{ active_tickets|length }}</span>
-    </button>
+    <div class="tabs tabs-centered" role="tablist" aria-label="Ticket tabs">
+      <button class="tab-btn is-active" type="button" role="tab" aria-selected="true"
+              aria-controls="panel-active" data-tab="active">
+        <span class="tab-dot dot-active"></span>
+        Active <span class="tab-count">{{ active_tickets|length }}</span>
+      </button>
 
-    <button class="tab-btn" type="button" role="tab" aria-selected="false"
-            aria-controls="panel-completed" data-tab="completed">
-      <span class="tab-dot dot-completed"></span>
-      Completed <span class="tab-count">{{ completed_tickets|length }}</span>
-    </button>
+      <button class="tab-btn" type="button" role="tab" aria-selected="false"
+              aria-controls="panel-completed" data-tab="completed">
+        <span class="tab-dot dot-completed"></span>
+        Completed <span class="tab-count">{{ completed_tickets|length }}</span>
+      </button>
+    </div>
 
-    <a href="{% url 'ticket_create' %}" class="tab-plus" aria-label="Create new ticket" title="Create new ticket">+</a>
+    <section id="panel-active" class="tab-panel" role="tabpanel">
+      {% if active_tickets_page %}
+        {% include "partials/ticket_list.html" with tickets=active_tickets_page %}
+        
+        {% if active_tickets_page.has_other_pages %}
+        <div class="pagination">
+          <span class="step-links">
+            {% if active_tickets_page.has_previous %}
+              <a href="?active_page={{ active_tickets_page.previous_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">&laquo; first</a>
+              <a href="?active_page={{ active_tickets_page.previous_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">previous</a>
+            {% endif %}
+
+            <span class="current">
+              Page {{ active_tickets_page.number }} of {{ active_tickets_page.paginator.num_pages }}
+            </span>
+
+            {% if active_tickets_page.has_next %}
+              <a href="?active_page={{ active_tickets_page.next_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">next</a>
+              <a href="?active_page={{ active_tickets_page.paginator.num_pages }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">last &raquo;</a>
+            {% endif %}
+          </span>
+        </div>
+        {% endif %}
+      {% else %}
+        <div class="empty">No active tickets right now.</div>
+      {% endif %}
+    </section>
+
+    <section id="panel-overdue" class="tab-panel" role="tabpanel" hidden>
+      {% if overdue_tickets %}
+        {% include "partials/ticket_list.html" with tickets=overdue_tickets %}
+      {% else %}
+        <div class="empty">Nothing overdue</div>
+      {% endif %}
+    </section>
+
+    <section id="panel-completed" class="tab-panel" role="tabpanel" hidden>
+      {% if completed_tickets_page %}
+        {% include "partials/ticket_list.html" with tickets=completed_tickets_page %}
+        
+        {% if completed_tickets_page.has_other_pages %}
+        <div class="pagination">
+          <span class="step-links">
+            {% if completed_tickets_page.has_previous %}
+              <a href="?completed_page={{ completed_tickets_page.previous_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">&laquo; first</a>
+              <a href="?completed_page={{ completed_tickets_page.previous_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">previous</a>
+            {% endif %}
+
+            <span class="current">
+              Page {{ completed_tickets_page.number }} of {{ completed_tickets_page.paginator.num_pages }}
+            </span>
+
+            {% if completed_tickets_page.has_next %}
+              <a href="?completed_page={{ completed_tickets_page.next_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">next</a>
+              <a href="?completed_page={{ completed_tickets_page.paginator.num_pages }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">last &raquo;</a>
+            {% endif %}
+          </span>
+        </div>
+        {% endif %}
+      {% else %}
+        <div class="empty">No completed tickets yet.</div>
+      {% endif %}
+    </section>
   </div>
-
-  <section id="panel-active" class="tab-panel" role="tabpanel">
-    {% if active_tickets_page %}
-      {% include "partials/ticket_list.html" with tickets=active_tickets_page %}
-      
-      {% if active_tickets_page.has_other_pages %}
-      <div class="pagination">
-        <span class="step-links">
-          {% if active_tickets_page.has_previous %}
-            <a href="?active_page={{ active_tickets_page.previous_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">&laquo; first</a>
-            <a href="?active_page={{ active_tickets_page.previous_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">previous</a>
-          {% endif %}
-
-          <span class="current">
-            Page {{ active_tickets_page.number }} of {{ active_tickets_page.paginator.num_pages }}
-          </span>
-
-          {% if active_tickets_page.has_next %}
-            <a href="?active_page={{ active_tickets_page.next_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">next</a>
-            <a href="?active_page={{ active_tickets_page.paginator.num_pages }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">last &raquo;</a>
-          {% endif %}
-        </span>
-      </div>
-      {% endif %}
-    {% else %}
-      <div class="empty">No active tickets right now.</div>
-    {% endif %}
-  </section>
-
-  <section id="panel-overdue" class="tab-panel" role="tabpanel" hidden>
-    {% if overdue_tickets %}
-      {% include "partials/ticket_list.html" with tickets=overdue_tickets %}
-    {% else %}
-      <div class="empty">Nothing overdue</div>
-    {% endif %}
-  </section>
-
-  <section id="panel-completed" class="tab-panel" role="tabpanel" hidden>
-    {% if completed_tickets_page %}
-      {% include "partials/ticket_list.html" with tickets=completed_tickets_page %}
-      
-      {% if completed_tickets_page.has_other_pages %}
-      <div class="pagination">
-        <span class="step-links">
-          {% if completed_tickets_page.has_previous %}
-            <a href="?completed_page={{ completed_tickets_page.previous_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">&laquo; first</a>
-            <a href="?completed_page={{ completed_tickets_page.previous_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">previous</a>
-          {% endif %}
-
-          <span class="current">
-            Page {{ completed_tickets_page.number }} of {{ completed_tickets_page.paginator.num_pages }}
-          </span>
-
-          {% if completed_tickets_page.has_next %}
-            <a href="?completed_page={{ completed_tickets_page.next_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">next</a>
-            <a href="?completed_page={{ completed_tickets_page.paginator.num_pages }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">last &raquo;</a>
-          {% endif %}
-        </span>
-      </div>
-      {% endif %}
-    {% else %}
-      <div class="empty">No completed tickets yet.</div>
-    {% endif %}
-  </section>
 </div>
 
 {# Only staff/superusers need the scope-changing JS #}

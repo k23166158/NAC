@@ -169,6 +169,19 @@ class TicketHomeDashboardModelTests(TestCase):
         self.assertIn(self.t1.id, list(Ticket.active_from(qs, Ticket.overdue_from(qs)).values_list("id", flat=True)))
         self.assertIsNone(Ticket.annotated_for_home(self.staff, "bad"))
 
+    def test_search_page_queryset_returns_none_queryset_fallback(self):
+        """search_page_queryset returns an empty queryset when base scope is None."""
+        with patch.object(Ticket, "base_for_scope", return_value=None):
+            qs = Ticket.search_page_queryset(self.staff, {"scope": "personal"})
+        self.assertEqual(qs.count(), 0)
+
+    def test_search_filter_options_returns_empty_when_scope_has_no_queryset(self):
+        """search_filter_options returns empty options when base scope is None."""
+        with patch.object(Ticket, "base_for_scope", return_value=None):
+            options = Ticket.search_filter_options(self.staff, "personal")
+        self.assertEqual(options, {"departments": [], "staff_users": []})
+
+
     def test_invalid_scope_search_helpers_and_reopen_guard(self):
         """Defensive search helpers and reopen guards should behave correctly."""
         filters = Ticket.search_filters_from({})
