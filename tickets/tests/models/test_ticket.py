@@ -89,6 +89,36 @@ class TicketThreadLogicModelTests(TestCase):
         self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
         self.assertFalse(self.ticket.close())
 
+    def test_close_with_resolution_records_lifecycle_metadata(self):
+        """Closing with a summary should persist metadata and system history."""
+        closed = self.ticket.close_with_resolution(self.s, "Fixed in portal")
+
+        self.ticket.refresh_from_db()
+        self.assertTrue(closed)
+        self.assertEqual(self.ticket.status, Ticket.Status.CLOSED)
+        self.assertEqual(self.ticket.closed_by, self.s)
+        self.assertEqual(self.ticket.resolution_summary, "Fixed in portal")
+        self.assertIsNotNone(self.ticket.closed_at)
+        messages = list(self.ticket.messages.order_by("created_at").values_list("body", flat=True))
+        self.assertIn("Ticket closed by s.", messages)
+        self.assertIn("Resolution summary: Fixed in portal", messages)
+
+    def test_reopen_records_lifecycle_metadata(self):
+        """Reopening a closed ticket should persist metadata and system history."""
+        self.ticket.close_with_resolution(self.s, "Resolved")
+
+        reopened = self.ticket.reopen(self.c)
+
+        self.ticket.refresh_from_db()
+        self.assertTrue(reopened)
+        self.assertEqual(self.ticket.status, Ticket.Status.OPEN)
+        self.assertEqual(self.ticket.reopened_by, self.c)
+        self.assertIsNotNone(self.ticket.reopened_at)
+        self.assertIn(
+            "Ticket reopened by c.",
+            list(self.ticket.messages.values_list("body", flat=True)),
+        )
+
     def test_department_staff(self):
         """Test department staff retrieval."""
         d = Department.objects.create(name="D", created_by=self.c)
