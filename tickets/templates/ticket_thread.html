@@ -189,14 +189,6 @@
           </form>
         </div>
       </div>
-      <div class="ticket-actions">
-        <form method="post" onsubmit="return confirm('Are you sure you want to close this ticket?');">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="close_ticket">
-          <textarea name="resolution_summary" rows="3" class="reply-textarea" placeholder="Optional resolution summary"></textarea>
-          <button type="submit" class="btn-close-ticket">Close Ticket</button>
-        </form>
-      </div>
       {% if ticket.reopened_at %}
         <div class="ticket-closed-notice">This ticket was reopened.</div>
       {% endif %}
@@ -269,6 +261,21 @@
           </div>
         </div>
       {% endif %}
+      <div class="ticket-close-panel">
+        <form method="post" onsubmit="return confirm('Are you sure you want to close this ticket?');">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="close_ticket">
+          <textarea
+            name="resolution_summary"
+            rows="6"
+            class="reply-textarea resolution-summary-textarea"
+            placeholder="Optional resolution summary"
+          ></textarea>
+          <div class="ticket-actions">
+            <button type="submit" class="btn-close-ticket">Close Ticket</button>
+          </div>
+        </form>
+      </div>
     {% else %}
       <div class="ticket-closed-notice">You do not have permission to make changes to this ticket.</div>
     {% endif %}
