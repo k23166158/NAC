@@ -1,6 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.views import View
 
 from tickets.models import Ticket
@@ -24,6 +25,8 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         context = self.get_context_data()
         context["permission"] = self.has_edit_permissions(self.ticket, request.user)
         context["scope"] = request.GET.get("scope", "personal")
+        context["back_to_url"] = self._back_to_url(request)
+        context["back_to_label"] = self._back_to_label(context["back_to_url"])
         return render(request, self.template_name, context)
 
     def post(self, request, uuid):
@@ -66,3 +69,12 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
             "last_user_message_id": self.get_last_user_message_id(messages),
             "user_has_removed": self.user_has_removed_themselves(self.request.user),
         }
+
+    def _back_to_url(self, request):
+        """Return the URL used by the thread page back link."""
+        return request.GET.get("return_to") or f'{reverse("home")}?scope={request.GET.get("scope", "personal")}'
+
+    @staticmethod
+    def _back_to_label(back_to_url):
+        """Return the back-link label for the current origin."""
+        return "Back to search tickets" if back_to_url.startswith(reverse("ticket_search")) else "Back to tickets"
