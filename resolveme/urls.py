@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path
 from tickets.views import (
     HomeView, CustomLoginView, 
-    TicketThreadView, ForwardTicketView, CreateTicketView,
+    TicketThreadView, ForwardTicketView, CreateTicketView, TicketSearchView,
     DepartmentView, CreateDepartmentView, DepartmentManageView, EditDepartmentView, DeleteDepartmentView,
     UserManagementView, ToggleUserStatusView, AdminStatisticsView
 )
@@ -42,6 +42,7 @@ urlpatterns = [
     
     path('tickets/<uuid:uuid>/', TicketThreadView.as_view(), name='ticket_thread'),
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
+    path("tickets/", TicketSearchView.as_view(), name="ticket_search"),
     path("tickets/create/", CreateTicketView.as_view(), name="ticket_create"),
     path("ticket/search-assignables/", search_assignables, name="search_assignables"),
 

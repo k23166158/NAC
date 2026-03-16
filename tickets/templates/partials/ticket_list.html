@@ -92,7 +92,12 @@
         {% endif %}
 
         <div class="ticket-actions">
-          <a class="ticket-open-btn" href="{% url 'ticket_thread' t.uuid %}?scope={{ scope }}">Open full ticket</a>
+          <a
+            class="ticket-open-btn"
+            href="{% url 'ticket_thread' t.uuid %}?return_to={{ request.get_full_path|urlencode }}"
+          >
+            Open full ticket
+          </a>
         </div>
       </div>
     </details>

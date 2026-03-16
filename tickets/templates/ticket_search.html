@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Search Tickets{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
+<link rel="stylesheet" href="{% static 'css/pagination.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_search.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_search_scope.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tickets-wrap tickets-centered search-page">
+  <div class="tickets-header tickets-header-centered search-header">
+    <div>
+      <h1 class="tickets-title">Search Tickets</h1>
+      <p class="tickets-subtitle">Browse your visible tickets with search and structured filters.</p>
+    </div>
+    <div class="search-header-actions">
+      <a href="{% url 'home' %}" class="search-link-back">Back to dashboard</a>
+      <a href="{% url 'ticket_create' %}" class="search-create-btn">Create Ticket</a>
+    </div>
+  </div>
+
+  <form method="get" class="search-form-card" id="ticketSearchForm">
+    <div class="search-grid">
+      <label class="search-field search-field-wide">
+        <span class="search-label">Search</span>
+        <input
+          type="text"
+          name="q"
+          value="{{ filters.q }}"
+          class="search-input"
+          placeholder="Search title, message body, creator, or email"
+        >
+      </label>
+
+      <label class="search-field">
+        <span class="search-label">Status</span>
+        <div class="search-select-shell">
+          <select name="status" class="search-select">
+            <option value="">All</option>
+            <option value="open" {% if filters.status == "open" %}selected{% endif %}>Open</option>
+            <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>Pending</option>
+            <option value="closed" {% if filters.status == "closed" %}selected{% endif %}>Closed</option>
+          </select>
+        </div>
+      </label>
+
+      <label class="search-field">
+        <span class="search-label">Department</span>
+        <div class="search-select-shell">
+          <select name="department" class="search-select">
+            <option value="">All</option>
+            {% for department in departments %}
+              <option value="{{ department.id }}" {% if filters.department == department.id|stringformat:"s" %}selected{% endif %}>
+                {{ department.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </label>
+
+      <label class="search-field">
+        <span class="search-label">Assigned Staff</span>
+        <div class="search-select-shell">
+          <select name="assigned_staff" class="search-select">
+            <option value="">All</option>
+            {% for staff_user in staff_users %}
+              <option value="{{ staff_user.id }}" {% if filters.assigned_staff == staff_user.id|stringformat:"s" %}selected{% endif %}>
+                {{ staff_user.get_full_name|default:staff_user.username }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </label>
+
+      <label class="search-field">
+        <span class="search-label">Created From</span>
+        <div class="search-date-shell">
+          <input type="date" name="created_from" value="{{ filters.created_from }}" class="search-input search-date-input">
+        </div>
+      </label>
+
+      <label class="search-field">
+        <span class="search-label">Created To</span>
+        <div class="search-date-shell">
+          <input type="date" name="created_to" value="{{ filters.created_to }}" class="search-input search-date-input">
+        </div>
+      </label>
+
+      {% if user.is_staff %}
+        <label class="search-field">
+          <span class="search-label">Scope</span>
+          <div class="scope-button-group" role="group" aria-label="Scope">
+            {% for scope_option in scope_options %}
+              <button
+                type="submit"
+                name="scope"
+                value="{{ scope_option }}"
+                class="scope-button{% if filters.scope == scope_option %} is-active{% endif %}"
+              >
+                {{ scope_option|title }}
+              </button>
+            {% endfor %}
+          </div>
+        </label>
+      {% endif %}
+    </div>
+
+    <div class="search-actions">
+      <button type="submit" class="search-submit-btn">Apply Filters</button>
+      <a href="{% url 'ticket_search' %}" class="search-reset-link">Reset</a>
+      <span class="search-results-count">{{ page_obj.paginator.count }} result{{ page_obj.paginator.count|pluralize }}</span>
+    </div>
+  </form>
+
+  {% if tickets %}
+    {% include "partials/ticket_list.html" with tickets=tickets scope=filters.scope %}
+
+    {% if is_paginated %}
+      <div class="pagination">
+        <span class="step-links">
+          {% if page_obj.has_previous %}
+            <a href="?page=1{{ pagination_query }}" class="pagination-link">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}{{ pagination_query }}" class="pagination-link">previous</a>
+          {% endif %}
+
+          <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{{ pagination_query }}" class="pagination-link">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{{ pagination_query }}" class="pagination-link">last &raquo;</a>
+          {% endif %}
+        </span>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="search-empty-state">
+      <h2>No tickets match these filters.</h2>
+      <p>Try broadening the search terms or clearing one of the filters.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
