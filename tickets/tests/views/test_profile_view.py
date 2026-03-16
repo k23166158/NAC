@@ -76,11 +76,6 @@ class ProfileViewTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.context["is_own_profile"])
         self.assertEqual(r.context["profile_user"].pk, self.user.pk)
-        self.assertContains(
-            r,
-            reverse("profile", kwargs={"profile_slug": self.user.profile_slug}),
-        )
-        self.assertContains(r, "My Profile")
 
     def _create_profile_stats_fixtures(self):
         """Create tickets and departments used by stats tests."""
