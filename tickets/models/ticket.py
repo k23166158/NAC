@@ -193,25 +193,28 @@ class Ticket(models.Model):
         return queryset.filter(created_at__date__lte=created_to)
 
     @classmethod
-    def search_filter_options(cls, user, scope, department_id=""):
+    def search_filter_options(cls, user, scope, department_id="", staff_id=""):
         """Return department and staff filter options visible in a scope."""
         queryset = cls.base_for_scope(user, scope=scope)
         if queryset is None:
             return {"departments": [], "staff_users": []}
         return {
-            "departments": cls._department_filter_options(queryset),
+            "departments": cls._department_filter_options(queryset, staff_id),
             "staff_users": cls._staff_filter_options(queryset, department_id),
         }
 
     @staticmethod
-    def _department_filter_options(queryset):
+    def _department_filter_options(queryset, staff_id=""):
         """Return department options for tickets in queryset."""
         from .department import Department
 
-        return Department.objects.filter(
+        options = Department.objects.filter(
             Q(assigned_tickets__ticket__in=queryset)
             | Q(ticket_departments__ticket__in=queryset)
-        ).distinct().order_by("name")
+        )
+        if staff_id:
+            options = options.filter(assigned_users__user_id=staff_id)
+        return options.distinct().order_by("name")
 
     @staticmethod
     def _staff_filter_options(queryset, department_id=""):

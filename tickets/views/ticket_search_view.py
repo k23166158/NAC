@@ -30,6 +30,7 @@ class TicketSearchView(LoginRequiredMixin, ListView):
                 self.request.user,
                 self.filters["scope"],
                 self.filters["department"],
+                self.filters["assigned_staff"],
             )
         )
         context["pagination_query"] = self._pagination_query()
