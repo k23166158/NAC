@@ -193,14 +193,14 @@ class Ticket(models.Model):
         return queryset.filter(created_at__date__lte=created_to)
 
     @classmethod
-    def search_filter_options(cls, user, scope):
+    def search_filter_options(cls, user, scope, department_id=""):
         """Return department and staff filter options visible in a scope."""
         queryset = cls.base_for_scope(user, scope=scope)
         if queryset is None:
             return {"departments": [], "staff_users": []}
         return {
             "departments": cls._department_filter_options(queryset),
-            "staff_users": cls._staff_filter_options(queryset),
+            "staff_users": cls._staff_filter_options(queryset, department_id),
         }
 
     @staticmethod
@@ -214,13 +214,16 @@ class Ticket(models.Model):
         ).distinct().order_by("name")
 
     @staticmethod
-    def _staff_filter_options(queryset):
+    def _staff_filter_options(queryset, department_id=""):
         """Return assigned staff options for tickets in queryset."""
         user_model = get_user_model()
-        return user_model.objects.filter(
+        options = user_model.objects.filter(
             ticket_participations__ticket__in=queryset,
             ticket_participations__removed_self=False,
-        ).distinct().order_by("last_name", "first_name", "username")
+        )
+        if department_id:
+            options = options.filter(user__department_id=department_id)
+        return options.distinct().order_by("last_name", "first_name", "username")
 
     @classmethod
     def _annotate_last_message_for_user(cls, qs, user):

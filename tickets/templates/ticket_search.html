@@ -51,7 +51,7 @@
       <label class="search-field">
         <span class="search-label">Department</span>
         <div class="search-select-shell">
-          <select name="department" class="search-select">
+          <select name="department" class="search-select department-filter-select">
             <option value="">All</option>
             {% for department in departments %}
               <option value="{{ department.id }}" {% if filters.department == department.id|stringformat:"s" %}selected{% endif %}>
@@ -143,4 +143,15 @@
     </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    const form = document.getElementById("ticketSearchForm");
+    const departmentSelect = document.querySelector(".department-filter-select");
+    if (!form || !departmentSelect) return;
+    departmentSelect.addEventListener("change", () => form.requestSubmit());
+  })();
+</script>
 {% endblock %}

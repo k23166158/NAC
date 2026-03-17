@@ -25,7 +25,13 @@ class TicketSearchView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["filters"] = self.filters
         context["scope_options"] = Ticket.allowed_scopes_for(self.request.user)
-        context.update(Ticket.search_filter_options(self.request.user, self.filters["scope"]))
+        context.update(
+            Ticket.search_filter_options(
+                self.request.user,
+                self.filters["scope"],
+                self.filters["department"],
+            )
+        )
         context["pagination_query"] = self._pagination_query()
         return context
 
