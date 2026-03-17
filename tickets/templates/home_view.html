@@ -110,6 +110,14 @@
     <form method="get" class="search-form-card home-search-card" id="homeSearchForm">
       <input type="hidden" name="tab" id="homeTabInput" value="{{ request.GET.tab|default:'active' }}">
       <input type="hidden" name="scope" value="{{ scope }}">
+      <input type="hidden" name="auto_refresh" id="homeAutoRefreshInput" value="">
+      <input type="hidden" name="display_count" id="homeDisplayCountInput" value="">
+      <input type="hidden" name="applied_q" id="homeAppliedQInput" value="{{ applied_filters.q }}">
+      <input type="hidden" name="applied_status" id="homeAppliedStatusInput" value="{{ applied_filters.status }}">
+      <input type="hidden" name="applied_department" id="homeAppliedDepartmentInput" value="{{ applied_filters.department }}">
+      <input type="hidden" name="applied_assigned_staff" id="homeAppliedAssignedStaffInput" value="{{ applied_filters.assigned_staff }}">
+      <input type="hidden" name="applied_created_from" id="homeAppliedCreatedFromInput" value="{{ applied_filters.created_from }}">
+      <input type="hidden" name="applied_created_to" id="homeAppliedCreatedToInput" value="{{ applied_filters.created_to }}">
       <div class="search-grid">
         <label class="search-field search-field-wide">
           <span class="search-label">Search</span>
@@ -151,7 +159,7 @@
         <label class="search-field">
           <span class="search-label">Assigned Staff</span>
           <div class="search-select-shell">
-            <select name="assigned_staff" class="search-select">
+            <select name="assigned_staff" class="search-select assigned-staff-filter-select">
               <option value="">All</option>
               {% for staff_user in staff_users %}
                 <option value="{{ staff_user.id }}" {% if filters.assigned_staff == staff_user.id|stringformat:"s" %}selected{% endif %}>
@@ -181,7 +189,9 @@
       <div class="search-actions home-search-actions">
         <button type="submit" class="search-submit-btn">Apply Filters</button>
         <a href="{% url 'home' %}" class="search-reset-link">Reset</a>
-        <span class="search-results-count">{{ visible_ticket_count }} visible tickets</span>
+        <span class="search-results-count" id="visibleTicketCount" data-count="{{ display_visible_ticket_count }}">
+          {{ display_visible_ticket_count }} visible tickets
+        </span>
       </div>
     </form>
 
@@ -275,6 +285,14 @@
       const params = new URLSearchParams(window.location.search);
       params.set("scope", scopeSelect.value);
       params.set("tab", params.get("tab") || "active");
+      params.delete("auto_refresh");
+      params.delete("display_count");
+      params.delete("applied_q");
+      params.delete("applied_status");
+      params.delete("applied_department");
+      params.delete("applied_assigned_staff");
+      params.delete("applied_created_from");
+      params.delete("applied_created_to");
       window.location.search = params.toString();
     });
   })();
@@ -287,6 +305,20 @@
     const buttons = document.querySelectorAll(".tab-btn");
     const tabInput = document.getElementById("homeTabInput");
     const departmentSelect = document.querySelector(".department-filter-select");
+    const staffSelect = document.querySelector(".assigned-staff-filter-select");
+    const queryInput = searchForm ? searchForm.querySelector('input[name="q"]') : null;
+    const statusSelect = searchForm ? searchForm.querySelector('select[name="status"]') : null;
+    const createdFromInput = searchForm ? searchForm.querySelector('input[name="created_from"]') : null;
+    const createdToInput = searchForm ? searchForm.querySelector('input[name="created_to"]') : null;
+    const autoRefreshInput = document.getElementById("homeAutoRefreshInput");
+    const displayCountInput = document.getElementById("homeDisplayCountInput");
+    const countLabel = document.getElementById("visibleTicketCount");
+    const appliedQInput = document.getElementById("homeAppliedQInput");
+    const appliedStatusInput = document.getElementById("homeAppliedStatusInput");
+    const appliedDepartmentInput = document.getElementById("homeAppliedDepartmentInput");
+    const appliedAssignedStaffInput = document.getElementById("homeAppliedAssignedStaffInput");
+    const appliedCreatedFromInput = document.getElementById("homeAppliedCreatedFromInput");
+    const appliedCreatedToInput = document.getElementById("homeAppliedCreatedToInput");
     const panels = {
       active: document.getElementById("panel-active"),
       completed: document.getElementById("panel-completed"),
@@ -314,8 +346,37 @@
     const initial = params.get("tab") || "active";
     openTab(panels[initial] ? initial : "active");
 
-    if (departmentSelect && searchForm) {
-      departmentSelect.addEventListener("change", () => searchForm.requestSubmit());
+    function submitDependentRefresh() {
+      if (!searchForm || !autoRefreshInput || !displayCountInput || !countLabel) return;
+      searchForm.dataset.preserveCount = "true";
+      autoRefreshInput.value = "dependent";
+      displayCountInput.value = countLabel.dataset.count || "";
+      searchForm.requestSubmit();
+    }
+
+    if (searchForm) {
+      searchForm.addEventListener("submit", () => {
+        if (searchForm.dataset.preserveCount === "true") {
+          searchForm.dataset.preserveCount = "";
+          return;
+        }
+        if (autoRefreshInput) autoRefreshInput.value = "";
+        if (displayCountInput) displayCountInput.value = "";
+        if (appliedQInput && queryInput) appliedQInput.value = queryInput.value;
+        if (appliedStatusInput && statusSelect) appliedStatusInput.value = statusSelect.value;
+        if (appliedDepartmentInput && departmentSelect) appliedDepartmentInput.value = departmentSelect.value;
+        if (appliedAssignedStaffInput && staffSelect) appliedAssignedStaffInput.value = staffSelect.value;
+        if (appliedCreatedFromInput && createdFromInput) appliedCreatedFromInput.value = createdFromInput.value;
+        if (appliedCreatedToInput && createdToInput) appliedCreatedToInput.value = createdToInput.value;
+      });
+    }
+
+    if (departmentSelect) {
+      departmentSelect.addEventListener("change", submitDependentRefresh);
+    }
+
+    if (staffSelect) {
+      staffSelect.addEventListener("change", submitDependentRefresh);
     }
 
     buttons.forEach(btn =>
