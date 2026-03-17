@@ -194,6 +194,20 @@ class TicketSearchViewTests(TestCase):
         self.assertIn(self.support, departments)
         self.assertIn(self.staff, staff_users)
 
+    def test_staff_options_follow_selected_department(self):
+        """Assigned-staff options should narrow to selected department members."""
+        TicketParticipant.objects.create(ticket=self.department_ticket, user=self.staff)
+        TicketParticipant.objects.create(ticket=self.department_ticket, user=self.other_staff)
+        self.client.force_login(self.staff)
+
+        response = self.client.get(
+            self.url,
+            {"scope": "department", "department": str(self.support.id)},
+        )
+
+        self.assertIn(self.staff, list(response.context["staff_users"]))
+        self.assertNotIn(self.other_staff, list(response.context["staff_users"]))
+
     def test_assigned_scope_excludes_removed_self_participants(self):
         """Removed-self participants should not appear in assigned-scope results."""
         TicketParticipant.objects.filter(ticket=self.assigned_ticket, user=self.staff).update(
