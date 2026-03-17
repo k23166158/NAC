@@ -30,6 +30,10 @@ class HomeView(View):
         active_qs = self.active_tickets(qs, overdue)
         completed_qs = self.completed_tickets(qs)
         context = self.base_context(active_qs, completed_qs, overdue, scope)
+        context["display_visible_ticket_count"] = self.display_visible_ticket_count(
+            request,
+            context["visible_ticket_count"],
+        )
         context["active_tickets_page"] = self._get_page(request, active_qs, 'active_page')
         context["overdue_tickets_page"] = self._get_page(request, overdue, 'overdue_page')
         context["completed_tickets_page"] = self._get_page(request, completed_qs, 'completed_page')
@@ -40,10 +44,12 @@ class HomeView(View):
     def filtered_ticket_state(self, request):
         """Return the filtered home-query ticket state for the current request."""
         self.filters = Ticket.search_filters_from(request.GET)
+        self.applied_filters = self.applied_filters_for(request, self.filters)
         scope = self.filters["scope"]
         qs, scope = self.handle_scope(request.user, scope)
         self.filters["scope"] = scope
-        qs = self.apply_filters(qs)
+        self.applied_filters["scope"] = scope
+        qs = self.apply_filters(qs, self.applied_filters)
         return qs, scope, self.overdue_tickets(qs)
 
     @staticmethod
@@ -67,10 +73,30 @@ class HomeView(View):
     def get_search_context(self, user, scope):
         """Return context required for the integrated ticket search form."""
         department_id = self.filters.get("department", "")
+        staff_id = self.filters.get("assigned_staff", "")
         return {
             "filters": self.filters,
+            "applied_filters": self.applied_filters,
             "scope_options": Ticket.allowed_scopes_for(user),
-            **Ticket.search_filter_options(user, scope, department_id),
+            **Ticket.search_filter_options(user, scope, department_id, staff_id),
+        }
+
+    @staticmethod
+    def display_visible_ticket_count(request, actual_count):
+        """Return the count label value to show after dependent auto-refreshes."""
+        if request.GET.get("auto_refresh") != "dependent":
+            return actual_count
+        display_count = request.GET.get("display_count", "")
+        return int(display_count) if display_count.isdigit() else actual_count
+
+    @staticmethod
+    def applied_filters_for(request, current_filters):
+        """Return the filters currently applied to the queue results."""
+        if request.GET.get("auto_refresh") != "dependent":
+            return current_filters.copy()
+        return {
+            key: request.GET.get(f"applied_{key}", current_filters[key])
+            for key in current_filters
         }
 
     def get_admin_stats(self):
@@ -107,9 +133,9 @@ class HomeView(View):
         """Annotate the base ticket queryset with message metadata."""
         return Ticket.annotated_for_home(user, scope=scope)
 
-    def apply_filters(self, qs):
+    def apply_filters(self, qs, filters):
         """Apply ticket search filters to the annotated home queryset."""
-        return Ticket._apply_search_filters(qs, self.filters).distinct()
+        return Ticket._apply_search_filters(qs, filters).distinct()
 
     def _annotate_last_message(self, qs, user):
         """Annotate the queryset with details of the last message and last read timestamp."""
