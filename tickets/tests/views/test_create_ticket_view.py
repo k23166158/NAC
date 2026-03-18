@@ -23,7 +23,7 @@ class CreateTicketViewTests(TestCase):
         res2 = self.client.get(self.url)
         self.assertEqual(res2.status_code, 200)
         self.assertTemplateUsed(res2, "create_ticket.html")
-        self.assertContains(res2, reverse("ticket_search"))
+        self.assertContains(res2, reverse("home"))
 
     def test_post_invalid_shows_errors(self):
         """Test POST with invalid data."""
