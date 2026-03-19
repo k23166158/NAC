@@ -233,23 +233,26 @@
         <div class="faq-list">
             {% for faq in faqs %}
             <div class="faq-item">
-                <div class="faq-item-header">
-                    <div class="faq-question-wrap">
+                <div class="faq-header">
+                    <button class="faq-trigger" type="button" aria-expanded="false">
                         <span class="faq-icon">Q</span>
                         <span class="faq-question">{{ faq.question }}</span>
-                    </div>
+                        <i class="bi bi-chevron-down faq-chevron"></i>
+                    </button>
                     {% if user_can_manage_faqs %}
                     <form method="POST" class="faq-delete-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="delete_faq">
                         <input type="hidden" name="faq_id" value="{{ faq.id }}">
-                        <button type="submit" class="btn-icon-remove" title="Delete FAQ">
+                        <button type="submit" class="btn-icon-remove faq-delete-btn" title="Delete FAQ">
                             <i class="bi bi-trash3"></i>
                         </button>
                     </form>
                     {% endif %}
                 </div>
-                <p class="faq-answer">{{ faq.answer }}</p>
+                <div class="faq-answer-wrap">
+                    <p class="faq-answer">{{ faq.answer }}</p>
+                </div>
             </div>
             {% empty %}
             <div class="faq-empty">No FAQs added yet.</div>
@@ -262,6 +265,7 @@
 
 {% block extra_js %}
 <script>
+    // Add FAQ form toggle
     const toggleBtn = document.getElementById('faq-toggle-btn');
     const cancelBtn = document.getElementById('faq-cancel-btn');
     const formCard = document.getElementById('faq-form-card');
@@ -271,5 +275,17 @@
     if (cancelBtn) {
         cancelBtn.addEventListener('click', () => { formCard.style.display = 'none'; toggleBtn.style.display = ''; });
     }
+
+    // FAQ accordion
+    document.querySelectorAll('.faq-trigger').forEach(trigger => {
+        trigger.addEventListener('click', e => {
+            // Don't toggle if the delete button was clicked
+            if (e.target.closest('.faq-delete-form')) return;
+            const item = trigger.closest('.faq-item');
+            const isOpen = item.classList.contains('faq-open');
+            item.classList.toggle('faq-open', !isOpen);
+            trigger.setAttribute('aria-expanded', String(!isOpen));
+        });
+    });
 </script>
 {% endblock %}
