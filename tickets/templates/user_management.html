@@ -58,11 +58,7 @@
                 <tr class="user-item">
                     <td>
                         <div class="user-info">
-                            {% if user_obj.profile_picture %}
-                                <img src="{{ user_obj.profile_picture.url }}" alt="{{ user_obj.full_name }}" class="avatar">
-                            {% else %}
-                                <div class="avatar-placeholder">{{ user_obj.first_name|first }}{{ user_obj.last_name|first }}</div>
-                            {% endif %}
+                            {% include "partials/user_avatar.html" with avatar_user=user_obj %}
                             <div class="user-meta">
                                 <span class="full-name">{{ user_obj.full_name }}</span>
                                 <span class="username">@{{ user_obj.username }}</span>

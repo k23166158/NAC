@@ -14,7 +14,7 @@
                 <input type="hidden" name="action" value="add">
                 <input type="hidden" name="user_id" value="{{ user.id }}">
                 <button type="submit" class="dropdown-item">
-                    <div class="avatar-small">+</div>
+                    {% include "partials/user_avatar.html" with avatar_user=user avatar_class="avatar-small" avatar_placeholder_class="avatar-small avatar-small-placeholder" %}
                     <span class="dropdown-name">{{ user.full_name }}</span>
                     <i><span class="dropdown-username">{{ user.username }}</span></i>
                 </button>

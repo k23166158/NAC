@@ -104,11 +104,7 @@
                       {% for assignment in staff_list|slice:":3" %}
                         <div class="facepile-avatar"
                              title="{{ assignment.user.get_full_name|default:assignment.user.username }}">
-                          {% if assignment.user.profile_picture %}
-                            <img src="{{ assignment.user.profile_picture.url }}" alt="" class="avatar">
-                          {% else %}
-                            {% include "partials/empty_avatar.html" with user=assignment.user %}
-                          {% endif %}
+                          {% include "partials/user_avatar.html" with avatar_user=assignment.user %}
                         </div>
                       {% endfor %}
                       {% if staff_list|length > 3 %}
