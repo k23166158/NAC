@@ -239,12 +239,11 @@ class Ticket(models.Model):
             Q(assigned_tickets__ticket__in=queryset)
             | Q(ticket_departments__ticket__in=queryset)
         )
-        if staff_id:
-            try:
-                staff_id = int(staff_id)
-            except (TypeError, ValueError):
-                return options.none()
-            options = options.filter(assigned_users__user_id=staff_id)
+        parsed_staff_id = Ticket._parse_optional_int(staff_id)
+        if staff_id and parsed_staff_id is None:
+            return options.none()
+        if parsed_staff_id is not None:
+            options = options.filter(assigned_users__user_id=parsed_staff_id)
         return options.distinct().order_by("name")
 
     @staticmethod
@@ -255,13 +254,22 @@ class Ticket(models.Model):
             ticket_participations__ticket__in=queryset,
             ticket_participations__removed_self=False,
         )
-        if department_id:
-            try:
-                department_id = int(department_id)
-            except (TypeError, ValueError):
-                return options.none()
-            options = options.filter(user__department_id=department_id)
+        parsed_department_id = Ticket._parse_optional_int(department_id)
+        if department_id and parsed_department_id is None:
+            return options.none()
+        if parsed_department_id is not None:
+            options = options.filter(user__department_id=parsed_department_id)
         return options.distinct().order_by("last_name", "first_name", "username")
+
+    @staticmethod
+    def _parse_optional_int(value):
+        """Return parsed int for a non-empty value, else None for blank/invalid."""
+        if value in ("", None):
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
 
     @classmethod
     def _annotate_last_message_for_user(cls, qs, user):
