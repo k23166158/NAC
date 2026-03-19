@@ -183,7 +183,7 @@
 .dept-search-input {
   width: 100%;
   padding: 10px 12px;
-  border-radius: 12px;              
+  border-radius: 12px;
   border: 1px solid var(--border);
   background: #fff;
   font-size: 13.5px;
@@ -256,6 +256,76 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--text);
+}
+
+/* Selected Department Pills */
+.selected-dept-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.selected-dept-pills:empty {
+  display: none;
+}
+
+.selected-dept-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  transition: border-color .15s, background .15s;
+}
+
+.selected-dept-pill:hover {
+  background: #eff6ff;
+  border-color: rgba(37, 99, 235, .25);
+}
+
+.selected-dept-pill-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--blue);
+  flex-shrink: 0;
+}
+
+.selected-dept-pill-text {
+  line-height: 1;
+}
+
+.selected-dept-pill-remove {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--muted);
+  transition: background .15s, color .15s;
+}
+
+.selected-dept-pill-remove:hover {
+  background: #fff1f2;
+  color: #b91c1c;
 }
 
 .dept-checkbox:checked + .dept-pill {
