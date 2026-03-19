@@ -32,6 +32,23 @@ class Ticket(models.Model):
         on_delete=models.CASCADE,
         related_name='tickets_created'
     )
+    resolution_summary = models.TextField(blank=True, default="")
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tickets_closed",
+    )
+    closed_at = models.DateTimeField(null=True, blank=True)
+    reopened_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tickets_reopened",
+    )
+    reopened_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -331,11 +348,74 @@ class Ticket(models.Model):
 
     def close(self):
         """Close ticket if not already closed."""
+        return self.close_with_resolution()
+
+    @staticmethod
+    def _performed_by_name(performed_by):
+        """Return a display name for a lifecycle user."""
+        if performed_by is None:
+            return "System"
+        return performed_by.get_full_name() or performed_by.username
+
+    @staticmethod
+    def _clean_resolution_summary(resolution_summary):
+        """Return a normalized resolution summary string."""
+        return (resolution_summary or "").strip()
+
+    def _close_update_fields(self):
+        """Return fields persisted for a close action."""
+        return ["status", "resolution_summary", "closed_by", "closed_at", "reopened_by", "reopened_at", "updated_at"]
+
+    def _reopen_update_fields(self):
+        """Return fields persisted for a reopen action."""
+        return ["status", "reopened_by", "reopened_at", "updated_at"]
+
+    def _set_closed_state(self, performed_by, resolution_summary):
+        """Apply in-memory close state."""
+        self.status = self.Status.CLOSED
+        self.resolution_summary = resolution_summary
+        self.closed_by = performed_by
+        self.closed_at = timezone.now()
+        self.reopened_by = None
+        self.reopened_at = None
+
+    def _set_reopened_state(self, performed_by):
+        """Apply in-memory reopen state."""
+        self.status = self.Status.OPEN
+        self.reopened_by = performed_by
+        self.reopened_at = timezone.now()
+
+    def _close_system_messages(self, resolution_summary, performed_by):
+        """Create thread history entries for closing a ticket."""
+        from .ticket_message import TicketMessage
+
+        TicketMessage.create_system_message(self, f"Ticket closed by {self._performed_by_name(performed_by)}.")
+        if resolution_summary:
+            TicketMessage.create_system_message(self, f"Resolution summary: {resolution_summary}")
+
+    def _reopen_system_message(self, performed_by):
+        """Create a thread history entry for reopening a ticket."""
+        from .ticket_message import TicketMessage
+
+        TicketMessage.create_system_message(self, f"Ticket reopened by {self._performed_by_name(performed_by)}.")
+
+    def close_with_resolution(self, performed_by=None, resolution_summary=""):
+        """Close ticket and persist lifecycle metadata."""
+        resolution_summary = self._clean_resolution_summary(resolution_summary)
         if self.status == self.Status.CLOSED:
             return False
-        self.status = self.Status.CLOSED
-        self.save(update_fields=["status", "updated_at"])
-        self.touch()
+        self._set_closed_state(performed_by, resolution_summary)
+        self.save(update_fields=self._close_update_fields())
+        self._close_system_messages(resolution_summary, performed_by)
+        return True
+
+    def reopen(self, performed_by=None):
+        """Reopen a closed ticket and persist lifecycle metadata."""
+        if self.status != self.Status.CLOSED:
+            return False
+        self._set_reopened_state(performed_by)
+        self.save(update_fields=self._reopen_update_fields())
+        self._reopen_system_message(performed_by)
         return True
 
     def __str__(self):
