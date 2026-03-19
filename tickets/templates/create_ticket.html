@@ -73,8 +73,7 @@
 
         <div id="selectedDeptPills" class="selected-dept-pills"></div>
 
-        <div class="help">Click the box to see all departments. Type to filter. You can pick multiple.</div>
-        {% if form.departments.errors %}<div class="error">{{ form.departments.errors }}</div>{% endif %}
+        <div class="help">Click the box to see all departments. Type to filter. You can pick up to 3.</div>
       </div>
 
       <div class="field">
@@ -117,6 +116,23 @@
     const items = document.querySelectorAll('.dept-item');
     const checkboxes = document.querySelectorAll('.dept-checkbox');
     const noResultsMsg = document.getElementById('deptNoResultsMsg');
+    const MAX_DEPARTMENTS = 3;
+
+    function getCheckedCount() {
+      let count = 0;
+      checkboxes.forEach(function (cb) { if (cb.checked) count++; });
+      return count;
+    }
+
+    function updateDisabledState() {
+      const atLimit = getCheckedCount() >= MAX_DEPARTMENTS;
+      checkboxes.forEach(function (cb) {
+        if (!cb.checked) {
+          cb.disabled = atLimit;
+          cb.closest('.dept-item').style.opacity = atLimit ? '0.5' : '1';
+        }
+      });
+    }
 
     function renderPills() {
       pillContainer.innerHTML = '';
@@ -135,6 +151,7 @@
         });
         pillContainer.appendChild(pill);
       });
+      updateDisabledState();
     }
 
     checkboxes.forEach(function (cb) {

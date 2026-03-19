@@ -51,6 +51,35 @@ class CreateTicketFormTests(TestCase):
         )
         self.assertTrue(form_with_file.is_valid())
 
+    def test_more_than_three_departments_is_invalid(self):
+        """Ensure selecting more than 3 departments is rejected."""
+        User = get_user_model()
+        creator = User.objects.first()
+        depts = [self.department]
+        for i in range(3):
+            depts.append(Department.objects.create(name=f"Dept{i}", created_by=creator))
+        form = CreateTicketForm(data={
+            "title": "Valid",
+            "body": "Valid",
+            "departments": [d.id for d in depts],
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("You can select at most 3 departments.", form.errors["departments"])
+
+    def test_three_departments_is_valid(self):
+        """Ensure selecting exactly 3 departments is accepted."""
+        User = get_user_model()
+        creator = User.objects.first()
+        depts = [self.department]
+        for i in range(2):
+            depts.append(Department.objects.create(name=f"Dept{i}", created_by=creator))
+        form = CreateTicketForm(data={
+            "title": "Valid",
+            "body": "Valid",
+            "departments": [d.id for d in depts],
+        })
+        self.assertTrue(form.is_valid())
+
     def test_form_accepts_multiple_attachments(self):
         """Form field is defined and allows multiple files via its widget."""
         form = CreateTicketForm()
