@@ -70,7 +70,14 @@
       {% endif %}
     </div>
   </div>
-  <div class="ticket-list">
+  <div class="thread-section">
+    <div class="thread-section-head">
+      <div>
+        <h2 class="thread-section-title">Conversation</h2>
+        <p class="thread-section-copy">Read the latest replies, attachments, and system activity in one place.</p>
+      </div>
+    </div>
+  <div class="ticket-list thread-list">
     {% for message in messages %}
       <div class="reply">
         {% if message.sender is None %}
@@ -81,9 +88,16 @@
         {% else %}
             <div class="ticket-card {% if message.sender == user and not message.hidden %}my-message{% endif %}" data-message-id="{{ message.id }}">
             <div class="ticket-top">
-              <div class="sender-meta">
-                {% include "partials/user_avatar.html" with avatar_user=message.sender avatar_class="message-sender-avatar" avatar_placeholder_class="message-sender-avatar-placeholder" %}
-                <strong class="sender-name">{{ message.sender.username }}</strong>
+              <div class="sender-block">
+                <div class="sender-meta">
+                  {% include "partials/user_avatar.html" with avatar_user=message.sender avatar_class="message-sender-avatar" avatar_placeholder_class="message-sender-avatar-placeholder" %}
+                  <strong class="sender-name">{{ message.sender.username }}</strong>
+                </div>
+                {% if message.sender == user %}
+                  <span class="message-badge">You</span>
+                {% elif message.sender.is_staff %}
+                  <span class="message-badge message-badge-staff">Staff</span>
+                {% endif %}
               </div>
               <div class="meta-right">
                 {% if not message.hidden %}<span class="timestamp">{% if message.edited %}Edited: {{ message.edited_at|date:"M d, Y H:i" }}{% else %}{{ message.created_at|date:"M d, Y H:i" }}{% endif %}</span>{% endif %}
@@ -156,6 +170,7 @@
       <div class="empty">No replies yet.</div>
     {% endfor %}
   </div>
+  </div>
   <div class="line-break"></div>
   {% if user_has_removed %}
     <div class="ticket-closed-notice">You have removed yourself from the ticket.</div>
@@ -169,7 +184,12 @@
   {% else %}
     {% if permission %}
       <div class="reply-container">
-        <div class="col-head"><h3 class="col-title">Reply</h3></div>
+        <div class="col-head">
+          <div>
+            <h3 class="col-title">Reply</h3>
+            <p class="reply-subtitle">Add the next update, answer a question, or attach supporting files.</p>
+          </div>
+        </div>
         <div class="col-body">
           <form method="post" enctype="multipart/form-data">{% csrf_token %}
             <textarea name="body" rows="4" class="reply-textarea" required></textarea>
@@ -324,7 +344,7 @@ function toggleEditForm(button, event) {
   const card = button.closest('.ticket-card');
   const editForm = card.querySelector('.message-edit-form');
   const messageContent = card.querySelector('.message-content');
-  
+
   editForm.classList.toggle('hidden');
   messageContent.classList.toggle('hidden');
   if (!editForm.classList.contains('hidden')) {
