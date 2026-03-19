@@ -71,20 +71,26 @@
 
         {% if t.last_message_at %}
           <div class="latest">
-            <div class="latest-head">
-              <div class="latest-from">
-                Latest from
-                <strong>
-                  {% if t.last_message_sender_id == request.user.id %}
-                    You
-                  {% else %}
-                    {{ t.last_sender_first }} {{ t.last_sender_last }}
-                  {% endif %}
-                </strong>
-                {% if t.last_sender_is_staff %}<span class="mini-tag">STAFF</span>{% endif %}
+            {% if t.last_message_sender_id %}
+              <div class="latest-head">
+                <div class="latest-from">
+                  Latest from
+                  <strong>
+                    {% if t.last_message_sender_id == request.user.id %}
+                      You
+                    {% else %}
+                      {{ t.last_sender_first }} {{ t.last_sender_last }}
+                    {% endif %}
+                  </strong>
+                  {% if t.last_sender_is_staff %}<span class="mini-tag">STAFF</span>{% endif %}
+                </div>
+                <div class="latest-time">{{ t.last_message_at|date:"M j • H:i" }}</div>
               </div>
-              <div class="latest-time">{{ t.last_message_at|date:"M j • H:i" }}</div>
-            </div>
+            {% else %}
+              <div class="latest-head">
+                <div class="latest-time">{{ t.last_message_at|date:"M j • H:i" }}</div>
+              </div>
+            {% endif %}
             <div class="latest-body">{{ t.last_message_body }}</div>
           </div>
         {% else %}

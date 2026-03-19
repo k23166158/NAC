@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db import models
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import Count, DateTimeField, F, OuterRef, Q, Subquery
+from django.db.models import Count, DateTimeField, Exists, F, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -122,16 +122,27 @@ class Ticket(models.Model):
     @classmethod
     def base_for_scope(cls, user, scope="personal"):
         """Return tickets visible to a user for a dashboard scope."""
+        from .ticket_participant import TicketParticipant
+        
+        # Subquery to check if user has removed themselves from the ticket
+        user_removed_self = Exists(
+            TicketParticipant.objects.filter(
+                ticket=OuterRef('pk'),
+                user=user,
+                removed_self=True
+            )
+        )
+        
         if scope == "personal":
             return (
-                cls.objects.filter(created_by=user).exclude(participants__user=user,participants__removed_self=True,).distinct()
+                cls.objects.filter(created_by=user).exclude(user_removed_self).distinct()
             )
         if scope == "department":
             return (
-                cls.objects.filter(assignments__department__assigned_users__user=user).exclude(participants__user=user,participants__removed_self=True,).distinct()
+                cls.objects.filter(assignments__department__assigned_users__user=user).exclude(user_removed_self).distinct()
             )
         if scope == "assigned":
-            return cls.objects.filter(participants__user=user,participants__removed_self=False,).distinct()
+            return cls.objects.filter(participants__user=user, participants__removed_self=False).distinct()
         return None
 
     @classmethod
