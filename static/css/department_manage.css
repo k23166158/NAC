@@ -248,8 +248,7 @@
   animation: fadeIn 0.5s ease-out;
 }
 
-.empty-state::before {
-  content: '📁';
+.empty-state-icon {
   font-size: 48px;
   display: block;
   margin-bottom: 16px;
