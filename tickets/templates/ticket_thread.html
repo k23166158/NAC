@@ -276,9 +276,14 @@
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="target_type" value="department">
                     <input type="hidden" name="target_id" value="{{ department.id }}">
-                    <button type="submit" class="pill department-pill">
-                      <span class="department-pill-name">{{ department.name }}</span>
-                    </button>
+                    <div class="pill department-pill">
+                      <a class="content-link department-pill-link" href="{% url 'department' department.slug %}">
+                        <span class="department-pill-name">{{ department.name }}</span>
+                      </a>
+                      <button type="submit" class="department-add-btn" title="Add department" aria-label="Add {{ department.name }}">
+                        +
+                      </button>
+                    </div>
                   </form>
                 {% empty %}<div class="empty empty-state">All departments added.</div>{% endfor %}
               </div>

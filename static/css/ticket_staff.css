@@ -133,13 +133,6 @@
     display: block;
 }
 
-.add-department-form .pill {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
 .department-row {
     background: #f9fafb;
 }
@@ -164,25 +157,61 @@
 
 .department-pill {
     padding: 8px 12px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     border-radius: 999px;
     border: 1px solid var(--border);
     background: #fff;
     box-shadow: var(--shadow-sm);
     font-size: 13px;
     font-weight: 600;
-    gap: 6px;
-}
-
-.department-pill:hover {
-    background: #eff6ff;
-    border-color: rgba(37, 99, 235, 0.4);
-    transform: translateY(1px);
+    gap: 10px;
 }
 
 .department-pill-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.department-pill-link {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+}
+
+.department-pill-link:hover .department-pill-name,
+.department-pill-link:focus .department-pill-name,
+.department-pill-link:active .department-pill-name {
+    text-decoration: underline;
+}
+
+.department-add-btn {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #1f2937;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 20px;
+    line-height: 20px;
+    font-weight: 300;
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: color 0.12s ease, transform 0.06s ease;
+    transform: translateY(-1px);
+}
+
+.department-add-btn:hover {
+    color: #111827;
+    transform: translateY(0);
 }
 
 .department-pill-meta {
