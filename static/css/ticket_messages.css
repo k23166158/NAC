@@ -42,6 +42,36 @@
     font-weight: 700;
 }
 
+.sender-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.message-sender-avatar,
+.message-sender-avatar-placeholder {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+}
+
+.message-sender-avatar {
+    object-fit: cover;
+}
+
+.message-sender-avatar-placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: #f8fafc;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+}
+
 /* Metadata on the right (timestamp, actions) */
 
 .meta-right {
