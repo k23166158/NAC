@@ -6,6 +6,7 @@ from django.core.files.base import ContentFile
 from tickets.models import *
 from django.contrib.contenttypes.models import ContentType
 from tickets.models.notification import Notification
+from tickets.models.seeded_object import SeededObject
 from collections import defaultdict
 
 user_fixtures = [
@@ -171,6 +172,9 @@ class Command(BaseCommand):
         self.faker = Faker('en_GB')
         self.faker.seed_instance(1234)
         random.seed(1234)
+        self.seeded_user_ids = set()
+        self.seeded_department_ids = set()
+        self.seeded_ticket_ids = set()
 
     def handle(self, *args, **options):
         """
@@ -187,6 +191,13 @@ class Command(BaseCommand):
         self.assign_staff_to_tickets()
         self.create_department_invitations()
         self.create_notifications()
+
+    def _track_seeded_object(self, obj):
+        """Persist a seeded object reference for safe unseeding."""
+        if obj is None or obj.pk is None:
+            return
+        content_type = ContentType.objects.get_for_model(obj, for_concrete_model=False)
+        SeededObject.objects.get_or_create(content_type=content_type, object_id=obj.pk)
     
     def create_users(self):
         """Create users in the database."""
@@ -199,11 +210,13 @@ class Command(BaseCommand):
     def create_known_users(self):
         """Create users from predefined fixtures."""
         for fixture in user_fixtures: 
-            User.objects.create_user(
+            user = User.objects.create_user(
                 username=fixture['username'], email=fixture['email'], password=self.DEFAULT_PASSWORD,
                 first_name=fixture['first_name'], last_name=fixture['last_name'],
                 is_superuser=fixture.get('superuser', False), is_staff=fixture.get('staff', False)
             )
+            self.seeded_user_ids.add(user.id)
+            self._track_seeded_object(user)
 
     def create_random_staff_users(self):
         """Create random staff users using Faker library."""
@@ -234,7 +247,9 @@ class Command(BaseCommand):
     def try_create_user(self, **kwargs):
         """Attempt to create a user, handling any errors."""
         try:
-            User.objects.create_user(**kwargs)
+            user = User.objects.create_user(**kwargs)
+            self.seeded_user_ids.add(user.id)
+            self._track_seeded_object(user)
         except Exception:
             pass
 
@@ -249,15 +264,19 @@ class Command(BaseCommand):
         """Create departments from predefined fixtures."""
         for fixture in department_fixtures:
             creator = User.objects.get(username=fixture['created_by'])
-            Department.objects.create(
+            department = Department.objects.create(
                 name=fixture['name'],
                 description=fixture.get('description', ''),
                 created_by=creator
             )
+            self.seeded_department_ids.add(department.id)
+            self._track_seeded_object(department)
 
     def create_random_departments(self):
         """Create KCL-style department names and descriptions."""
-        staff = list(User.objects.filter(is_staff=True))
+        staff = list(User.objects.filter(is_staff=True, id__in=self.seeded_user_ids))
+        if not staff:
+            staff = list(User.objects.filter(is_staff=True))
         existing_names = {dept.name for dept in Department.objects.all()}
         available_names = [name for name in kcl_department_pool if name not in existing_names]
         for index in range(self.DEPARTMENT_COUNT - len(department_fixtures)):
@@ -267,7 +286,9 @@ class Command(BaseCommand):
             )
             created_by = choice(staff)
 
-            Department.objects.create(name=name, description=description, created_by=created_by)
+            department = Department.objects.create(name=name, description=description, created_by=created_by)
+            self.seeded_department_ids.add(department.id)
+            self._track_seeded_object(department)
 
     def _department_name_for_index(self, index, available_names):
         """Return the most suitable seeded department name for an index."""
@@ -278,19 +299,29 @@ class Command(BaseCommand):
     def try_create_department(self, **kwargs):
         """Attempt to create a department, handling any errors."""
         try:
-            Department.objects.create(**kwargs)
+            department = Department.objects.create(**kwargs)
+            self.seeded_department_ids.add(department.id)
+            self._track_seeded_object(department)
         except Exception:
             pass
 
     def assign_users_to_departments(self):
         """Randomly assign users to departments."""
         print("Assigning users to departments...")
-        users = list(User.objects.filter(is_staff=True))
-        departments = list(Department.objects.all())
+        users = list(User.objects.filter(is_staff=True, id__in=self.seeded_user_ids))
+        departments = list(Department.objects.filter(id__in=self.seeded_department_ids))
+        if not users or not departments:
+            print("User assignments complete.")
+            return
         
         for department in departments:
-            UserDepartments.objects.get_or_create(user=department.created_by, department=department)
-            num_assignments = randint(5, 10)
+            assignment, created = UserDepartments.objects.get_or_create(
+                user=department.created_by,
+                department=department,
+            )
+            if created:
+                self._track_seeded_object(assignment)
+            num_assignments = min(randint(5, 10), len(users))
             assigned_users = random.sample(users, num_assignments)
             self.add_users_to_department(assigned_users, department)
 
@@ -299,12 +330,17 @@ class Command(BaseCommand):
     def add_users_to_department(self, users, department):
         """Assign multiple users to a department."""
         for user in users:
-            UserDepartments.objects.get_or_create(user=user, department=department)
+            assignment, created = UserDepartments.objects.get_or_create(user=user, department=department)
+            if created:
+                self._track_seeded_object(assignment)
 
     def create_tickets(self):
         """Create tickets in the database using FAQ-style content."""
         print("Creating tickets...")
-        users = list(User.objects.all())
+        users = list(User.objects.filter(id__in=self.seeded_user_ids))
+        if not users:
+            print("0 Tickets created.")
+            return
         self._create_seeded_faq_tickets(users)
         self._create_remaining_tickets(users)
         print(f"{Ticket.objects.count()} Tickets created.")
@@ -322,21 +358,26 @@ class Command(BaseCommand):
 
     def _create_ticket_with_title(self, title, users):
         """Create a single ticket with a realistic title."""
-        Ticket.objects.create(
+        ticket = Ticket.objects.create(
             title=title,
             status=choice(['open', 'closed']),
             created_by=choice(users),
         )
+        self.seeded_ticket_ids.add(ticket.id)
+        self._track_seeded_object(ticket)
 
     def assign_tickets_to_departments(self):
         """Randomly assign tickets to departments."""
         print("Assigning tickets to departments...")
 
-        tickets = list(Ticket.objects.all())
-        departments = list(Department.objects.all())
+        tickets = list(Ticket.objects.filter(id__in=self.seeded_ticket_ids))
+        departments = list(Department.objects.filter(id__in=self.seeded_department_ids))
+        if not tickets or not departments:
+            print("Ticket assignments complete.")
+            return
 
         for ticket in tickets:
-            num_assignments = randint(1, 3)
+            num_assignments = min(randint(1, 3), len(departments))
             available_departments = random.sample(departments, num_assignments)
             self.add_tickets_to_department(ticket, available_departments)
 
@@ -345,20 +386,24 @@ class Command(BaseCommand):
     def add_tickets_to_department(self, ticket, departments):
         """Assign multiple tickets to multiple departments."""
         for department in departments:
-            TicketAssigned.objects.get_or_create(ticket=ticket, department=department)
+            assignment, created = TicketAssigned.objects.get_or_create(ticket=ticket, department=department)
+            if created:
+                self._track_seeded_object(assignment)
 
     def create_ticket_messages(self):
         """Create ticket messages in the database using FAQ-style responses."""
         print("Creating ticket messages...")
-        tickets = list(Ticket.objects.all())
+        tickets = list(Ticket.objects.filter(id__in=self.seeded_ticket_ids))
         
         for ticket in tickets:
             initial_body = faq_bodies_by_title.get(ticket.title, choice(fallback_ticket_bodies))
-            TicketMessage.objects.get_or_create(
+            message, created = TicketMessage.objects.get_or_create(
                 ticket=ticket,
                 body=initial_body,
                 sender=ticket.created_by,
             )
+            if created:
+                self._track_seeded_object(message)
             self.create_ticket_response_messages(ticket)
 
         print("Ticket messages created.")
@@ -380,21 +425,23 @@ class Command(BaseCommand):
         if available_senders:
             sender = choice(available_senders)
             body = choice(faq_responses)
-            TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
+            message = TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
+            self._track_seeded_object(message)
     
     def random_create_user_ticket_response_messages(self, ticket):
         """Randomly create follow-up messages from users for a ticket."""
         if randint(0, 1):
             sender = ticket.created_by
             body = choice(follow_up_responses)
-            TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
+            message = TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
+            self._track_seeded_object(message)
 
     def _create_single_attachment(self, message):
         """Create one attachment for a message with realistic document names."""
         filename = choice(realistic_filenames)
         content = self._attachment_content(filename)
         file_content = ContentFile(content.encode(), name=filename)
-        TicketMessageAttachment.objects.create(
+        attachment = TicketMessageAttachment.objects.create(
             ticket=message.ticket,
             message=message,
             file=file_content,
@@ -403,6 +450,7 @@ class Command(BaseCommand):
             size_bytes=len(content.encode()),
             uploaded_by=message.sender or message.ticket.created_by,
         )
+        self._track_seeded_object(attachment)
 
     def _attachment_content(self, filename):
         """Create deterministic readable content for an attached file."""
@@ -430,17 +478,21 @@ class Command(BaseCommand):
     def create_ticket_attachments(self):
         """Create random attachments for ticket messages."""
         print("Creating ticket attachments...")
-        total = sum(self._create_message_attachments(m) for m in TicketMessage.objects.all())
+        messages = TicketMessage.objects.filter(ticket_id__in=self.seeded_ticket_ids)
+        total = sum(self._create_message_attachments(m) for m in messages)
         print(f"{total} Attachments created.")
 
     def assign_staff_to_tickets(self):
         """Randomly assign staff members as participants to tickets."""
         print("Assigning staff to tickets...")
-        tickets = list(Ticket.objects.all())
-        staff_users = list(User.objects.filter(is_staff=True))
+        tickets = list(Ticket.objects.filter(id__in=self.seeded_ticket_ids))
+        staff_users = list(User.objects.filter(is_staff=True, id__in=self.seeded_user_ids))
+        if not tickets or not staff_users:
+            print("Staff assignments to tickets complete.")
+            return
 
         for ticket in tickets:
-            num_participants = randint(1, 3)
+            num_participants = min(randint(1, 3), len(staff_users))
             participants = random.sample(staff_users, num_participants)
             self.add_participants_to_ticket(ticket, participants)
 
@@ -449,7 +501,9 @@ class Command(BaseCommand):
     def add_participants_to_ticket(self, ticket, participants):
         """Assign multiple staff members as participants to a ticket."""
         for user in participants:
-            TicketParticipant.objects.get_or_create(ticket=ticket, user=user)
+            participant, created = TicketParticipant.objects.get_or_create(ticket=ticket, user=user)
+            if created:
+                self._track_seeded_object(participant)
 
     def _create_invites_for_staff(self, staff, departments):
         """Create 1-3 pending department invites for one staff user."""
@@ -461,25 +515,31 @@ class Command(BaseCommand):
         if num_invitations == 0:
             return
         for department in random.sample(available, num_invitations):
-            DepartmentInvitation.objects.get_or_create(
+            invitation, created = DepartmentInvitation.objects.get_or_create(
                 department=department,
                 recipient=staff,
                 status='pending',
                 defaults={'sender': department.created_by},
             )
+            if created:
+                self._track_seeded_object(invitation)
 
     def create_department_invitations(self):
         """Creates a random amount of department invitations between 1 and 3 for staff users."""
         print("Creating department invitations...")
-        staff_users = list(User.objects.filter(is_staff=True))
-        departments = list(Department.objects.all())
+        staff_users = list(User.objects.filter(is_staff=True, id__in=self.seeded_user_ids))
+        departments = list(Department.objects.filter(id__in=self.seeded_department_ids))
         for staff in staff_users:
             self._create_invites_for_staff(staff, departments)
         print("Department invitations created.")
 
     def create_notifications(self):
         """Create many realistic notifications for tickets."""
-        users, tickets = list(User.objects.all()), list(Ticket.objects.all())
+        users = list(User.objects.filter(id__in=self.seeded_user_ids))
+        tickets = list(Ticket.objects.filter(id__in=self.seeded_ticket_ids))
+        if len(users) < 2 or not tickets:
+            print("0 Notifications created.")
+            return
         ct = ContentType.objects.get_for_model(Ticket)
         stats = defaultdict(int)
 
@@ -528,15 +588,10 @@ class Command(BaseCommand):
 
     def _save_notif(self, actor, recipient, ticket, ct, is_read):
         """Saves a Notification instance to the database."""
-        msg = (
-            f"{actor.get_full_name() or actor.username} performed an action "
-            f"related to the ticket \"{ticket.title}\".\n\n"
-            f"You are receiving this notification because you are involved "
-            f"in the ticket or were recently added to it."
-        )
-        Notification.objects.create(
+        notification = Notification.objects.create(
             user=recipient, actor=actor, content_type=ct, object_id=ticket.id,
             notification_type=Notification.NotificationType.TICKET_CREATED,
             short_message=f"{actor.username} interacted with ticket: {ticket.title}",
             is_read=is_read
         )
+        self._track_seeded_object(notification)
