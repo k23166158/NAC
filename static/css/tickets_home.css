@@ -261,6 +261,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    position: relative;
     background: linear-gradient(135deg, var(--blue, #2563eb), #1d4ed8);
     color: #fff;
     border: 1px solid rgba(37, 99, 235, 0.9);
@@ -276,6 +277,17 @@
     line-height: 1;
     flex-shrink: 0;
     box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
+}
+
+.tab-plus-symbol {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    line-height: 1;
+    font-size: 30px;
+    font-weight: 700;
+    transform: translateY(-2px);
 }
 
 .tab-plus:hover {
