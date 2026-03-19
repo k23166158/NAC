@@ -45,7 +45,7 @@
         <div class="ticket-expanded-top">
           <div class="meta-row">
             <span class="meta-item">
-              <span class="meta-ico">👤</span>
+              {% include "partials/user_avatar.html" with avatar_user=t.created_by avatar_class="meta-avatar" avatar_placeholder_class="meta-avatar-placeholder" %}
               <span><strong>{{ t.created_by.first_name }} {{ t.created_by.last_name }}</strong></span>
             </span>
 

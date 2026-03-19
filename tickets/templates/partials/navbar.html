@@ -33,7 +33,6 @@
         {% if user.is_authenticated %}
             <a href="{% url 'profile' user.profile_slug %}" class="nav-profile-link" aria-label="View your profile">
                 <span class="nav-profile-copy">
-                    <span class="nav-profile-label">My Profile</span>
                     <span class="nav-profile-username">@{{ user.username }}</span>
                 </span>
                 <span class="nav-profile-avatar">
