@@ -1,3 +1,4 @@
+/* ── FAQ Section Header ───────────────────────────────── */
 .faq-section .thread-section-head {
     display: flex;
     justify-content: space-between;
@@ -6,81 +7,146 @@
     margin-bottom: 20px;
 }
 
+/* ── Add FAQ Form Card ────────────────────────────────── */
 .faq-form-card {
     border-radius: 22px;
     border: 1px solid rgba(203, 213, 225, 0.75);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
-    padding: 20px;
+    padding: 22px 24px;
     margin-bottom: 20px;
+    animation: faq-fade-in 0.18s ease;
+}
+
+@keyframes faq-fade-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .faq-form-field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-bottom: 16px;
+    gap: 7px;
+    margin-bottom: 18px;
 }
 
 .faq-form-label {
-    font-size: 0.88rem;
+    font-size: 0.86rem;
     font-weight: 700;
     color: #334155;
+    letter-spacing: -0.1px;
+}
+
+.required-star {
+    color: var(--red);
+    margin-left: 2px;
 }
 
 .faq-form-field .department-form-input,
 .faq-form-field .department-form-textarea {
     width: 100%;
-    box-sizing: border-box;
 }
 
 .faq-form-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    margin-top: 4px;
+    margin-top: 6px;
 }
 
-.required-star {
-    color: #dc2626;
-}
-
+/* ── FAQ List ─────────────────────────────────────────── */
 .faq-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
 
 .faq-item {
     border-radius: 18px;
     border: 1px solid rgba(226, 232, 240, 0.9);
     background: #fff;
-    padding: 16px 18px;
+    padding: 16px 20px;
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.faq-item:hover {
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+    border-color: rgba(203, 213, 225, 0.9);
 }
 
 .faq-item-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 8px;
+    gap: 14px;
+    margin-bottom: 10px;
+}
+
+.faq-question-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+}
+
+.faq-icon {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--blue);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
 }
 
 .faq-question {
     font-weight: 700;
     font-size: 1rem;
     color: var(--text);
-    line-height: 1.4;
+    line-height: 1.45;
 }
 
 .faq-answer {
-    margin: 0;
-    font-size: 0.95rem;
+    margin: 0 0 0 36px;
+    font-size: 0.94rem;
     color: #475569;
-    line-height: 1.65;
+    line-height: 1.7;
 }
 
 .faq-delete-form {
     margin: 0;
     flex-shrink: 0;
+}
+
+/* ── Empty State ──────────────────────────────────────── */
+.faq-empty {
+    padding: 28px 20px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.93rem;
+    border: 1px dashed var(--border);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 640px) {
+    .faq-section .thread-section-head {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .faq-item {
+        padding: 14px 16px;
+    }
+
+    .faq-answer {
+        margin-left: 0;
+    }
 }

@@ -90,7 +90,16 @@ class Department(models.Model):
 
     def can_manage_staff(self, user):
         """Check if user may manage staff for this department."""
-        return user.is_staff and self.created_by == user
+        return user.is_superuser or (user.is_staff and self.created_by == user)
+
+    def can_manage_faqs(self, user):
+        """Check if user may add or delete FAQs for this department."""
+        from .user_departments import UserDepartments
+
+        return user.is_superuser or UserDepartments.objects.filter(
+            user=user,
+            department=self,
+        ).exists()
 
     def get_current_staff(self):
         """Return users currently assigned to this department."""
@@ -139,6 +148,7 @@ class Department(models.Model):
         context.update(self._ticket_context(request))
         context["faqs"] = self.faqs.select_related("created_by").all()
         context["faq_form"] = DepartmentFAQForm()
+        context["user_can_manage_faqs"] = self.can_manage_faqs(request.user)
         return context
 
     def _get_invited_users(self):

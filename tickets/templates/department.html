@@ -203,12 +203,12 @@
                 <h2 class="thread-section-title">Frequently Asked Questions</h2>
                 <p class="thread-section-copy">Common questions and answers for this department.</p>
             </div>
-            {% if department.created_by == user or user.is_superuser %}
+            {% if user_can_manage_faqs %}
             <button class="btn btn-primary btn-sm" id="faq-toggle-btn" type="button">+ Add FAQ</button>
             {% endif %}
         </div>
 
-        {% if department.created_by == user or user.is_superuser %}
+        {% if user_can_manage_faqs %}
         <div class="faq-form-card" id="faq-form-card" style="display:none;">
             <h3 class="staff-card-header">New FAQ</h3>
             <form method="POST">
@@ -234,8 +234,11 @@
             {% for faq in faqs %}
             <div class="faq-item">
                 <div class="faq-item-header">
-                    <span class="faq-question">{{ faq.question }}</span>
-                    {% if department.created_by == user or user.is_superuser %}
+                    <div class="faq-question-wrap">
+                        <span class="faq-icon">Q</span>
+                        <span class="faq-question">{{ faq.question }}</span>
+                    </div>
+                    {% if user_can_manage_faqs %}
                     <form method="POST" class="faq-delete-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="delete_faq">
@@ -249,7 +252,7 @@
                 <p class="faq-answer">{{ faq.answer }}</p>
             </div>
             {% empty %}
-            <div class="empty empty-state">No FAQs added yet.</div>
+            <div class="faq-empty">No FAQs added yet.</div>
             {% endfor %}
         </div>
     </div>
