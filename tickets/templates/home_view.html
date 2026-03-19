@@ -74,9 +74,7 @@
       <div>
         <span class="tickets-kicker">Workspace inbox</span>
         <h1 class="tickets-title">Tickets</h1>
-        <p class="tickets-subtitle">
-          Keep conversations moving, catch what needs attention, and jump back into the latest update fast.
-        </p>
+        <p class="tickets-subtitle">Keep conversations moving, catch what needs attention, and jump back into the latest update fast.</p>
       </div>
     </div>
   </div>
@@ -84,7 +82,7 @@
   <div class="ticket-shell">
     <div class="ticket-toolbar">
       <div class="ticket-toolbar-copy">
-        <h2 class="ticket-shell-title">Your queue</h2>
+        <h2 class="ticket-shell-title">Your ticket</h2>
         <p class="ticket-shell-subtitle">Open any ticket to preview the latest message before diving in.</p>
       </div>
 
@@ -103,7 +101,7 @@
             </label>
           </div>
         {% endif %}
-        <a href="{% url 'ticket_create' %}" class="tab-plus" aria-label="Create new ticket" title="Create new ticket">+</a>
+        <a href="{% url 'ticket_create' %}" class="tab-plus" aria-label="Create new ticket" title="Create new ticket"><span class="tab-plus-symbol">+</span></a>
       </div>
     </div>
 
@@ -118,18 +116,18 @@
       <input type="hidden" name="applied_assigned_staff" id="homeAppliedAssignedStaffInput" value="{{ applied_filters.assigned_staff }}">
       <input type="hidden" name="applied_created_from" id="homeAppliedCreatedFromInput" value="{{ applied_filters.created_from }}">
       <input type="hidden" name="applied_created_to" id="homeAppliedCreatedToInput" value="{{ applied_filters.created_to }}">
+      <div class="search-collapse-row">
+        <button type="button" class="search-collapse-toggle" id="searchCollapseToggle" aria-expanded="true" aria-controls="homeSearchFields" aria-label="Toggle search filters">
+          <span class="search-collapse-text">Filters</span>
+          <span class="search-collapse-icon" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div id="homeSearchFields">
       <div class="search-grid">
         <label class="search-field search-field-wide">
           <span class="search-label">Search</span>
-          <input
-            type="text"
-            name="q"
-            value="{{ filters.q }}"
-            class="search-input"
-            placeholder="Search title, message body, creator, or email"
-          >
+          <input type="text" name="q" value="{{ filters.q }}" class="search-input" placeholder="Search title, message body, creator, or email">
         </label>
-
         <label class="search-field">
           <span class="search-label">Status</span>
           <div class="search-select-shell">
@@ -141,7 +139,6 @@
             </select>
           </div>
         </label>
-
         <label class="search-field">
           <span class="search-label">Department</span>
           <div class="search-select-shell">
@@ -155,7 +152,6 @@
             </select>
           </div>
         </label>
-
         <label class="search-field">
           <span class="search-label">Assigned Staff</span>
           <div class="search-select-shell">
@@ -169,29 +165,24 @@
             </select>
           </div>
         </label>
-
         <label class="search-field">
           <span class="search-label">Created From</span>
           <div class="search-date-shell">
             <input type="date" name="created_from" value="{{ filters.created_from }}" class="search-input search-date-input">
           </div>
         </label>
-
         <label class="search-field">
           <span class="search-label">Created To</span>
           <div class="search-date-shell">
             <input type="date" name="created_to" value="{{ filters.created_to }}" class="search-input search-date-input">
           </div>
         </label>
-
       </div>
-
       <div class="search-actions home-search-actions">
         <button type="submit" class="search-submit-btn">Apply Filters</button>
         <a href="{% url 'home' %}" class="search-reset-link">Reset</a>
-        <span class="search-results-count" id="visibleTicketCount" data-count="{{ display_visible_ticket_count }}">
-          {{ display_visible_ticket_count }} visible tickets
-        </span>
+        <span class="search-results-count" id="visibleTicketCount" data-count="{{ display_visible_ticket_count }}">{{ display_visible_ticket_count }} visible tickets</span>
+      </div>
       </div>
     </form>
 
@@ -302,6 +293,8 @@
 <script>
   (function () {
     const searchForm = document.getElementById("homeSearchForm");
+    const searchFields = document.getElementById("homeSearchFields");
+    const searchCollapseToggle = document.getElementById("searchCollapseToggle");
     const buttons = document.querySelectorAll(".tab-btn");
     const tabInput = document.getElementById("homeTabInput");
     const departmentSelect = document.querySelector(".department-filter-select");
@@ -345,6 +338,21 @@
     const params = new URLSearchParams(window.location.search);
     const initial = params.get("tab") || "active";
     openTab(panels[initial] ? initial : "active");
+
+    function setSearchExpanded(expanded) {
+      if (!searchFields || !searchCollapseToggle || !searchForm) return;
+      searchFields.hidden = !expanded;
+      searchForm.classList.toggle("is-collapsed", !expanded);
+      searchCollapseToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    }
+
+    if (searchCollapseToggle) {
+      searchCollapseToggle.addEventListener("click", () => {
+        const expanded = searchCollapseToggle.getAttribute("aria-expanded") === "true";
+        setSearchExpanded(!expanded);
+      });
+      setSearchExpanded(true);
+    }
 
     function submitDependentRefresh() {
       if (!searchForm || !autoRefreshInput || !displayCountInput || !countLabel) return;
