@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="{% static 'css/department_view.css' %}">
 <link rel="stylesheet" href="{% static 'css/user_search_bar.css' %}">
 <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
+<link rel="stylesheet" href="{% static 'css/department_faq.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -191,5 +192,144 @@
         </div>
 
     </div>
+
+    <div class="thread-section faq-section">
+        <div class="thread-section-head">
+            <div>
+                <h2 class="thread-section-title">Frequently Asked Questions</h2>
+                <p class="thread-section-copy">Common questions and answers for this department.</p>
+            </div>
+            {% if user_can_manage_faqs %}
+            <button class="btn btn-primary btn-sm" id="faq-toggle-btn" type="button">+ Add FAQ</button>
+            {% endif %}
+        </div>
+
+        {% if user_can_manage_faqs %}
+        <div class="faq-form-card faq-hidden" id="faq-form-card">
+            <h3 class="staff-card-header">New FAQ</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_faq">
+                <div class="faq-form-field">
+                    <label class="faq-form-label">Question <span class="required-star">*</span></label>
+                    {{ faq_form.question }}
+                </div>
+                <div class="faq-form-field">
+                    <label class="faq-form-label">Answer <span class="required-star">*</span></label>
+                    {{ faq_form.answer }}
+                </div>
+                <div class="faq-form-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" id="faq-cancel-btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Save FAQ</button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="faq-list">
+            {% for faq in faqs %}
+            <div class="faq-item" id="faq-item-{{ faq.id }}">
+
+                {# --- View mode --- #}
+                <div class="faq-view" id="faq-view-{{ faq.id }}">
+                    <div class="faq-header">
+                        <button class="faq-trigger" type="button" aria-expanded="false">
+                            <span class="faq-icon">Q</span>
+                            <span class="faq-question">{{ faq.question }}</span>
+                            <i class="bi bi-chevron-down faq-chevron"></i>
+                        </button>
+                        {% if user_can_manage_faqs %}
+                        <div class="faq-actions">
+                            <button type="button" class="btn-icon-edit faq-edit-btn" title="Edit FAQ" data-faq-id="{{ faq.id }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <form method="POST" class="faq-delete-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete_faq">
+                                <input type="hidden" name="faq_id" value="{{ faq.id }}">
+                                <button type="submit" class="btn-icon-remove faq-delete-btn" title="Delete FAQ">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="faq-answer-wrap">
+                        <p class="faq-answer">{{ faq.answer }}</p>
+                    </div>
+                </div>
+
+                {# --- Edit mode --- #}
+                {% if user_can_manage_faqs %}
+                <div class="faq-edit-card faq-hidden" id="faq-edit-{{ faq.id }}">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="edit_faq">
+                        <input type="hidden" name="faq_id" value="{{ faq.id }}">
+                        <div class="faq-form-field">
+                            <label class="faq-form-label">Question <span class="required-star">*</span></label>
+                            <input type="text" name="question" value="{{ faq.question }}" class="department-form-input" required>
+                        </div>
+                        <div class="faq-form-field">
+                            <label class="faq-form-label">Answer <span class="required-star">*</span></label>
+                            <textarea name="answer" class="department-form-textarea" rows="4" required>{{ faq.answer }}</textarea>
+                        </div>
+                        <div class="faq-form-actions">
+                            <button type="button" class="btn btn-secondary btn-sm faq-edit-cancel-btn" data-faq-id="{{ faq.id }}">Cancel</button>
+                            <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+
+            </div>
+            {% empty %}
+            <div class="faq-empty">No FAQs added yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add FAQ form toggle
+    const toggleBtn = document.getElementById('faq-toggle-btn');
+    const cancelBtn = document.getElementById('faq-cancel-btn');
+    const formCard = document.getElementById('faq-form-card');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => { formCard.classList.remove('faq-hidden'); toggleBtn.classList.add('faq-hidden'); });
+    }
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => { formCard.classList.add('faq-hidden'); toggleBtn.classList.remove('faq-hidden'); });
+    }
+
+    // FAQ accordion
+    document.querySelectorAll('.faq-trigger').forEach(trigger => {
+        trigger.addEventListener('click', () => {
+            const item = trigger.closest('.faq-item');
+            const isOpen = item.classList.contains('faq-open');
+            item.classList.toggle('faq-open', !isOpen);
+            trigger.setAttribute('aria-expanded', String(!isOpen));
+        });
+    });
+
+    // FAQ inline edit
+    document.querySelectorAll('.faq-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.faqId;
+            document.getElementById(`faq-view-${id}`).classList.add('faq-hidden');
+            document.getElementById(`faq-edit-${id}`).classList.remove('faq-hidden');
+        });
+    });
+
+    document.querySelectorAll('.faq-edit-cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.faqId;
+            document.getElementById(`faq-edit-${id}`).classList.add('faq-hidden');
+            document.getElementById(`faq-view-${id}`).classList.remove('faq-hidden');
+        });
+    });
+</script>
 {% endblock %}
