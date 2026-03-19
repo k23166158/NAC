@@ -4,6 +4,7 @@
 {% block title %}{{ department.name }}{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/ticket_layout.css' %}">
 <link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
 <link rel="stylesheet" href="{% static 'css/department_view.css' %}">
 <link rel="stylesheet" href="{% static 'css/user_search_bar.css' %}">
@@ -11,39 +12,47 @@
 {% endblock %}
 
 {% block content %}
-<div class="tickets-wrap tickets-centered">
-    
-    <div class="back-link-container ">
+<div class="tickets-wrap tickets-centered dept-page">
+    <div class="back-link-container">
         <a href="{% url 'department_manage' %}" class="ticket-link">← Back to Manage Departments</a>
     </div>
 
-    <div class="tickets-header tickets-header-centered dept-header">
+    <div class="ticket-header-card dept-header-card">
         <div class="dept-header-inner">
-            <div>
+            <div class="dept-header-copy">
+                <span class="dept-kicker">Department overview</span>
                 <h1 class="tickets-title dept-title">{{ department.name }}</h1>
                 <p class="tickets-subtitle dept-subtitle">{{ department.description }}</p>
             </div>
-            
             {% if department.created_by == user or user.is_superuser %}
                 <div class="dept-actions">
-                    <a class="pill btn-action btn-secondary" href="{% url 'edit_department' department.slug %}">Edit</a>
-                    <a class="pill btn-action btn-danger" href="{% url 'delete_department' department.slug %}">Delete</a>
+                    <a class="btn btn-primary btn-sm" href="{% url 'edit_department' department.slug %}">Edit</a>
+                    <a class="btn btn-danger btn-sm" href="{% url 'delete_department' department.slug %}">Delete</a>
                 </div>
             {% endif %}
         </div>
+        <div class="dept-meta">
+            <span class="pill dept-meta-pill">Staff {{ staff_page.paginator.count }}</span>
+            <span class="pill dept-meta-pill">Active tickets {{ active_tickets_count }}</span>
+            <span class="pill dept-meta-pill">Closed tickets {{ closed_tickets_count }}</span>
+        </div>
     </div>
 
-    <div class="section-wrapper">
-        <h2 class="section-title">Staff Members</h2>
+    <div class="thread-section">
+        <div class="thread-section-head">
+            <div>
+                <h2 class="thread-section-title">Staff Members</h2>
+                <p class="thread-section-copy">Manage assigned and invited staff, and search for teammates to add.</p>
+            </div>
+        </div>
 
         <div class="staff-grid">
-            
             <div class="staff-card">
                 <h3 class="staff-card-header">Assigned & Invited</h3>
                 
                 <div class="staff-list">
                     {% for pill_user in staff_page %}
-                        <div class="pill staff-row {% if pill_user in invited_users %}staff-row-invited{% endif %}">
+                        <div class="staff-row {% if pill_user in invited_users %}staff-row-invited{% endif %}">
                             <div class="staff-info">
                                 {% if pill_user.profile_picture %}
                                     <img src="{{ pill_user.profile_picture.url }}" alt="{{ pill_user.first_name }}" class="avatar">
@@ -51,9 +60,15 @@
                                    {% include "partials/empty_avatar.html" with user=pill_user %}
                                 {% endif %}
                                 {% if pill_user in invited_users %}
-                                    <i class="staff-name">{{ pill_user.full_name }} (Invited)</i>
+                                    <div class="staff-copy">
+                                        <i class="staff-name">{{ pill_user.full_name }}</i>
+                                        <span class="staff-role staff-role-invited">Invited</span>
+                                    </div>
                                 {% else %}
-                                    <span class="staff-name">{{ pill_user.full_name }}</span>
+                                    <div class="staff-copy">
+                                        <span class="staff-name">{{ pill_user.full_name }}</span>
+                                        <span class="staff-role">Active member</span>
+                                    </div>
                                 {% endif %}
                             </div>
 
@@ -110,10 +125,10 @@
             {% include 'partials/staff_user_search_card.html' with header="Invite Staff" staff=available_staff %}
             {% endif %}
         </div>
+    </div>
 
     <div class="tickets-sections">
-        
-        <div>
+        <div class="thread-section">
             <h2 class="section-title">
                 Active Tickets
                 <span class="pill badge-count badge-blue">{{ active_tickets_count }}</span>
@@ -146,7 +161,7 @@
             </div>
         </div>
 
-        <div class="section-dimmed">
+        <div class="thread-section section-dimmed">
             <h2 class="section-title section-title-dimmed">
                 Closed Tickets
                 <span class="pill badge-count badge-gray">{{ closed_tickets_count }}</span>
