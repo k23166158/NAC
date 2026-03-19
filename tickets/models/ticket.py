@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db import models
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import Count, DateTimeField, F, OuterRef, Q, Subquery
+from django.db.models import Count, DateTimeField, Exists, F, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -193,7 +193,19 @@ class Ticket(models.Model):
         """Filter tickets by explicitly assigned staff participant."""
         if not staff_id:
             return queryset
-        return queryset.filter(participants__user_id=staff_id, participants__removed_self=False)
+        from .ticket_participant import TicketParticipant
+
+        try:
+            staff_id = int(staff_id)
+        except (TypeError, ValueError):
+            return queryset
+
+        assigned_staff_subquery = TicketParticipant.objects.filter(
+            ticket_id=OuterRef("pk"),
+            user_id=staff_id,
+            removed_self=False,
+        )
+        return queryset.filter(Exists(assigned_staff_subquery))
 
     @staticmethod
     def _filter_created_from(queryset, created_from):

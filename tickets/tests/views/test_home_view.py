@@ -125,6 +125,32 @@ class HomeViewTests(TestCase):
         self.assertIn(match, response.context["active_tickets"])
         self.assertNotIn(miss, response.context["active_tickets"])
 
+    def test_home_assigned_staff_filter_excludes_unassigned_tickets(self):
+        """Assigned-staff filter should only show tickets that include that staff user."""
+        dept = Department.objects.create(name="Support", created_by=self.s1)
+        UserDepartments.objects.create(user=self.s1, department=dept)
+
+        assigned_to_s1 = Ticket.objects.create(
+            title="Assigned to s1", created_by=self.u, status=Ticket.Status.OPEN
+        )
+        not_assigned_to_s1 = Ticket.objects.create(
+            title="Assigned to s2 only", created_by=self.u, status=Ticket.Status.OPEN
+        )
+
+        TicketAssigned.objects.create(ticket=assigned_to_s1, department=dept)
+        TicketAssigned.objects.create(ticket=not_assigned_to_s1, department=dept)
+        TicketParticipant.objects.create(ticket=assigned_to_s1, user=self.s1, removed_self=False)
+        TicketParticipant.objects.create(ticket=not_assigned_to_s1, user=self.s2, removed_self=False)
+
+        self.c.force_login(self.s1)
+        response = self.c.get(
+            self.url,
+            {"scope": "department", "assigned_staff": str(self.s1.id)},
+        )
+
+        self.assertIn(assigned_to_s1, response.context["active_tickets"])
+        self.assertNotIn(not_assigned_to_s1, response.context["active_tickets"])
+
     def test_home_staff_options_follow_selected_department(self):
         """Assigned-staff options should narrow to members of the selected department."""
         support = Department.objects.create(name="Support", created_by=self.s1)
