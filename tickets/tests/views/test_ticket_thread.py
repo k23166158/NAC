@@ -120,9 +120,13 @@ class TicketThreadViewTests(TestCase):
     def test_thread_close_and_edge_cases(self):
         """Test closing tickets and missing param behaviors."""
         self.client.force_login(self.u1)
-        self.client.post(self.url, data=self._csrf(action="close_ticket"))
+        self.client.post(
+            self.url,
+            data=self._csrf(action="close_ticket", resolution_summary="Solved by support"),
+        )
         self.t.refresh_from_db()
         self.assertEqual(self.t.status, Ticket.Status.CLOSED)
+        self.assertEqual(self.t.resolution_summary, "Solved by support")
         self.client.post(self.url, data=self._csrf(action="unknown", body=""))
         self.client.post(self.url, data=self._csrf(action="add", target_type="invalid", target_id="1"))
         self.client.post(self.url, data=self._csrf(action="add", user_id="999"))
@@ -132,6 +136,17 @@ class TicketThreadViewTests(TestCase):
         msg = TicketMessage.objects.create(ticket=self.t, sender=self.u1, body="Old")
         self.client.post(self.url, data=self._csrf(action="update", message_id=msg.id, body="   "))
         self.client.post(self.url, data=self._csrf(action="add", body="   "))
+
+    def test_thread_reopen_action_and_lifecycle_history(self):
+        """Reopening from the thread should reopen the ticket and render history."""
+        self.client.force_login(self.u1)
+        self.t.close_with_resolution(self.u1, "Complete")
+        response = self.client.post(self.url, data=self._csrf(action="reopen_ticket"), follow=True)
+        self.t.refresh_from_db()
+        self.assertEqual(self.t.status, Ticket.Status.OPEN)
+        self.assertEqual(self.t.reopened_by, self.u1)
+        self.assertContains(response, "This ticket was reopened.")
+        self.assertContains(response, "Ticket reopened by u1.")
 
     def test_thread_internal_helpers(self):
         """Direct test on view logic for coverage of edge branches."""

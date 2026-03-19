@@ -33,7 +33,24 @@
         <span class="pill">Created by <strong>{{ ticket.created_by.username }}</strong></span>
         <span class="pill">Created {{ ticket.created_at|date:"M d, Y H:i" }}</span>
         <span class="pill">Updated: {{ ticket.updated_at|date:"M d, Y H:i" }}</span>
+        {% if ticket.closed_by %}
+          <span class="pill">Closed by {{ ticket.closed_by.username }}</span>
+        {% endif %}
+        {% if ticket.closed_at %}
+          <span class="pill">Closed {{ ticket.closed_at|date:"M d, Y H:i" }}</span>
+        {% endif %}
+        {% if ticket.reopened_by %}
+          <span class="pill">Reopened by {{ ticket.reopened_by.username }}</span>
+        {% endif %}
+        {% if ticket.reopened_at %}
+          <span class="pill">Reopened {{ ticket.reopened_at|date:"M d, Y H:i" }}</span>
+        {% endif %}
       </div>
+      {% if ticket.status == 'closed' and ticket.resolution_summary %}
+        <div class="ticket-description">
+          <p class="message-body"><strong>Resolution summary:</strong> {{ ticket.resolution_summary }}</p>
+        </div>
+      {% endif %}
       {% if first_message %}
         <div class="ticket-description">
           <p class="message-body">{{ first_message.body }}</p>
@@ -141,6 +158,11 @@
     <div class="ticket-closed-notice">You have removed yourself from the ticket.</div>
   {% elif ticket.status == 'closed' %}
     <div class="ticket-closed-notice">This ticket is closed.</div>
+    {% if permission %}
+      <div class="ticket-actions">
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="reopen_ticket"><button type="submit" class="btn-close-ticket">Reopen Ticket</button></form>
+      </div>
+    {% endif %}
   {% else %}
     {% if permission %}
       <div class="reply-container">
@@ -167,9 +189,9 @@
           </form>
         </div>
       </div>
-      <div class="ticket-actions">
-        <form method="post" onsubmit="return confirm('Are you sure you want to close this ticket?');">{% csrf_token %}<input type="hidden" name="action" value="close_ticket"><button type="submit" class="btn-close-ticket">Close Ticket</button></form>
-      </div>
+      {% if ticket.reopened_at %}
+        <div class="ticket-closed-notice">This ticket was reopened.</div>
+      {% endif %}
       {% if user.is_staff %}
         <div class="section-wrapper">
         <h2 class="section-title">Staff Members</h2>
@@ -239,6 +261,21 @@
           </div>
         </div>
       {% endif %}
+      <div class="ticket-close-panel">
+        <form method="post" onsubmit="return confirm('Are you sure you want to close this ticket?');">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="close_ticket">
+          <textarea
+            name="resolution_summary"
+            rows="6"
+            class="reply-textarea resolution-summary-textarea"
+            placeholder="Optional resolution summary"
+          ></textarea>
+          <div class="ticket-actions">
+            <button type="submit" class="btn-close-ticket">Close Ticket</button>
+          </div>
+        </form>
+      </div>
     {% else %}
       <div class="ticket-closed-notice">You do not have permission to make changes to this ticket.</div>
     {% endif %}

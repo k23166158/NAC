@@ -130,7 +130,10 @@
             </a>
           {% endfor %}
         </div>
-        <div id="noDepartmentsMsg" class="empty empty-state empty-state-hidden">No departments match your search.</div>
+        <div id="noDepartmentsMsg" class="empty empty-state empty-state-hidden">
+          <i class="bi bi-folder2-open empty-state-icon" aria-hidden="true"></i>
+          <span>No departments match your search.</span>
+        </div>
 
         {% if is_paginated %}
           <div class="pagination">
@@ -155,11 +158,13 @@
           </div>
         {% endif %}
       {% else %}
-        <div class="empty empty-state">No departments found.</div>
+        <div class="empty empty-state">
+          <i class="bi bi-folder2-open empty-state-icon" aria-hidden="true"></i>
+          <span>No departments found.</span>
+        </div>
       {% endif %}
     </div>
   </div>
 
 
 {% endblock %}
-
