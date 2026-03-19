@@ -55,6 +55,15 @@ class CreateTicketForm(forms.Form):
             raise forms.ValidationError("Title cannot be empty.")
         return title
 
+    def clean_departments(self):
+        """Ensure no more than 3 departments are selected."""
+        departments = self.cleaned_data.get("departments")
+        if departments and departments.count() > 3:
+            raise forms.ValidationError(
+                "You can select at most 3 departments."
+            )
+        return departments
+
     def clean_body(self):
         """Normalise and validate initial message body."""
         body = self.cleaned_data.get("body", "").strip()
