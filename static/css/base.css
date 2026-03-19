@@ -35,8 +35,9 @@ body {
 header {
     background: #0b1220;
     color: #fff;
-    padding: .9rem 1rem;
+    padding: .72rem 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, .08);
+    box-shadow: 0 10px 30px rgba(11, 18, 32, .18);
 }
 
 .site-nav {
@@ -58,39 +59,53 @@ header nav ul {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
+    gap: 6px;
 }
 
 header nav ul li {
     display: inline;
-    margin-right: 18px;
+    margin-right: 0;
 }
 
 header nav ul li a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 999px;
     color: #fff;
     text-decoration: none;
-    opacity: .9;
+    opacity: .88;
     font-size: 14px;
+    transition: background .2s ease, color .2s ease, opacity .2s ease;
 }
 
 header nav ul li a:hover {
     opacity: 1;
-    text-decoration: underline;
+    text-decoration: none;
+    background: rgba(255, 255, 255, .08);
 }
 
 .logout-btn {
     background: none;
     border: none;
-    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 999px;
     color: #fff;
     cursor: pointer;
     font-size: 14px;
     font-family: inherit;
-    opacity: .9;
+    opacity: .88;
+    transition: background .2s ease, opacity .2s ease;
 }
 
 .logout-btn:hover {
     opacity: 1;
-    text-decoration: underline;
+    text-decoration: none;
+    background: rgba(255, 255, 255, .08);
 }
 
 .logout-form {
@@ -99,7 +114,8 @@ header nav ul li a:hover {
 
 .nav-link-notifications {
     position: relative;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
 }
 
 .nav-unread-badge {
@@ -123,8 +139,8 @@ header nav ul li a:hover {
 .nav-profile-link {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 8px 6px 12px;
+    gap: 8px;
+    padding: 4px 6px 4px 12px;
     border-radius: 999px;
     color: #fff;
     text-decoration: none;
@@ -144,7 +160,7 @@ header nav ul li a:hover {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     line-height: 1;
 }
 
@@ -158,15 +174,15 @@ header nav ul li a:hover {
 }
 
 .nav-profile-username {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: #fff;
     white-space: nowrap;
 }
 
 .nav-profile-avatar {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     overflow: hidden;
     background: rgba(255, 255, 255, .12);
@@ -192,7 +208,7 @@ header nav ul li a:hover {
     justify-content: center;
     background: linear-gradient(135deg, #dbeafe, #bfdbfe);
     color: var(--blue);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
     letter-spacing: .04em;
     text-transform: uppercase;
