@@ -362,6 +362,13 @@
       searchForm.requestSubmit();
     }
 
+    function submitAppliedRefresh() {
+      if (!searchForm || !autoRefreshInput || !displayCountInput) return;
+      autoRefreshInput.value = "";
+      displayCountInput.value = "";
+      searchForm.requestSubmit();
+    }
+
     if (searchForm) {
       searchForm.addEventListener("submit", () => {
         if (searchForm.dataset.preserveCount === "true") {
@@ -384,7 +391,7 @@
     }
 
     if (staffSelect) {
-      staffSelect.addEventListener("change", submitDependentRefresh);
+      staffSelect.addEventListener("change", submitAppliedRefresh);
     }
 
     buttons.forEach(btn =>

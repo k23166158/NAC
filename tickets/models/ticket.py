@@ -198,7 +198,7 @@ class Ticket(models.Model):
         try:
             staff_id = int(staff_id)
         except (TypeError, ValueError):
-            return queryset
+            return queryset.none()
 
         assigned_staff_subquery = TicketParticipant.objects.filter(
             ticket_id=OuterRef("pk"),
