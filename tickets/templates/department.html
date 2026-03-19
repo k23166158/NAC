@@ -54,11 +54,7 @@
                     {% for pill_user in staff_page %}
                         <div class="staff-row {% if pill_user in invited_users %}staff-row-invited{% endif %}">
                             <div class="staff-info">
-                                {% if pill_user.profile_picture %}
-                                    <img src="{{ pill_user.profile_picture.url }}" alt="{{ pill_user.first_name }}" class="avatar">
-                                {% else %}
-                                   {% include "partials/empty_avatar.html" with user=pill_user %}
-                                {% endif %}
+                                {% include "partials/user_avatar.html" with avatar_user=pill_user %}
                                 {% if pill_user in invited_users %}
                                     <div class="staff-copy">
                                         <i class="staff-name">{{ pill_user.full_name }}</i>

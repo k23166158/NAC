@@ -86,10 +86,13 @@
             <span class="system-timestamp">{{ message.created_at|date:"M d, Y H:i" }}</span>
           </div>
         {% else %}
-          <div class="ticket-card {% if message.sender == user and not message.hidden %}my-message{% endif %}" data-message-id="{{ message.id }}">
+            <div class="ticket-card {% if message.sender == user and not message.hidden %}my-message{% endif %}" data-message-id="{{ message.id }}">
             <div class="ticket-top">
               <div class="sender-block">
-                <strong class="sender-name">{{ message.sender.username }}</strong>
+                <div class="sender-meta">
+                  {% include "partials/user_avatar.html" with avatar_user=message.sender avatar_class="message-sender-avatar" avatar_placeholder_class="message-sender-avatar-placeholder" %}
+                  <strong class="sender-name">{{ message.sender.username }}</strong>
+                </div>
                 {% if message.sender == user %}
                   <span class="message-badge">You</span>
                 {% elif message.sender.is_staff %}
@@ -223,7 +226,7 @@
                   {% if staff_user != user or ticket.created_by != user %}
                     <div class="pill staff-row">
                       <div class="staff-info">
-                        {% if staff_user.profile_picture %}<img src="{{ staff_user.profile_picture.url }}" alt="{{ staff_user.first_name }}" class="avatar">{% else %}{% include "partials/empty_avatar.html" with user=staff_user %}{% endif %}
+                        {% include "partials/user_avatar.html" with avatar_user=staff_user %}
                         <span class="staff-name">{% if staff_user == user %}{{ staff_user.full_name }} [You]{% else %}{{ staff_user.full_name }}{% endif %}</span>
                       </div>
                       {% if staff|length > 1 %}
