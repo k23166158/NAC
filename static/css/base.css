@@ -33,10 +33,13 @@ body {
 }
 
 header {
-    background: #0b1220;
-    color: #fff;
-    padding: .9rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, .88), rgba(241, 245, 249, .82) 52%, rgba(219, 234, 254, .78)),
+        radial-gradient(circle at top right, rgba(191, 219, 254, .2), transparent 36%);
+    color: var(--text);
+    padding: .72rem 1rem;
+    border-bottom: 1px solid rgba(148, 163, 184, .2);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, .1);
 }
 
 .site-nav {
@@ -58,39 +61,53 @@ header nav ul {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
+    gap: 6px;
 }
 
 header nav ul li {
     display: inline;
-    margin-right: 18px;
+    margin-right: 0;
 }
 
 header nav ul li a {
-    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 999px;
+    color: rgba(15, 23, 42, .92);
     text-decoration: none;
-    opacity: .9;
+    opacity: .96;
     font-size: 14px;
+    transition: background .2s ease, color .2s ease, opacity .2s ease;
 }
 
 header nav ul li a:hover {
     opacity: 1;
-    text-decoration: underline;
+    text-decoration: none;
+    background: rgba(255, 255, 255, .52);
 }
 
 .logout-btn {
     background: none;
     border: none;
-    padding: 0;
-    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 999px;
+    color: rgba(15, 23, 42, .92);
     cursor: pointer;
     font-size: 14px;
     font-family: inherit;
-    opacity: .9;
+    opacity: .96;
+    transition: background .2s ease, opacity .2s ease;
 }
 
 .logout-btn:hover {
     opacity: 1;
-    text-decoration: underline;
+    text-decoration: none;
+    background: rgba(255, 255, 255, .52);
 }
 
 .logout-form {
@@ -99,7 +116,8 @@ header nav ul li a:hover {
 
 .nav-link-notifications {
     position: relative;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
 }
 
 .nav-unread-badge {
@@ -123,20 +141,20 @@ header nav ul li a:hover {
 .nav-profile-link {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 8px 6px 12px;
+    gap: 8px;
+    padding: 4px 6px 4px 12px;
     border-radius: 999px;
-    color: #fff;
+    color: var(--text);
     text-decoration: none;
-    background: rgba(255, 255, 255, .06);
-    border: 1px solid rgba(255, 255, 255, .12);
+    background: linear-gradient(135deg, rgba(255, 255, 255, .72), rgba(255, 255, 255, .42));
+    border: 1px solid rgba(255, 255, 255, .58);
     transition: background .2s ease, border-color .2s ease, transform .2s ease;
     flex-shrink: 0;
 }
 
 .nav-profile-link:hover {
-    background: rgba(255, 255, 255, .1);
-    border-color: rgba(255, 255, 255, .18);
+    background: linear-gradient(135deg, rgba(255, 255, 255, .86), rgba(255, 255, 255, .54));
+    border-color: rgba(255, 255, 255, .72);
     transform: translateY(-1px);
 }
 
@@ -144,33 +162,33 @@ header nav ul li a:hover {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     line-height: 1;
 }
 
 .nav-profile-label {
     font-size: 12px;
     font-weight: 700;
-    color: rgba(255, 255, 255, .74);
+    color: rgba(15, 23, 42, .62);
     text-transform: uppercase;
     letter-spacing: .06em;
     white-space: nowrap;
 }
 
 .nav-profile-username {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    color: #fff;
+    color: rgba(15, 23, 42, .96);
     white-space: nowrap;
 }
 
 .nav-profile-avatar {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     overflow: hidden;
-    background: rgba(255, 255, 255, .12);
-    border: 1px solid rgba(255, 255, 255, .16);
+    background: rgba(255, 255, 255, .88);
+    border: 1px solid rgba(255, 255, 255, .76);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -192,7 +210,7 @@ header nav ul li a:hover {
     justify-content: center;
     background: linear-gradient(135deg, #dbeafe, #bfdbfe);
     color: var(--blue);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
     letter-spacing: .04em;
     text-transform: uppercase;
