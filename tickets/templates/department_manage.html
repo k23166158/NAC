@@ -68,10 +68,11 @@
       <h2 class="section-title">Your Departments</h2>
       {% if departments %}
         <div class="department-search-wrapper">
-          <form method="GET" action="{% url 'department_manage' %}">
+          <form method="GET" action="{% url 'department_manage' %}" class="department-search-form" role="search">
+            <i class="bi bi-search department-search-leading-icon" aria-hidden="true"></i>
             <input type="text" name="q" value="{{ request.GET.q|default_if_none:"" }}" id="departmentSearchInput"
                    class="department-search-input" autocomplete="off" placeholder="Search departments...">
-            <button type="submit" class="bi bi-search department-search-icon"></button>
+            <button type="submit" class="department-search-submit">Search</button>
           </form>
         </div>
         <div class="department-list" id="departmentList">
