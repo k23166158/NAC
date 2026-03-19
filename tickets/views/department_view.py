@@ -21,8 +21,6 @@ class DepartmentView(LoginRequiredMixin, View):
     def post(self, request, department_slug):
         """Handle POST requests for staff and FAQ actions."""
         department = Department.get_by_slug_or_404(department_slug)
-        if not department.can_manage_staff(request.user):
-            return HttpResponseForbidden("You are not allowed to access this.")
         action = request.POST.get("action")
         if action in ("add_faq", "edit_faq", "delete_faq"):
             if not department.can_manage_faqs(request.user):
@@ -32,6 +30,8 @@ class DepartmentView(LoginRequiredMixin, View):
             if action == "edit_faq":
                 return self._handle_edit_faq(request, department)
             return self._handle_delete_faq(request, department)
+        if not department.can_manage_staff(request.user):
+            return HttpResponseForbidden("You are not allowed to access this.")
         self._process_staff_action(request, department)
         return redirect("department", department_slug=department_slug)
 
