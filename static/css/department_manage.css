@@ -1,37 +1,85 @@
 .dept-header-inner { align-items: baseline; }
 
 .department-search-wrapper {
-  position: relative;
   margin-top: 16px;
   margin-bottom: 20px;
-  max-width: 500px;
+  max-width: 620px;
+}
+
+.department-search-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid #d0d7de;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.department-search-form:focus-within {
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.12), 0 8px 20px rgba(9, 105, 218, 0.1);
+}
+
+.department-search-leading-icon {
+  color: #6b7280;
+  font-size: 18px;
+  margin-left: 6px;
 }
 
 .department-search-input {
-  width: 100%;
-  padding: 12px 16px 12px 44px;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  font-size: 14px;
-  background: #fff;
-  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 10px 6px;
+  font-size: 15px;
+  background: transparent;
   font-family: inherit;
 }
 
 .department-search-input:focus {
   outline: none;
-  border-color: #0969da;
-  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
 }
 
-.department-search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #9ca3af;
-  font-size: 18px;
-  pointer-events: none;
+.department-search-submit {
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0969da 0%, #0860ca 100%);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 10px 16px;
+  line-height: 1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.department-search-submit:hover {
+  filter: brightness(1.02);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(9, 105, 218, 0.28);
+}
+
+.department-search-submit:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .department-search-form {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .department-search-leading-icon {
+    margin-left: 0;
+  }
+
+  .department-search-submit {
+    padding: 9px 12px;
+    font-size: 0.85rem;
+  }
 }
 
 .department-list {
