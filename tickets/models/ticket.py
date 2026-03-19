@@ -194,12 +194,10 @@ class Ticket(models.Model):
         if not staff_id:
             return queryset
         from .ticket_participant import TicketParticipant
-
         try:
             staff_id = int(staff_id)
         except (TypeError, ValueError):
             return queryset.none()
-
         assigned_staff_subquery = TicketParticipant.objects.filter(
             ticket_id=OuterRef("pk"),
             user_id=staff_id,
@@ -242,6 +240,10 @@ class Ticket(models.Model):
             | Q(ticket_departments__ticket__in=queryset)
         )
         if staff_id:
+            try:
+                staff_id = int(staff_id)
+            except (TypeError, ValueError):
+                return options.none()
             options = options.filter(assigned_users__user_id=staff_id)
         return options.distinct().order_by("name")
 
@@ -254,6 +256,10 @@ class Ticket(models.Model):
             ticket_participations__removed_self=False,
         )
         if department_id:
+            try:
+                department_id = int(department_id)
+            except (TypeError, ValueError):
+                return options.none()
             options = options.filter(user__department_id=department_id)
         return options.distinct().order_by("last_name", "first_name", "username")
 
