@@ -61,10 +61,18 @@
     background: rgba(37, 99, 235, 0.06);
 }
 
-.avatar-small {
+.avatar-small,
+.avatar-small-placeholder {
     width: 24px;
     height: 24px;
     border-radius: 50%;
+}
+
+.avatar-small {
+    object-fit: cover;
+}
+
+.avatar-small-placeholder {
     background: rgba(37, 99, 235, 0.1);
     display: flex;
     align-items: center;

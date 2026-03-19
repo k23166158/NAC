@@ -8,39 +8,45 @@
 {% endblock %}
 
 {% block content %}
-
-<div class="login-wrapper">
-    <div class="login-card">
-
-        <a href="{% url 'home' %}">
-        <img src="{% static 'images/logo.png' %}" alt="Logo" class="login-logo">
+<div class="login-wrapper signup-page">
+    <div class="login-card signup-page-card">
+        <a href="{% url 'home' %}" class="signup-logo-link">
+            <img src="{% static 'images/logo.png' %}" alt="Logo" class="login-logo">
         </a>
 
-        <h1 class="login-title">
+        <div class="signup-kicker">Welcome back</div>
+        <h1 class="login-title signup-page-title">
             <a href="{% url 'home' %}" class="login-home-link">Student Support System</a>
         </h1>
-
-
-        <div class="login-subtitle">Log in to continue</div>
+        <div class="login-subtitle signup-page-subtitle">Log in to continue</div>
 
         {% if form.errors %}
-            <div class="login-error-msg">
+            <div class="login-error-msg profile-edit-simple-error">
                 Invalid username or password.
             </div>
         {% endif %}
 
-        <form method="post">
+        <form method="post" class="signup-form">
             {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Log in</button>
+
+            <p>
+                {{ form.username.label_tag }}
+                {{ form.username }}
+                {{ form.username.errors }}
+            </p>
+
+            <p>
+                {{ form.password.label_tag }}
+                {{ form.password }}
+                {{ form.password.errors }}
+            </p>
+
+            <button type="submit" class="signup-submit">Log in</button>
         </form>
 
-        <div class="small-link">
-            Don't have an account? <a href="/signup/">Sign up</a>
+        <div class="small-link signup-footer-link">
+            Don't have an account? <a href="{% url 'signup' %}">Sign up</a>
         </div>
-
-
     </div>
 </div>
-
 {% endblock %}

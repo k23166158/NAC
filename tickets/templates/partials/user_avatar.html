@@ -1,0 +1,13 @@
+{% with initials=avatar_user.first_name|first|add:avatar_user.last_name|first %}
+  {% if avatar_user.profile_picture %}
+    <img
+      src="{{ avatar_user.profile_picture.url }}"
+      alt="{{ avatar_user.get_full_name|default:avatar_user.username }}"
+      class="{{ avatar_class|default:'avatar' }}"
+    >
+  {% else %}
+    <div class="{{ avatar_placeholder_class|default:'avatar-placeholder' }}">
+      {{ initials|default:avatar_user.username|slice:":2"|upper }}
+    </div>
+  {% endif %}
+{% endwith %}

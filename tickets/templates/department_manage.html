@@ -68,10 +68,11 @@
       <h2 class="section-title">Your Departments</h2>
       {% if departments %}
         <div class="department-search-wrapper">
-          <form method="GET" action="{% url 'department_manage' %}">
+          <form method="GET" action="{% url 'department_manage' %}" class="department-search-form" role="search">
+            <i class="bi bi-search department-search-leading-icon" aria-hidden="true"></i>
             <input type="text" name="q" value="{{ request.GET.q|default_if_none:"" }}" id="departmentSearchInput"
                    class="department-search-input" autocomplete="off" placeholder="Search departments...">
-            <button type="submit" class="bi bi-search department-search-icon"></button>
+            <button type="submit" class="department-search-submit">Search</button>
           </form>
         </div>
         <div class="department-list" id="departmentList">
@@ -103,11 +104,7 @@
                       {% for assignment in staff_list|slice:":3" %}
                         <div class="facepile-avatar"
                              title="{{ assignment.user.get_full_name|default:assignment.user.username }}">
-                          {% if assignment.user.profile_picture %}
-                            <img src="{{ assignment.user.profile_picture.url }}" alt="" class="avatar">
-                          {% else %}
-                            {% include "partials/empty_avatar.html" with user=assignment.user %}
-                          {% endif %}
+                          {% include "partials/user_avatar.html" with avatar_user=assignment.user %}
                         </div>
                       {% endfor %}
                       {% if staff_list|length > 3 %}
