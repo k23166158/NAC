@@ -7,6 +7,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/admin.css' %}">
 <link rel="stylesheet" href="{% static 'css/tickets_home.css' %}">
+<link rel="stylesheet" href="{% static 'css/home_ticket_search.css' %}">
 <link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
 <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
 {% endblock %}
@@ -73,9 +74,7 @@
       <div>
         <span class="tickets-kicker">Workspace inbox</span>
         <h1 class="tickets-title">Tickets</h1>
-        <p class="tickets-subtitle">
-          Keep conversations moving, catch what needs attention, and jump back into the latest update fast.
-        </p>
+        <p class="tickets-subtitle">Keep conversations moving, catch what needs attention, and jump back into the latest update fast.</p>
       </div>
     </div>
   </div>
@@ -83,7 +82,7 @@
   <div class="ticket-shell">
     <div class="ticket-toolbar">
       <div class="ticket-toolbar-copy">
-        <h2 class="ticket-shell-title">Your queue</h2>
+        <h2 class="ticket-shell-title">Your ticket</h2>
         <p class="ticket-shell-subtitle">Open any ticket to preview the latest message before diving in.</p>
       </div>
 
@@ -93,17 +92,99 @@
             <label class="scope-label">
               <span class="scope-text">View</span>
               <select id="scopeSelect" class="scope-select">
-                <option value="personal" {% if scope == "personal" %}selected{% endif %}>Personal tickets</option>
-                <option value="department" {% if scope == "department" %}selected{% endif %}>Department tickets</option>
-                <option value="assigned" {% if scope == "assigned" %}selected{% endif %}>Assigned tickets</option>
+                {% for scope_option in scope_options %}
+                  <option value="{{ scope_option }}" {% if scope == scope_option %}selected{% endif %}>
+                    {{ scope_option|title }} tickets
+                  </option>
+                {% endfor %}
               </select>
             </label>
           </div>
         {% endif %}
-
-        <a href="{% url 'ticket_create' %}" class="tab-plus" aria-label="Create new ticket" title="Create new ticket">+</a>
+        <a href="{% url 'ticket_create' %}" class="tab-plus" aria-label="Create new ticket" title="Create new ticket"><span class="tab-plus-symbol">+</span></a>
       </div>
     </div>
+
+    <form method="get" class="search-form-card home-search-card" id="homeSearchForm">
+      <input type="hidden" name="tab" id="homeTabInput" value="{{ request.GET.tab|default:'active' }}">
+      <input type="hidden" name="scope" value="{{ scope }}">
+      <input type="hidden" name="auto_refresh" id="homeAutoRefreshInput" value="">
+      <input type="hidden" name="display_count" id="homeDisplayCountInput" value="">
+      <input type="hidden" name="applied_q" id="homeAppliedQInput" value="{{ applied_filters.q }}">
+      <input type="hidden" name="applied_status" id="homeAppliedStatusInput" value="{{ applied_filters.status }}">
+      <input type="hidden" name="applied_department" id="homeAppliedDepartmentInput" value="{{ applied_filters.department }}">
+      <input type="hidden" name="applied_assigned_staff" id="homeAppliedAssignedStaffInput" value="{{ applied_filters.assigned_staff }}">
+      <input type="hidden" name="applied_created_from" id="homeAppliedCreatedFromInput" value="{{ applied_filters.created_from }}">
+      <input type="hidden" name="applied_created_to" id="homeAppliedCreatedToInput" value="{{ applied_filters.created_to }}">
+      <div class="search-collapse-row">
+        <button type="button" class="search-collapse-toggle" id="searchCollapseToggle" aria-expanded="true" aria-controls="homeSearchFields" aria-label="Toggle search filters">
+          <span class="search-collapse-text">Filters</span>
+          <span class="search-collapse-icon" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div id="homeSearchFields">
+      <div class="search-grid">
+        <label class="search-field search-field-wide">
+          <span class="search-label">Search</span>
+          <input type="text" name="q" value="{{ filters.q }}" class="search-input" placeholder="Search title, message body, creator, or email">
+        </label>
+        <label class="search-field">
+          <span class="search-label">Status</span>
+          <div class="search-select-shell">
+            <select name="status" class="search-select">
+              <option value="">All</option>
+              <option value="open" {% if filters.status == "open" %}selected{% endif %}>Open</option>
+              <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>Pending</option>
+              <option value="closed" {% if filters.status == "closed" %}selected{% endif %}>Closed</option>
+            </select>
+          </div>
+        </label>
+        <label class="search-field">
+          <span class="search-label">Department</span>
+          <div class="search-select-shell">
+            <select name="department" class="search-select department-filter-select">
+              <option value="">All</option>
+              {% for department in departments %}
+                <option value="{{ department.id }}" {% if filters.department == department.id|stringformat:"s" %}selected{% endif %}>
+                  {{ department.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </label>
+        <label class="search-field">
+          <span class="search-label">Assigned Staff</span>
+          <div class="search-select-shell">
+            <select name="assigned_staff" class="search-select assigned-staff-filter-select">
+              <option value="">All</option>
+              {% for staff_user in staff_users %}
+                <option value="{{ staff_user.id }}" {% if filters.assigned_staff == staff_user.id|stringformat:"s" %}selected{% endif %}>
+                  {{ staff_user.get_full_name|default:staff_user.username }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </label>
+        <label class="search-field">
+          <span class="search-label">Created From</span>
+          <div class="search-date-shell">
+            <input type="date" name="created_from" value="{{ filters.created_from }}" class="search-input search-date-input">
+          </div>
+        </label>
+        <label class="search-field">
+          <span class="search-label">Created To</span>
+          <div class="search-date-shell">
+            <input type="date" name="created_to" value="{{ filters.created_to }}" class="search-input search-date-input">
+          </div>
+        </label>
+      </div>
+      <div class="search-actions home-search-actions">
+        <button type="submit" class="search-submit-btn">Apply Filters</button>
+        <a href="{% url 'home' %}" class="search-reset-link">Reset</a>
+        <span class="search-results-count" id="visibleTicketCount" data-count="{{ display_visible_ticket_count }}">{{ display_visible_ticket_count }} visible tickets</span>
+      </div>
+      </div>
+    </form>
 
     <div class="tabs tabs-centered" role="tablist" aria-label="Ticket tabs">
       <button class="tab-btn is-active" type="button" role="tab" aria-selected="true"
@@ -127,8 +208,8 @@
         <div class="pagination">
           <span class="step-links">
             {% if active_tickets_page.has_previous %}
-              <a href="?active_page={{ active_tickets_page.previous_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">&laquo; first</a>
-              <a href="?active_page={{ active_tickets_page.previous_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">previous</a>
+              <a href="?active_page=1{{ active_pagination_query }}" class="pagination-link">&laquo; first</a>
+              <a href="?active_page={{ active_tickets_page.previous_page_number }}{{ active_pagination_query }}" class="pagination-link">previous</a>
             {% endif %}
 
             <span class="current">
@@ -136,8 +217,8 @@
             </span>
 
             {% if active_tickets_page.has_next %}
-              <a href="?active_page={{ active_tickets_page.next_page_number }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">next</a>
-              <a href="?active_page={{ active_tickets_page.paginator.num_pages }}&tab=active{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.completed_page %}&completed_page={{ request.GET.completed_page }}{% endif %}" class="pagination-link">last &raquo;</a>
+              <a href="?active_page={{ active_tickets_page.next_page_number }}{{ active_pagination_query }}" class="pagination-link">next</a>
+              <a href="?active_page={{ active_tickets_page.paginator.num_pages }}{{ active_pagination_query }}" class="pagination-link">last &raquo;</a>
             {% endif %}
           </span>
         </div>
@@ -163,8 +244,8 @@
         <div class="pagination">
           <span class="step-links">
             {% if completed_tickets_page.has_previous %}
-              <a href="?completed_page={{ completed_tickets_page.previous_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">&laquo; first</a>
-              <a href="?completed_page={{ completed_tickets_page.previous_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">previous</a>
+              <a href="?completed_page=1{{ completed_pagination_query }}" class="pagination-link">&laquo; first</a>
+              <a href="?completed_page={{ completed_tickets_page.previous_page_number }}{{ completed_pagination_query }}" class="pagination-link">previous</a>
             {% endif %}
 
             <span class="current">
@@ -172,8 +253,8 @@
             </span>
 
             {% if completed_tickets_page.has_next %}
-              <a href="?completed_page={{ completed_tickets_page.next_page_number }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">next</a>
-              <a href="?completed_page={{ completed_tickets_page.paginator.num_pages }}&tab=completed{% if scope %}&scope={{ scope }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">last &raquo;</a>
+              <a href="?completed_page={{ completed_tickets_page.next_page_number }}{{ completed_pagination_query }}" class="pagination-link">next</a>
+              <a href="?completed_page={{ completed_tickets_page.paginator.num_pages }}{{ completed_pagination_query }}" class="pagination-link">last &raquo;</a>
             {% endif %}
           </span>
         </div>
@@ -185,7 +266,6 @@
   </div>
 </div>
 
-{# Only staff/superusers need the scope-changing JS #}
 {% if user.is_staff or user.is_superuser %}
 <script>
   (function () {
@@ -194,15 +274,16 @@
 
     scopeSelect.addEventListener("change", () => {
       const params = new URLSearchParams(window.location.search);
-
-      const currentTab = params.get("tab") || "active";
-      params.set("tab", currentTab);
-
       params.set("scope", scopeSelect.value);
-
-      const open = params.get("open");
-      if (open) params.set("open", open);
-
+      params.set("tab", params.get("tab") || "active");
+      params.delete("auto_refresh");
+      params.delete("display_count");
+      params.delete("applied_q");
+      params.delete("applied_status");
+      params.delete("applied_department");
+      params.delete("applied_assigned_staff");
+      params.delete("applied_created_from");
+      params.delete("applied_created_to");
       window.location.search = params.toString();
     });
   })();
@@ -211,7 +292,26 @@
 
 <script>
   (function () {
+    const searchForm = document.getElementById("homeSearchForm");
+    const searchFields = document.getElementById("homeSearchFields");
+    const searchCollapseToggle = document.getElementById("searchCollapseToggle");
     const buttons = document.querySelectorAll(".tab-btn");
+    const tabInput = document.getElementById("homeTabInput");
+    const departmentSelect = document.querySelector(".department-filter-select");
+    const staffSelect = document.querySelector(".assigned-staff-filter-select");
+    const queryInput = searchForm ? searchForm.querySelector('input[name="q"]') : null;
+    const statusSelect = searchForm ? searchForm.querySelector('select[name="status"]') : null;
+    const createdFromInput = searchForm ? searchForm.querySelector('input[name="created_from"]') : null;
+    const createdToInput = searchForm ? searchForm.querySelector('input[name="created_to"]') : null;
+    const autoRefreshInput = document.getElementById("homeAutoRefreshInput");
+    const displayCountInput = document.getElementById("homeDisplayCountInput");
+    const countLabel = document.getElementById("visibleTicketCount");
+    const appliedQInput = document.getElementById("homeAppliedQInput");
+    const appliedStatusInput = document.getElementById("homeAppliedStatusInput");
+    const appliedDepartmentInput = document.getElementById("homeAppliedDepartmentInput");
+    const appliedAssignedStaffInput = document.getElementById("homeAppliedAssignedStaffInput");
+    const appliedCreatedFromInput = document.getElementById("homeAppliedCreatedFromInput");
+    const appliedCreatedToInput = document.getElementById("homeAppliedCreatedToInput");
     const panels = {
       active: document.getElementById("panel-active"),
       completed: document.getElementById("panel-completed"),
@@ -223,6 +323,7 @@
         btn.classList.toggle("is-active", isSelected);
         btn.setAttribute("aria-selected", isSelected ? "true" : "false");
       });
+      if (tabInput) tabInput.value = name;
 
       Object.entries(panels).forEach(([key, el]) => {
         if (key === name) el.removeAttribute("hidden");
@@ -237,6 +338,54 @@
     const params = new URLSearchParams(window.location.search);
     const initial = params.get("tab") || "active";
     openTab(panels[initial] ? initial : "active");
+
+    function setSearchExpanded(expanded) {
+      if (!searchFields || !searchCollapseToggle || !searchForm) return;
+      searchFields.hidden = !expanded;
+      searchForm.classList.toggle("is-collapsed", !expanded);
+      searchCollapseToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    }
+
+    if (searchCollapseToggle) {
+      searchCollapseToggle.addEventListener("click", () => {
+        const expanded = searchCollapseToggle.getAttribute("aria-expanded") === "true";
+        setSearchExpanded(!expanded);
+      });
+      setSearchExpanded(true);
+    }
+
+    function submitDependentRefresh() {
+      if (!searchForm || !autoRefreshInput || !displayCountInput || !countLabel) return;
+      searchForm.dataset.preserveCount = "true";
+      autoRefreshInput.value = "dependent";
+      displayCountInput.value = countLabel.dataset.count || "";
+      searchForm.requestSubmit();
+    }
+
+    if (searchForm) {
+      searchForm.addEventListener("submit", () => {
+        if (searchForm.dataset.preserveCount === "true") {
+          searchForm.dataset.preserveCount = "";
+          return;
+        }
+        if (autoRefreshInput) autoRefreshInput.value = "";
+        if (displayCountInput) displayCountInput.value = "";
+        if (appliedQInput && queryInput) appliedQInput.value = queryInput.value;
+        if (appliedStatusInput && statusSelect) appliedStatusInput.value = statusSelect.value;
+        if (appliedDepartmentInput && departmentSelect) appliedDepartmentInput.value = departmentSelect.value;
+        if (appliedAssignedStaffInput && staffSelect) appliedAssignedStaffInput.value = staffSelect.value;
+        if (appliedCreatedFromInput && createdFromInput) appliedCreatedFromInput.value = createdFromInput.value;
+        if (appliedCreatedToInput && createdToInput) appliedCreatedToInput.value = createdToInput.value;
+      });
+    }
+
+    if (departmentSelect) {
+      departmentSelect.addEventListener("change", submitDependentRefresh);
+    }
+
+    if (staffSelect) {
+      staffSelect.addEventListener("change", submitDependentRefresh);
+    }
 
     buttons.forEach(btn =>
       btn.addEventListener("click", () => openTab(btn.dataset.tab))

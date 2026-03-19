@@ -77,4 +77,4 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
     @staticmethod
     def _back_to_label(back_to_url):
         """Return the back-link label for the current origin."""
-        return "Back to search tickets" if back_to_url.startswith(reverse("ticket_search")) else "Back to tickets"
+        return "Back to tickets"

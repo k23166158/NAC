@@ -51,7 +51,7 @@
       <label class="search-field">
         <span class="search-label">Department</span>
         <div class="search-select-shell">
-          <select name="department" class="search-select">
+          <select name="department" class="search-select department-filter-select">
             <option value="">All</option>
             {% for department in departments %}
               <option value="{{ department.id }}" {% if filters.department == department.id|stringformat:"s" %}selected{% endif %}>
@@ -65,7 +65,7 @@
       <label class="search-field">
         <span class="search-label">Assigned Staff</span>
         <div class="search-select-shell">
-          <select name="assigned_staff" class="search-select">
+          <select name="assigned_staff" class="search-select assigned-staff-filter-select">
             <option value="">All</option>
             {% for staff_user in staff_users %}
               <option value="{{ staff_user.id }}" {% if filters.assigned_staff == staff_user.id|stringformat:"s" %}selected{% endif %}>
@@ -143,4 +143,21 @@
     </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    const form = document.getElementById("ticketSearchForm");
+    const departmentSelect = document.querySelector(".department-filter-select");
+    const staffSelect = document.querySelector(".assigned-staff-filter-select");
+    if (!form) return;
+    if (departmentSelect) {
+      departmentSelect.addEventListener("change", () => form.requestSubmit());
+    }
+    if (staffSelect) {
+      staffSelect.addEventListener("change", () => form.requestSubmit());
+    }
+  })();
+</script>
 {% endblock %}

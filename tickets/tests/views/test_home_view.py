@@ -96,6 +96,132 @@ class HomeViewTests(TestCase):
         unread = view._annotate_unread_count(annotated, self.u)
         self.assertEqual(unread.first().unread_count, 1)
 
+    def test_home_includes_integrated_search_filters(self):
+        """Home should expose the integrated ticket search controls and filter state."""
+        self.c.force_login(self.s1)
+        response = self.c.get(self.url, {"q": "exam", "tab": "completed"})
+
+        self.assertContains(response, "Search title, message body, creator, or email")
+        self.assertContains(response, 'id="scopeSelect"')
+        self.assertContains(response, "Your ticket")
+        self.assertContains(response, 'id="searchCollapseToggle"')
+        self.assertEqual(response.context["filters"]["q"], "exam")
+        self.assertEqual(response.context["scope_options"], ["personal", "department", "assigned"])
+
+    def test_home_filters_narrow_ticket_lists(self):
+        """Home ticket lists should respect the integrated search filters."""
+        dept = Department.objects.create(name="Support", created_by=self.s1)
+        UserDepartments.objects.create(user=self.s1, department=dept)
+        match = Ticket.objects.create(title="Exam issue", created_by=self.u, status=Ticket.Status.OPEN)
+        miss = Ticket.objects.create(title="Library issue", created_by=self.u, status=Ticket.Status.OPEN)
+        TicketAssigned.objects.create(ticket=match, department=dept)
+        TicketAssigned.objects.create(ticket=miss, department=dept)
+        TicketMessage.objects.create(ticket=match, sender=self.u, body="Exam body")
+        TicketMessage.objects.create(ticket=miss, sender=self.u, body="Library body")
+
+        self.c.force_login(self.s1)
+        response = self.c.get(self.url, {"scope": "department", "q": "Exam", "status": "open"})
+
+        self.assertIn(match, response.context["active_tickets"])
+        self.assertNotIn(miss, response.context["active_tickets"])
+
+    def test_home_staff_options_follow_selected_department(self):
+        """Assigned-staff options should narrow to members of the selected department."""
+        support = Department.objects.create(name="Support", created_by=self.s1)
+        registry = Department.objects.create(name="Registry", created_by=self.s1)
+        UserDepartments.objects.create(user=self.s1, department=support)
+        UserDepartments.objects.create(user=self.s2, department=registry)
+        ticket = Ticket.objects.create(title="Scoped", created_by=self.u, status=Ticket.Status.OPEN)
+        TicketAssigned.objects.create(ticket=ticket, department=support)
+        TicketParticipant.objects.create(ticket=ticket, user=self.s1)
+        TicketParticipant.objects.create(ticket=ticket, user=self.s2)
+
+        self.c.force_login(self.s1)
+        response = self.c.get(self.url, {"scope": "department", "department": str(support.id)})
+
+        self.assertIn(self.s1, list(response.context["staff_users"]))
+        self.assertNotIn(self.s2, list(response.context["staff_users"]))
+
+    def test_home_department_options_follow_selected_staff(self):
+        """Department options should narrow to departments for the selected staff user."""
+        support = Department.objects.create(name="Support", created_by=self.s1)
+        registry = Department.objects.create(name="Registry", created_by=self.s1)
+        UserDepartments.objects.create(user=self.s1, department=support)
+        UserDepartments.objects.create(user=self.s2, department=registry)
+        ticket = Ticket.objects.create(title="Scoped", created_by=self.u, status=Ticket.Status.OPEN)
+        TicketAssigned.objects.create(ticket=ticket, department=support)
+        TicketAssigned.objects.create(ticket=ticket, department=registry)
+        TicketParticipant.objects.create(ticket=ticket, user=self.s1)
+        TicketParticipant.objects.create(ticket=ticket, user=self.s2)
+
+        self.c.force_login(self.s1)
+        response = self.c.get(self.url, {"scope": "department", "assigned_staff": str(self.s1.id)})
+
+        self.assertIn(support, list(response.context["departments"]))
+        self.assertNotIn(registry, list(response.context["departments"]))
+
+    def test_home_preserves_display_count_for_dependent_refresh(self):
+        """Dependent filter refreshes should keep the visible-count label until apply."""
+        support = Department.objects.create(name="Support", created_by=self.s1)
+        registry = Department.objects.create(name="Registry", created_by=self.s1)
+        UserDepartments.objects.create(user=self.s1, department=support)
+        UserDepartments.objects.create(user=self.s1, department=registry)
+        match = Ticket.objects.create(title="Support only", created_by=self.u, status=Ticket.Status.OPEN)
+        miss = Ticket.objects.create(title="Registry only", created_by=self.u, status=Ticket.Status.OPEN)
+        TicketAssigned.objects.create(ticket=match, department=support)
+        TicketAssigned.objects.create(ticket=miss, department=registry)
+
+        self.c.force_login(self.s1)
+        response = self.c.get(
+            self.url,
+            {
+                "scope": "department",
+                "department": str(support.id),
+                "auto_refresh": "dependent",
+                "display_count": "2",
+            },
+        )
+
+        self.assertEqual(response.context["visible_ticket_count"], 1)
+        self.assertEqual(response.context["display_visible_ticket_count"], 2)
+
+    def _dependent_refresh_request(self, department_id):
+        """Return a dependent-refresh home response for the selected department."""
+        return self.c.get(
+            self.url,
+            {
+                "scope": "department",
+                "department": str(department_id),
+                "auto_refresh": "dependent",
+                "display_count": "2",
+                "applied_q": "",
+                "applied_status": "",
+                "applied_department": "",
+                "applied_assigned_staff": "",
+                "applied_created_from": "",
+                "applied_created_to": "",
+            },
+        )
+
+    def test_home_preserves_ticket_lists_for_dependent_refresh(self):
+        """Dependent refreshes should not change active/completed lists until apply."""
+        support = Department.objects.create(name="Support", created_by=self.s1)
+        registry = Department.objects.create(name="Registry", created_by=self.s1)
+        UserDepartments.objects.create(user=self.s1, department=support)
+        UserDepartments.objects.create(user=self.s1, department=registry)
+        support_ticket = Ticket.objects.create(title="Support", created_by=self.u, status=Ticket.Status.OPEN)
+        registry_ticket = Ticket.objects.create(title="Registry", created_by=self.u, status=Ticket.Status.OPEN)
+        TicketAssigned.objects.create(ticket=support_ticket, department=support)
+        TicketAssigned.objects.create(ticket=registry_ticket, department=registry)
+
+        self.c.force_login(self.s1)
+        response = self._dependent_refresh_request(support.id)
+
+        self.assertEqual(response.context["filters"]["department"], str(support.id))
+        self.assertEqual(response.context["applied_filters"]["department"], "")
+        self.assertIn(support_ticket, response.context["active_tickets"])
+        self.assertIn(registry_ticket, response.context["active_tickets"])
+
     def test_removed_user_does_not_see_ticket_in_any_scope(self):
         """Once removed (by self or others), a user should not see the ticket in any scope."""
         dept = Department.objects.create(name="D", created_by=self.s1)

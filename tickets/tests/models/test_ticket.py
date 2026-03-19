@@ -151,6 +151,17 @@ class TicketHomeDashboardModelTests(TestCase):
         self.assertNotIn(self.t1.id, d_ids)
         self.assertEqual(Ticket.admin_ticket_stats()["total"], 3)
 
+    def test_admin_ticket_stats(self):
+        """admin_ticket_stats should include total and grouped status counts."""
+        Ticket.objects.create(title="T3", created_by=self.staff, status='pending')
+
+        stats = Ticket.admin_ticket_stats()
+
+        self.assertEqual(stats["total"], 3)
+        self.assertEqual(stats["open"], 1)
+        self.assertEqual(stats["pending"], 1)
+        self.assertEqual(stats["closed"], 1)
+
     def test_annotated_and_filters(self):
         """Test annotations and time-based filters."""
         other = User.objects.create_user(username="o", email="o@e.com", password="p")
@@ -175,12 +186,46 @@ class TicketHomeDashboardModelTests(TestCase):
             qs = Ticket.search_page_queryset(self.staff, {"scope": "personal"})
         self.assertEqual(qs.count(), 0)
 
+    def test_search_page_queryset_applies_annotations_and_filters(self):
+        """search_page_queryset should apply the full search pipeline."""
+        TicketMessage.objects.create(ticket=self.t1, sender=self.staff, body="Alpha body")
+        filters = {
+            "scope": "personal",
+            "q": "Alpha",
+            "status": Ticket.Status.OPEN,
+            "department": "",
+            "assigned_staff": "",
+            "created_from": (timezone.now() - timedelta(days=1)).date().isoformat(),
+            "created_to": (timezone.now() + timedelta(days=1)).date().isoformat(),
+        }
+
+        queryset = Ticket.search_page_queryset(self.staff, filters)
+
+        self.assertEqual(list(queryset), [self.t1])
+
     def test_search_filter_options_returns_empty_when_scope_has_no_queryset(self):
         """search_filter_options returns empty options when base scope is None."""
         with patch.object(Ticket, "base_for_scope", return_value=None):
             options = Ticket.search_filter_options(self.staff, "personal")
         self.assertEqual(options, {"departments": [], "staff_users": []})
 
+    def test_created_date_filters_apply_bounds(self):
+        """Created date filters should apply lower and upper bounds."""
+        older = timezone.now() - timedelta(days=3)
+        Ticket.objects.filter(pk=self.t1.pk).update(created_at=older)
+        queryset = Ticket.objects.all()
+
+        filtered_from = Ticket._filter_created_from(
+            queryset,
+            (timezone.now() - timedelta(days=1)).date().isoformat(),
+        )
+        filtered_to = Ticket._filter_created_to(
+            queryset,
+            (timezone.now() - timedelta(days=2)).date().isoformat(),
+        )
+
+        self.assertNotIn(self.t1, filtered_from)
+        self.assertIn(self.t1, filtered_to)
 
     def test_invalid_scope_search_helpers_and_reopen_guard(self):
         """Defensive search helpers and reopen guards should behave correctly."""

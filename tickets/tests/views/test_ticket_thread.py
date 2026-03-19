@@ -48,17 +48,17 @@ class TicketThreadViewTests(TestCase):
         self.assertTrue(self.client.get(self.url).context["permission"])
 
     def test_thread_back_link_uses_return_to_query(self):
-        """Thread page should link back to the originating search URL when provided."""
+        """Thread page should link back to the originating home URL when provided."""
         self.client.force_login(self.u1)
-        return_to = "/tickets/?scope=department&q=laptop&page=2"
+        return_to = "/?scope=department&q=laptop&page=2"
 
         response = self.client.get(self.url, {"return_to": return_to})
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["back_to_url"], return_to)
-        self.assertEqual(response.context["back_to_label"], "Back to search tickets")
-        self.assertContains(response, 'href="/tickets/?scope=department&amp;q=laptop&amp;page=2"', html=False)
-        self.assertContains(response, "Back to search tickets")
+        self.assertEqual(response.context["back_to_label"], "Back to tickets")
+        self.assertContains(response, 'href="/?scope=department&amp;q=laptop&amp;page=2"', html=False)
+        self.assertContains(response, "Back to tickets")
 
     def test_thread_default_back_link_uses_generic_label(self):
         """Thread page should keep the generic back label outside search-origin flows."""
