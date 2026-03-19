@@ -123,23 +123,13 @@ class Ticket(models.Model):
         """Return tickets visible to a user for a dashboard scope."""
         from .ticket_participant import TicketParticipant
         
-        user_removed_self = Exists(TicketParticipant.objects.filter(
-            ticket=OuterRef('pk'),
-            user=user,
-            removed_self=True
-        ))
+        user_removed_self = Exists(TicketParticipant.objects.filter(ticket=OuterRef('pk'),user=user,removed_self=True))
         
-        if scope == "personal":
-            return cls.objects.filter(created_by=user).exclude(user_removed_self).distinct()
+        if scope == "personal":return cls.objects.filter(created_by=user).exclude(user_removed_self).distinct()
         if scope == "department":
-            return cls.objects.filter(
-                assignments__department__assigned_users__user=user
-            ).exclude(user_removed_self).distinct()
+            return cls.objects.filter(assignments__department__assigned_users__user=user).exclude(user_removed_self).distinct()
         if scope == "assigned":
-            return cls.objects.filter(
-                participants__user=user,
-                participants__removed_self=False
-            ).distinct()
+            return cls.objects.filter(participants__user=user,participants__removed_self=False).distinct()
         return None
 
     @classmethod
