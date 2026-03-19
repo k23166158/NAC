@@ -66,7 +66,7 @@ class ProfileViewTests(TestCase):
         self.assertEqual(r.context["created_total_count"], 0)
         self.assertEqual(r.context["created_closed_count"], 0)
         self.assertEqual(r.context["department_count"], 0)
-        self.assertEqual(r.context["department_names"], [])
+        self.assertEqual(r.context["departments"], [])
 
     def test_views_self_sets_flag_true(self):
         """Viewing own slug sets is_own_profile True."""
@@ -116,9 +116,21 @@ class ProfileViewTests(TestCase):
 
         self.assertEqual(r.context["department_count"], 2)
         self.assertCountEqual(
-            r.context["department_names"],
+            [department.name for department in r.context["departments"]],
             ["Support", "Billing"],
         )
+
+    def test_profile_departments_render_as_links(self):
+        """Profile departments should link to department pages."""
+        self.login()
+        department = Department.objects.create(name="Support", created_by=self.user)
+        UserDepartments.objects.create(user=self.other, department=department)
+
+        response = self.client.get(
+            reverse("profile", kwargs={"profile_slug": self.other.profile_slug})
+        )
+
+        self.assertContains(response, reverse("department", args=[department.slug]))
 
     def test_unknown_slug_returns_404(self):
         """Unknown slugs should return a 404."""

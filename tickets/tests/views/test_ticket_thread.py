@@ -47,6 +47,29 @@ class TicketThreadViewTests(TestCase):
         self.client.force_login(s_dept)
         self.assertTrue(self.client.get(self.url).context["permission"])
 
+    def test_thread_renders_profile_and_department_links(self):
+        """Thread should link user names and department names."""
+        self.u1.is_staff = True
+        self.u1.save(update_fields=["is_staff"])
+        staff_user = User.objects.create_user(
+            username="staff_link", email="staff_link@e.com", password="p", is_staff=True
+        )
+        department = Department.objects.create(name="Linked Dept", created_by=self.u1)
+        TicketMessage.objects.create(ticket=self.t, sender=self.u2, body="Reply")
+        self.t.closed_by = self.u1
+        self.t.reopened_by = self.u2
+        self.t.save(update_fields=["closed_by", "reopened_by"])
+        self.client.force_login(self.u1)
+        self.client.post(self.url, data=self._csrf(action="add", target_type="staff", target_id=staff_user.id))
+        self.client.post(self.url, data=self._csrf(action="add", target_type="department", target_id=department.id))
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, reverse("profile", args=[self.u1.profile_slug]))
+        self.assertContains(response, reverse("profile", args=[self.u2.profile_slug]))
+        self.assertContains(response, reverse("profile", args=[staff_user.profile_slug]))
+        self.assertContains(response, reverse("department", args=[department.slug]))
+
     def test_thread_back_link_uses_return_to_query(self):
         """Thread page should link back to the originating home URL when provided."""
         self.client.force_login(self.u1)

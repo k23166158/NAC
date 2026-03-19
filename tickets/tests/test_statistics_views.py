@@ -81,6 +81,10 @@ class AdminStatisticsViewTest(TestCase):
         
         normal_stats = next(c for c in creators if c["username"] == "normal")
         self.assertEqual(normal_stats["ticket_count"], 2)
+        self.assertEqual(normal_stats["profile_slug"], self.normal_user.profile_slug)
 
         staff_stats = next(r for r in responders if r["username"] == "staff")
         self.assertEqual(staff_stats["msgs"], 1)
+        self.assertEqual(staff_stats["profile_slug"], self.staff_user.profile_slug)
+        self.assertContains(response, reverse("profile", args=[self.normal_user.profile_slug]))
+        self.assertContains(response, reverse("profile", args=[self.staff_user.profile_slug]))

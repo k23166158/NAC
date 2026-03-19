@@ -59,6 +59,10 @@ class UserManagementViewTest(TestCase):
 
         regular = next(u for u in users if u.username == 'regular')
         self.assertEqual(regular.department_count, 0)
+        self.assertContains(
+            response,
+            reverse("profile", args=[self.staff_user.profile_slug]),
+        )
 
     def test_access_for_superuser(self):
         """Ensure superusers can access the view."""
