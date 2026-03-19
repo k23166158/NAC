@@ -205,7 +205,7 @@ class Ticket(models.Model):
             user_id=staff_id,
             removed_self=False,
         )
-        return queryset.filter(Exists(assigned_staff_subquery))
+        return queryset.exclude(created_by_id=staff_id).filter(Exists(assigned_staff_subquery))
 
     @staticmethod
     def _filter_created_from(queryset, created_from):

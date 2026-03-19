@@ -167,6 +167,32 @@ class HomeViewTests(TestCase):
 
         self.assertNotIn(ticket, response.context["active_tickets"])
 
+    def test_home_assigned_staff_filter_excludes_ticket_creator(self):
+        """Assigned-staff filter should not treat ticket creator as assigned staff."""
+        dept = Department.objects.create(name="Support", created_by=self.s1)
+        UserDepartments.objects.create(user=self.s1, department=dept)
+
+        creator = User.objects.create_user(
+            username="creator",
+            email="creator@example.com",
+            password="p",
+            is_staff=True,
+        )
+        creator_ticket = Ticket.objects.create(
+            title="Creator ticket", created_by=creator, status=Ticket.Status.OPEN
+        )
+        TicketAssigned.objects.create(ticket=creator_ticket, department=dept)
+        # Even if a participant row exists for creator, creator should not count as "assigned staff".
+        TicketParticipant.objects.create(ticket=creator_ticket, user=creator, removed_self=False)
+
+        self.c.force_login(self.s1)
+        response = self.c.get(
+            self.url,
+            {"scope": "department", "assigned_staff": str(creator.id)},
+        )
+
+        self.assertNotIn(creator_ticket, response.context["active_tickets"])
+
     def test_home_staff_options_follow_selected_department(self):
         """Assigned-staff options should narrow to members of the selected department."""
         support = Department.objects.create(name="Support", created_by=self.s1)
