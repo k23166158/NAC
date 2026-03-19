@@ -1,10 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseForbidden
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
-from tickets.models import Department
+from tickets.forms import DepartmentFAQForm
+from tickets.models import Department, DepartmentFAQ
 
 
 class DepartmentView(LoginRequiredMixin, View):
@@ -18,12 +19,37 @@ class DepartmentView(LoginRequiredMixin, View):
         return render(request, "department.html", department.build_view_context(request))
 
     def post(self, request, department_slug):
-        """Handle POST requests to add or remove staff."""
+        """Handle POST requests for staff and FAQ actions."""
         department = Department.get_by_slug_or_404(department_slug)
         if not department.can_manage_staff(request.user):
             return HttpResponseForbidden("You are not allowed to access this.")
+        action = request.POST.get("action")
+        if action == "add_faq":
+            return self._handle_add_faq(request, department)
+        if action == "delete_faq":
+            return self._handle_delete_faq(request, department)
         self._process_staff_action(request, department)
         return redirect("department", department_slug=department_slug)
+
+    def _handle_add_faq(self, request, department):
+        """Handle FAQ creation POST."""
+        form = DepartmentFAQForm(request.POST)
+        if form.is_valid():
+            faq = form.save(commit=False)
+            faq.department = department
+            faq.created_by = request.user
+            faq.save()
+            messages.success(request, "FAQ added successfully.")
+        else:
+            messages.error(request, "Please fill in both the question and answer fields.")
+        return redirect("department", department_slug=department.slug)
+
+    def _handle_delete_faq(self, request, department):
+        """Handle FAQ deletion POST."""
+        faq = get_object_or_404(DepartmentFAQ, id=request.POST.get("faq_id"), department=department)
+        faq.delete()
+        messages.success(request, "FAQ deleted.")
+        return redirect("department", department_slug=department.slug)
 
     def _process_staff_action(self, request, department):
         """Run department staff action and publish any response message."""

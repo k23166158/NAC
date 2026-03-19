@@ -130,11 +130,15 @@ class Department(models.Model):
 
     def build_view_context(self, request):
         """Build the context payload for the department details page."""
+        from tickets.forms import DepartmentFAQForm
+
         current_staff = self.get_current_staff()
         invited_users = self._get_invited_users()
         context = {"department": self, "staff": current_staff}
         context.update(self._staff_context(request, current_staff, invited_users))
         context.update(self._ticket_context(request))
+        context["faqs"] = self.faqs.select_related("created_by").all()
+        context["faq_form"] = DepartmentFAQForm()
         return context
 
     def _get_invited_users(self):
