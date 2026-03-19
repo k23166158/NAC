@@ -103,6 +103,8 @@ class HomeViewTests(TestCase):
 
         self.assertContains(response, "Search title, message body, creator, or email")
         self.assertContains(response, 'id="scopeSelect"')
+        self.assertContains(response, "Your ticket")
+        self.assertContains(response, 'id="searchCollapseToggle"')
         self.assertEqual(response.context["filters"]["q"], "exam")
         self.assertEqual(response.context["scope_options"], ["personal", "department", "assigned"])
 
