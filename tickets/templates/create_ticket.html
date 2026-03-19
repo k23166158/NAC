@@ -71,6 +71,8 @@
           </div>
         </div>
 
+        <div id="selectedDeptPills" class="selected-dept-pills"></div>
+
         <div class="help">Click the box to see all departments. Type to filter. You can pick multiple.</div>
         {% if form.departments.errors %}<div class="error">{{ form.departments.errors }}</div>{% endif %}
       </div>
@@ -111,8 +113,35 @@
   (function () {
     const searchInput = document.getElementById('deptSearchInput');
     const deptList = document.getElementById('deptList');
+    const pillContainer = document.getElementById('selectedDeptPills');
     const items = document.querySelectorAll('.dept-item');
+    const checkboxes = document.querySelectorAll('.dept-checkbox');
     const noResultsMsg = document.getElementById('deptNoResultsMsg');
+
+    function renderPills() {
+      pillContainer.innerHTML = '';
+      checkboxes.forEach(function (cb) {
+        if (!cb.checked) return;
+        const name = cb.closest('.dept-item').querySelector('.dept-name').textContent;
+        const initial = name.trim().charAt(0);
+        const pill = document.createElement('span');
+        pill.className = 'selected-dept-pill';
+        pill.innerHTML = '<span class="selected-dept-pill-avatar">' + initial + '</span>'
+          + '<span class="selected-dept-pill-text">' + name + '</span>'
+          + '<button type="button" class="selected-dept-pill-remove" aria-label="Remove ' + name + '">&times;</button>';
+        pill.querySelector('.selected-dept-pill-remove').addEventListener('click', function () {
+          cb.checked = false;
+          renderPills();
+        });
+        pillContainer.appendChild(pill);
+      });
+    }
+
+    checkboxes.forEach(function (cb) {
+      cb.addEventListener('change', renderPills);
+    });
+
+    renderPills();
 
     function showAll() {
       deptList.style.display = 'block';

@@ -1,6 +1,6 @@
 <header>
-    <nav>
-        <ul>
+    <nav class="site-nav">
+        <ul class="site-nav-links">
             <li><a href="/">Home</a></li>
             {% if user.is_superuser or user.is_staff %}
                 <li><a href="{% url 'manage_users' %}">Users</a></li>
@@ -29,5 +29,23 @@
                 <li><a href="/login/">Login</a></li>
             {% endif %}
         </ul>
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'profile' user.profile_slug %}" class="nav-profile-link" aria-label="View your profile">
+                <span class="nav-profile-copy">
+                    <span class="nav-profile-label">My Profile</span>
+                    <span class="nav-profile-username">@{{ user.username }}</span>
+                </span>
+                <span class="nav-profile-avatar">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}">
+                    {% else %}
+                        <span class="nav-profile-initials">
+                            {{ user.first_name|default:user.username|first }}{{ user.last_name|default:""|first }}
+                        </span>
+                    {% endif %}
+                </span>
+            </a>
+        {% endif %}
     </nav>
 </header>

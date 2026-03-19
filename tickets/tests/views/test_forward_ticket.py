@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 
 from tickets.models import Ticket
+from tickets.models.notification import Notification
 from tickets.models.ticket_participant import TicketParticipant
 from tickets.views.forward_ticket_view import ForwardTicketView, _err, _ticket_redirect
 
@@ -172,3 +173,23 @@ class ForwardTicketViewTests(TestCase):
         view.touch_ticket(self.ticket)
         self.ticket.refresh_from_db()
         self.assertGreater(self.ticket.updated_at, before)
+
+    def test_forward_creates_ticket_forwarded_notification(self):
+        """Successful forward should create a TICKET_FORWARDED notification for the target user."""
+        resp = self.post(self.staff1, email=self.staff2.email, return_tab="active")
+        self.assertEqual(resp.status_code, 302)
+        notifications = Notification.objects.filter(
+            user=self.staff2,
+            notification_type=Notification.NotificationType.TICKET_FORWARDED,
+        )
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(notifications[0].actor, self.staff1)
+        self.assertEqual(notifications[0].target_object, self.ticket)
+
+    def test_forward_notification_not_created_on_invalid(self):
+        """No notification should be created if the forward is invalid (e.g., self-forward)."""
+        self.post(self.staff1, email=self.staff1.email, return_tab="active")
+        notifications = Notification.objects.filter(
+            notification_type=Notification.NotificationType.TICKET_FORWARDED,
+        )
+        self.assertEqual(notifications.count(), 0)

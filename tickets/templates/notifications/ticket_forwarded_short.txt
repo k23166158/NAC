@@ -1,0 +1,1 @@
+{{ actor.get_full_name }} forwarded you ticket: "<a href="{{ link }}">{{ target.title }}</a>"

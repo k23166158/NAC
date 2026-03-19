@@ -3,9 +3,11 @@ from django.shortcuts import get_object_or_404
 
 from tickets.models import Ticket, TicketMessage
 from tickets.models.department import Department
+from tickets.models.notification import Notification
 from tickets.models.ticket_department import TicketDepartment
 from tickets.models.ticket_message_attachments import TicketMessageAttachment
 from tickets.models.ticket_participant import TicketParticipant
+from tickets.helpers.notifications import create_notification, notify_ticket_participants
 
 
 User = get_user_model()
@@ -88,21 +90,21 @@ class TicketThreadContextMixin:
 
     def _save_attachments_for_message(self, request, message):
         """Persist uploaded files as TicketMessageAttachment rows."""
-        getlist = getattr(request.FILES, "getlist", None)
-        files = (getlist("attachments") + getlist("attachment")) if getlist else []
-        files = files or [f for _, f in getattr(request.FILES, "items", lambda: [])()]
+        files = request.FILES.getlist("attachments") + request.FILES.getlist("attachment")
         TicketMessageAttachment.create_for_message(self.object, message, files, request.user)
 
     def handle_delete_action(self, request):
         """Handle delete action for a user message."""
         message_id = request.POST.get("message_id")
+        get_object_or_404(TicketMessage, id=message_id, ticket=self.object, sender=request.user)
         TicketMessage.hide_user_message(self.object, message_id, request.user)
 
     def _update_message_body(self, request):
         """Return updated message instance for valid update body."""
         message_id = request.POST.get("message_id")
-        body = request.POST.get("body")
-        if not body:
+        get_object_or_404(TicketMessage, id=message_id, ticket=self.object, sender=request.user)
+        body = request.POST.get("body", "")
+        if not body or body.isspace():
             return None
         return TicketMessage.update_user_message(self.object, message_id, request.user, body)
 
@@ -117,8 +119,10 @@ class TicketThreadContextMixin:
 
     def _create_message_from_body(self, request):
         """Create a message from POST body and return it."""
-        body = request.POST.get("body")
-        return TicketMessage.add_user_message(self.object, request.user, body)
+        body = request.POST.get("body", "")
+        if body and not body.isspace():
+            return TicketMessage.add_user_message(self.object, request.user, body)
+        return None
 
     def handle_add_action(self, request):
         """Handle adding a new reply message and attachments."""
@@ -129,22 +133,40 @@ class TicketThreadContextMixin:
 
     def dispatch_post_action(self, action, request):
         """Dispatch POST action to the correct handler."""
+        self.request = request
         handlers = {
             "delete": lambda: self.handle_delete_action(request),
             "update": lambda: self.handle_update_action(request),
             "close_ticket": self.handle_close_ticket_action,
-            "edit": lambda: None,
+            "reopen_ticket": self.handle_reopen_ticket_action,
+            "edit": lambda: self.get_edit_message(),
         }
         if action in handlers:
             handlers[action]()
             return
-        body = (request.POST.get("body") or "").strip()
-        if body:
-            self.handle_add_action(request)
+        self.handle_add_action(request)
+
+    def _resolution_summary_from_request(self):
+        """Return normalized resolution summary from POST data."""
+        post = getattr(self.request, "POST", {})
+        return (post.get("resolution_summary") or "").strip()
 
     def handle_close_ticket_action(self):
         """Close the ticket instance associated with the view."""
-        self.ticket.close()
+        closed = self.ticket.close_with_resolution(
+            performed_by=self.request.user,
+            resolution_summary=self._resolution_summary_from_request(),
+        )
+        if closed and hasattr(self, 'request'):
+            notify_ticket_participants(
+                self.ticket,
+                actor=self.request.user,
+                notification_type=Notification.NotificationType.TICKET_CLOSED,
+            )
+
+    def handle_reopen_ticket_action(self):
+        """Reopen the ticket instance associated with the view."""
+        self.ticket.reopen(performed_by=self.request.user)
 
 
 class TicketThreadAssignmentMixin:
@@ -180,15 +202,15 @@ class TicketThreadAssignmentMixin:
 
         def remove(self, department, actor):
             """Remove a department from the ticket."""
-            self.view._remove_department(department)
+            self.view._remove_department(department, removed_by=actor)
 
     def _add_department(self, department, added_by):
         """Assign a department to the ticket."""
         TicketDepartment.assign_department(self.object, department, added_by=added_by)
 
-    def _remove_department(self, department):
+    def _remove_department(self, department, removed_by=None):
         """Remove a department from the ticket."""
-        TicketDepartment.remove_department(self.object, department)
+        TicketDepartment.remove_department(self.object, department, removed_by=removed_by)
 
     def _add_staff(self, user, added_by):
         """Assign a staff user to the ticket."""
@@ -197,13 +219,28 @@ class TicketThreadAssignmentMixin:
     def _remove_staff(self, user, removed_by):
         """Remove staff from ticket and record a system message."""
         if user == removed_by:
-            participant = TicketParticipant.objects.get(ticket=self.object, user=user)
-            participant.removed_self = True
-            participant.save()
+            self._mark_participant_removed_self(user)
         else:
-            TicketParticipant.remove_participant(self.object, user)
+            self._remove_other_participant(user, removed_by)
         message = f"{user.get_full_name()} was removed from the ticket."
         TicketMessage.create_system_message(self.object, message)
+
+    def _mark_participant_removed_self(self, user):
+        """Mark that the participant removed themselves."""
+        participant = TicketParticipant.objects.get(ticket=self.object, user=user)
+        participant.removed_self = True
+        participant.save()
+
+    def _remove_other_participant(self, user, removed_by):
+        """Remove a participant and notify them of removal."""
+        TicketParticipant.remove_participant(self.object, user)
+        create_notification(
+            user=user,
+            actor=removed_by,
+            notification_type=Notification.NotificationType.STAFF_REMOVED,
+            link=f"/tickets/{self.object.uuid}/",
+            target_object=self.object,
+        )
 
     def handle_staff_change(self, request):
         """Handle legacy add/remove operations using user_id."""
@@ -257,11 +294,8 @@ class TicketThreadAssignmentMixin:
             return
         handlers = self._assignment_handlers()
         handler_class = handlers.get(data.get("target_type"))
-        if handler_class is None:
+        if not handler_class:
             return
         target = self.get_assignment_target(data["target_type"], data["target_id"])
-        if target is None:
-            return
         handler = handler_class(self, data["action"])
         self.apply_assignment_action(handler, target, request.user)
-

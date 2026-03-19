@@ -12,8 +12,7 @@
             <form method="POST" class="staff-item" data-name="{{ user.full_name|lower }}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="add">
-                <input type="hidden" name="target_type" value="staff">
-                <input type="hidden" name="target_id" value="{{ user.id }}">
+                <input type="hidden" name="user_id" value="{{ user.id }}">
                 <button type="submit" class="dropdown-item">
                     <div class="avatar-small">+</div>
                     <span class="dropdown-name">{{ user.full_name }}</span>
@@ -45,7 +44,7 @@
 
         items.forEach(item => {
             const name = item.getAttribute('data-name');
-            if (name.includes(query)) {
+            if (name.startsWith(query)) {
                 item.style.display = 'block';
                 hasVisibleItems = true;
             } else {

@@ -1,0 +1,1 @@
+Your department was removed from ticket: "{{ target.title }}"

@@ -140,6 +140,58 @@
     justify-content: space-between;
 }
 
+.department-row {
+    background: #f9fafb;
+}
+
+.department-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 750;
+    color: #4b5563;
+    text-transform: uppercase;
+}
+
+.department-name {
+    font-weight: 700;
+}
+
+.department-pill {
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+    font-size: 13px;
+    font-weight: 600;
+    gap: 6px;
+}
+
+.department-pill:hover {
+    background: #eff6ff;
+    border-color: rgba(37, 99, 235, 0.4);
+    transform: translateY(1px);
+}
+
+.department-pill-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.department-pill-meta {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+}
+
 /* Search input */
 
 .search-wrapper {
