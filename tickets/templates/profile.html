@@ -118,8 +118,12 @@
             <details class="profile-dept-details">
               <summary>View departments</summary>
               <ul class="profile-dept-list">
-                {% for dept_name in department_names %}
-                  <li>{{ dept_name }}</li>
+                {% for department in departments %}
+                  <li>
+                    <a class="content-link" href="{% url 'department' department.slug %}">
+                      {{ department.name }}
+                    </a>
+                  </li>
                 {% endfor %}
               </ul>
             </details>

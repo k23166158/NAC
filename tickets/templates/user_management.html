@@ -57,13 +57,13 @@
                 {% for user_obj in users %}
                 <tr class="user-item">
                     <td>
-                        <div class="user-info">
+                        <a class="content-link-flex user-info" href="{% url 'profile' user_obj.profile_slug %}">
                             {% include "partials/user_avatar.html" with avatar_user=user_obj %}
                             <div class="user-meta">
                                 <span class="full-name">{{ user_obj.full_name }}</span>
                                 <span class="username">@{{ user_obj.username }}</span>
                             </div>
-                        </div>
+                        </a>
                     </td>
                     <td>
                         <span class="user-email">{{ user_obj.email }}</span>

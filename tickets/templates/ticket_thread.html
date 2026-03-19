@@ -30,17 +30,17 @@
     </div>
     <div class="col-body">
       <div class="ticket-meta">
-        <span class="pill">Created by <strong>{{ ticket.created_by.username }}</strong></span>
+        <span class="pill">Created by <strong><a class="content-link" href="{% url 'profile' ticket.created_by.profile_slug %}">{{ ticket.created_by.username }}</a></strong></span>
         <span class="pill">Created {{ ticket.created_at|date:"M d, Y H:i" }}</span>
         <span class="pill">Updated: {{ ticket.updated_at|date:"M d, Y H:i" }}</span>
         {% if ticket.closed_by %}
-          <span class="pill">Closed by {{ ticket.closed_by.username }}</span>
+          <span class="pill">Closed by <a class="content-link" href="{% url 'profile' ticket.closed_by.profile_slug %}">{{ ticket.closed_by.username }}</a></span>
         {% endif %}
         {% if ticket.closed_at %}
           <span class="pill">Closed {{ ticket.closed_at|date:"M d, Y H:i" }}</span>
         {% endif %}
         {% if ticket.reopened_by %}
-          <span class="pill">Reopened by {{ ticket.reopened_by.username }}</span>
+          <span class="pill">Reopened by <a class="content-link" href="{% url 'profile' ticket.reopened_by.profile_slug %}">{{ ticket.reopened_by.username }}</a></span>
         {% endif %}
         {% if ticket.reopened_at %}
           <span class="pill">Reopened {{ ticket.reopened_at|date:"M d, Y H:i" }}</span>
@@ -89,10 +89,10 @@
             <div class="ticket-card {% if message.sender == user and not message.hidden %}my-message{% endif %}" data-message-id="{{ message.id }}">
             <div class="ticket-top">
               <div class="sender-block">
-                <div class="sender-meta">
+                <a class="content-link-flex sender-meta" href="{% url 'profile' message.sender.profile_slug %}">
                   {% include "partials/user_avatar.html" with avatar_user=message.sender avatar_class="message-sender-avatar" avatar_placeholder_class="message-sender-avatar-placeholder" %}
                   <strong class="sender-name">{{ message.sender.username }}</strong>
-                </div>
+                </a>
                 {% if message.sender == user %}
                   <span class="message-badge">You</span>
                 {% elif message.sender.is_staff %}
@@ -225,10 +225,10 @@
                 {% for staff_user in staff %}
                   {% if staff_user != user or ticket.created_by != user %}
                     <div class="pill staff-row">
-                      <div class="staff-info">
+                      <a class="content-link-flex staff-info" href="{% url 'profile' staff_user.profile_slug %}">
                         {% include "partials/user_avatar.html" with avatar_user=staff_user %}
                         <span class="staff-name">{% if staff_user == user %}{{ staff_user.full_name }} [You]{% else %}{{ staff_user.full_name }}{% endif %}</span>
-                      </div>
+                      </a>
                       {% if staff|length > 1 %}
                         <form method="post" class="remove-staff-form">{% csrf_token %}<input type="hidden" name="action" value="remove"><input type="hidden" name="target_type" value="staff"><input type="hidden" name="target_id" value="{{ staff_user.id }}"><button type="submit" class="btn-icon-remove" title="Remove staff"><i class="bi bi-trash3"></i></button></form>
                       {% endif %}
@@ -248,12 +248,12 @@
               <div class="staff-list">
                 {% for department in ticket_departments %}
                   <div class="pill staff-row department-row">
-                    <div class="staff-info">
+                    <a class="content-link-flex staff-info" href="{% url 'department' department.slug %}">
                       <div class="department-avatar">
                         {{ department.name|first }}
                       </div>
                       <span class="staff-name department-name">{{ department.name }}</span>
-                    </div>
+                    </a>
                     <form method="post" class="remove-department-form">
                       {% csrf_token %}
                       <input type="hidden" name="action" value="remove">
