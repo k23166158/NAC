@@ -209,7 +209,7 @@
         </div>
 
         {% if user_can_manage_faqs %}
-        <div class="faq-form-card" id="faq-form-card" style="display:none;">
+        <div class="faq-form-card faq-hidden" id="faq-form-card">
             <h3 class="staff-card-header">New FAQ</h3>
             <form method="POST">
                 {% csrf_token %}
@@ -265,7 +265,7 @@
 
                 {# --- Edit mode --- #}
                 {% if user_can_manage_faqs %}
-                <div class="faq-edit-card" id="faq-edit-{{ faq.id }}" style="display:none;">
+                <div class="faq-edit-card faq-hidden" id="faq-edit-{{ faq.id }}">
                     <form method="POST">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="edit_faq">
@@ -303,10 +303,10 @@
     const cancelBtn = document.getElementById('faq-cancel-btn');
     const formCard = document.getElementById('faq-form-card');
     if (toggleBtn) {
-        toggleBtn.addEventListener('click', () => { formCard.style.display = 'block'; toggleBtn.style.display = 'none'; });
+        toggleBtn.addEventListener('click', () => { formCard.classList.remove('faq-hidden'); toggleBtn.classList.add('faq-hidden'); });
     }
     if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => { formCard.style.display = 'none'; toggleBtn.style.display = ''; });
+        cancelBtn.addEventListener('click', () => { formCard.classList.add('faq-hidden'); toggleBtn.classList.remove('faq-hidden'); });
     }
 
     // FAQ accordion
@@ -323,16 +323,16 @@
     document.querySelectorAll('.faq-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const id = btn.dataset.faqId;
-            document.getElementById(`faq-view-${id}`).style.display = 'none';
-            document.getElementById(`faq-edit-${id}`).style.display = 'block';
+            document.getElementById(`faq-view-${id}`).classList.add('faq-hidden');
+            document.getElementById(`faq-edit-${id}`).classList.remove('faq-hidden');
         });
     });
 
     document.querySelectorAll('.faq-edit-cancel-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const id = btn.dataset.faqId;
-            document.getElementById(`faq-edit-${id}`).style.display = 'none';
-            document.getElementById(`faq-view-${id}`).style.display = 'block';
+            document.getElementById(`faq-edit-${id}`).classList.add('faq-hidden');
+            document.getElementById(`faq-view-${id}`).classList.remove('faq-hidden');
         });
     });
 </script>

@@ -10,12 +10,14 @@ class DepartmentFAQModelTests(TestCase):
     """Tests for the DepartmentFAQ model."""
 
     def setUp(self):
+        """Set up a creator user and department for FAQ tests."""
         self.creator = User.objects.create_user(
             username="creator", email="creator@e.com", password="p", is_staff=True
         )
         self.dept = Department.objects.create(name="Support", created_by=self.creator)
 
     def _make_faq(self, question="How do I reset my password?", answer="Click forgot password.", **kwargs):
+        """Create and return a DepartmentFAQ with sensible defaults."""
         return DepartmentFAQ.objects.create(
             department=self.dept,
             question=question,

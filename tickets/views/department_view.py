@@ -23,17 +23,21 @@ class DepartmentView(LoginRequiredMixin, View):
         department = Department.get_by_slug_or_404(department_slug)
         action = request.POST.get("action")
         if action in ("add_faq", "edit_faq", "delete_faq"):
-            if not department.can_manage_faqs(request.user):
-                return HttpResponseForbidden("You are not allowed to access this.")
-            if action == "add_faq":
-                return self._handle_add_faq(request, department)
-            if action == "edit_faq":
-                return self._handle_edit_faq(request, department)
-            return self._handle_delete_faq(request, department)
+            return self._dispatch_faq_action(request, department, action)
         if not department.can_manage_staff(request.user):
             return HttpResponseForbidden("You are not allowed to access this.")
         self._process_staff_action(request, department)
         return redirect("department", department_slug=department_slug)
+
+    def _dispatch_faq_action(self, request, department, action):
+        """Check FAQ permissions and route to the correct FAQ handler."""
+        if not department.can_manage_faqs(request.user):
+            return HttpResponseForbidden("You are not allowed to access this.")
+        if action == "add_faq":
+            return self._handle_add_faq(request, department)
+        if action == "edit_faq":
+            return self._handle_edit_faq(request, department)
+        return self._handle_delete_faq(request, department)
 
     def _handle_add_faq(self, request, department):
         """Handle FAQ creation POST."""

@@ -7,6 +7,8 @@ class DepartmentFAQForm(forms.ModelForm):
     """Form for creating a department FAQ entry."""
 
     class Meta:
+        """Meta configuration for DepartmentFAQForm."""
+
         model = DepartmentFAQ
         fields = ['question', 'answer']
         widgets = {

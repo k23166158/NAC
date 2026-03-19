@@ -53,6 +53,10 @@
     margin-top: 6px;
 }
 
+.faq-hidden {
+    display: none;
+}
+
 /* ── FAQ Accordion List ───────────────────────────────── */
 .faq-list {
     display: flex;

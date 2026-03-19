@@ -12,6 +12,7 @@ class DepartmentFAQViewSetup(TestCase):
     """Shared setUp for FAQ view tests."""
 
     def setUp(self):
+        """Set up users, department, and URL for FAQ view tests."""
         self.client = Client()
         self.owner = User.objects.create_user(
             username="owner", email="owner@e.com", password="p", is_staff=True
@@ -31,6 +32,7 @@ class DepartmentFAQViewSetup(TestCase):
         self.url = reverse("department", kwargs={"department_slug": self.dept.slug})
 
     def _make_faq(self, question="How to reset?", answer="Click forgot password."):
+        """Create and return a DepartmentFAQ on the test department."""
         return DepartmentFAQ.objects.create(
             department=self.dept,
             question=question,
@@ -79,6 +81,7 @@ class DepartmentFAQAddTests(DepartmentFAQViewSetup):
     """Tests for add_faq POST action."""
 
     def _post_add(self, user, question="How to reset?", answer="Click forgot password."):
+        """POST an add_faq action as the given user."""
         self.client.force_login(user)
         return self.client.post(self.url, {
             "action": "add_faq",
@@ -133,10 +136,12 @@ class DepartmentFAQEditTests(DepartmentFAQViewSetup):
     """Tests for edit_faq POST action."""
 
     def setUp(self):
+        """Create a FAQ to edit in each test."""
         super().setUp()
         self.faq = self._make_faq()
 
     def _post_edit(self, user, question="Updated question?", answer="Updated answer."):
+        """POST an edit_faq action as the given user."""
         self.client.force_login(user)
         return self.client.post(self.url, {
             "action": "edit_faq",
@@ -201,10 +206,12 @@ class DepartmentFAQDeleteTests(DepartmentFAQViewSetup):
     """Tests for delete_faq POST action."""
 
     def setUp(self):
+        """Create a FAQ to delete in each test."""
         super().setUp()
         self.faq = self._make_faq()
 
     def _post_delete(self, user):
+        """POST a delete_faq action as the given user."""
         self.client.force_login(user)
         return self.client.post(self.url, {
             "action": "delete_faq",
@@ -251,13 +258,17 @@ class DepartmentCanManageFAQsTests(DepartmentFAQViewSetup):
     """Unit tests for Department.can_manage_faqs()."""
 
     def test_returns_true_for_department_member(self):
+        """Members of the department can manage FAQs."""
         self.assertTrue(self.dept.can_manage_faqs(self.member))
 
     def test_returns_true_for_owner(self):
+        """The department owner can manage FAQs."""
         self.assertTrue(self.dept.can_manage_faqs(self.owner))
 
     def test_returns_true_for_superuser(self):
+        """Superusers can manage FAQs on any department."""
         self.assertTrue(self.dept.can_manage_faqs(self.superuser))
 
     def test_returns_false_for_non_member(self):
+        """Non-members cannot manage FAQs."""
         self.assertFalse(self.dept.can_manage_faqs(self.outsider))

@@ -22,7 +22,10 @@ class DepartmentFAQ(models.Model):
     order = models.PositiveIntegerField(default=0)
 
     def __str__(self):
+        """Return string representation of the FAQ."""
         return f"{self.department.name}: {self.question[:60]}"
 
     class Meta:
+        """Meta options for the DepartmentFAQ model."""
+
         ordering = ["order", "created_on"]
