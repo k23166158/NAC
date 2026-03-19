@@ -232,27 +232,60 @@
 
         <div class="faq-list">
             {% for faq in faqs %}
-            <div class="faq-item">
-                <div class="faq-header">
-                    <button class="faq-trigger" type="button" aria-expanded="false">
-                        <span class="faq-icon">Q</span>
-                        <span class="faq-question">{{ faq.question }}</span>
-                        <i class="bi bi-chevron-down faq-chevron"></i>
-                    </button>
-                    {% if user_can_manage_faqs %}
-                    <form method="POST" class="faq-delete-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="delete_faq">
-                        <input type="hidden" name="faq_id" value="{{ faq.id }}">
-                        <button type="submit" class="btn-icon-remove faq-delete-btn" title="Delete FAQ">
-                            <i class="bi bi-trash3"></i>
+            <div class="faq-item" id="faq-item-{{ faq.id }}">
+
+                {# --- View mode --- #}
+                <div class="faq-view" id="faq-view-{{ faq.id }}">
+                    <div class="faq-header">
+                        <button class="faq-trigger" type="button" aria-expanded="false">
+                            <span class="faq-icon">Q</span>
+                            <span class="faq-question">{{ faq.question }}</span>
+                            <i class="bi bi-chevron-down faq-chevron"></i>
                         </button>
+                        {% if user_can_manage_faqs %}
+                        <div class="faq-actions">
+                            <button type="button" class="btn-icon-edit faq-edit-btn" title="Edit FAQ" data-faq-id="{{ faq.id }}">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <form method="POST" class="faq-delete-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete_faq">
+                                <input type="hidden" name="faq_id" value="{{ faq.id }}">
+                                <button type="submit" class="btn-icon-remove faq-delete-btn" title="Delete FAQ">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="faq-answer-wrap">
+                        <p class="faq-answer">{{ faq.answer }}</p>
+                    </div>
+                </div>
+
+                {# --- Edit mode --- #}
+                {% if user_can_manage_faqs %}
+                <div class="faq-edit-card" id="faq-edit-{{ faq.id }}" style="display:none;">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="edit_faq">
+                        <input type="hidden" name="faq_id" value="{{ faq.id }}">
+                        <div class="faq-form-field">
+                            <label class="faq-form-label">Question <span class="required-star">*</span></label>
+                            <input type="text" name="question" value="{{ faq.question }}" class="department-form-input" required>
+                        </div>
+                        <div class="faq-form-field">
+                            <label class="faq-form-label">Answer <span class="required-star">*</span></label>
+                            <textarea name="answer" class="department-form-textarea" rows="4" required>{{ faq.answer }}</textarea>
+                        </div>
+                        <div class="faq-form-actions">
+                            <button type="button" class="btn btn-secondary btn-sm faq-edit-cancel-btn" data-faq-id="{{ faq.id }}">Cancel</button>
+                            <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+                        </div>
                     </form>
-                    {% endif %}
                 </div>
-                <div class="faq-answer-wrap">
-                    <p class="faq-answer">{{ faq.answer }}</p>
-                </div>
+                {% endif %}
+
             </div>
             {% empty %}
             <div class="faq-empty">No FAQs added yet.</div>
@@ -278,13 +311,28 @@
 
     // FAQ accordion
     document.querySelectorAll('.faq-trigger').forEach(trigger => {
-        trigger.addEventListener('click', e => {
-            // Don't toggle if the delete button was clicked
-            if (e.target.closest('.faq-delete-form')) return;
+        trigger.addEventListener('click', () => {
             const item = trigger.closest('.faq-item');
             const isOpen = item.classList.contains('faq-open');
             item.classList.toggle('faq-open', !isOpen);
             trigger.setAttribute('aria-expanded', String(!isOpen));
+        });
+    });
+
+    // FAQ inline edit
+    document.querySelectorAll('.faq-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.faqId;
+            document.getElementById(`faq-view-${id}`).style.display = 'none';
+            document.getElementById(`faq-edit-${id}`).style.display = 'block';
+        });
+    });
+
+    document.querySelectorAll('.faq-edit-cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.faqId;
+            document.getElementById(`faq-edit-${id}`).style.display = 'none';
+            document.getElementById(`faq-view-${id}`).style.display = 'block';
         });
     });
 </script>

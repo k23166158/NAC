@@ -141,20 +141,47 @@
     transform: rotate(180deg);
 }
 
-/* ── Delete button ────────────────────────────────────── */
-.faq-delete-form {
-    margin: 0;
+/* ── Action buttons (edit + delete) ─────────────────── */
+.faq-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
     flex-shrink: 0;
 }
 
-.faq-delete-btn {
-    opacity: 0.35;
-    transition: opacity 0.15s ease;
-    padding: 6px;
+.faq-delete-form {
+    margin: 0;
 }
 
-.faq-delete-btn:hover {
+.faq-delete-btn,
+.btn-icon-edit {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    opacity: 0.35;
+    transition: opacity 0.15s ease;
+}
+
+.btn-icon-edit {
+    color: #2563eb;
+}
+
+.faq-delete-btn {
+    color: #dc2626;
+}
+
+.faq-delete-btn:hover,
+.btn-icon-edit:hover {
     opacity: 1;
+}
+
+/* ── Inline edit card ────────────────────────────────── */
+.faq-edit-card {
+    padding: 18px 20px;
+    border-top: 1px solid rgba(226, 232, 240, 0.7);
+    background: rgba(248, 250, 252, 0.6);
+    animation: faq-fade-in 0.15s ease;
 }
 
 /* ── Answer panel ────────────────────────────────────── */
