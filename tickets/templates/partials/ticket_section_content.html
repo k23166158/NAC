@@ -2,7 +2,7 @@
   {% include "partials/ticket_list.html" with tickets=tickets %}
   
   {% if tickets.has_other_pages %}
-    {% if style == "full" %}
+    {% if display_style == "full" %}
       <div class="pagination">
         <span class="step-links">
           {% if tickets.has_previous %}
@@ -39,5 +39,5 @@
     {% endif %}
   {% endif %}
 {% else %}
-  <div class="empty{% if style == "compact" %} empty-state{% endif %}">{{ empty_message }}</div>
+  <div class="empty{% if display_style == "compact" %} empty-state{% endif %}">{{ empty_message }}</div>
 {% endif %}

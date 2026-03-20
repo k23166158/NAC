@@ -194,7 +194,7 @@
     </div>
 
     <section id="panel-active" class="tab-panel" role="tabpanel">
-      {% include "partials/ticket_section_content.html" with tickets=active_tickets_page empty_message="No active tickets right now." page_param="active_page" pagination_query=active_pagination_query style="full" %}
+      {% include "partials/ticket_section_content.html" with tickets=active_tickets_page empty_message="No active tickets right now." page_param="active_page" pagination_query=active_pagination_query display_style="full" %}
     </section>
     <section id="panel-overdue" class="tab-panel" role="tabpanel" hidden>
       {% if overdue_tickets %}
@@ -204,7 +204,7 @@
       {% endif %}
     </section>
     <section id="panel-completed" class="tab-panel" role="tabpanel" hidden>
-      {% include "partials/ticket_section_content.html" with tickets=completed_tickets_page empty_message="No completed tickets yet." page_param="completed_page" pagination_query=completed_pagination_query style="full" %}
+      {% include "partials/ticket_section_content.html" with tickets=completed_tickets_page empty_message="No completed tickets yet." page_param="completed_page" pagination_query=completed_pagination_query display_style="full" %}
     </section>
   </div>
 </div>

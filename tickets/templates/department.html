@@ -62,7 +62,7 @@
             </h2>
             
             <div class="ticket-scroll-container">
-                {% include "partials/ticket_section_content.html" with tickets=active_tickets_page empty_message="No active tickets found." page_param="active_page" preserve_params=active_tickets_preserve_params style="compact" %}
+                {% include "partials/ticket_section_content.html" with tickets=active_tickets_page empty_message="No active tickets found." page_param="active_page" preserve_params=active_tickets_preserve_params display_style="compact" %}
             </div>
         </div>
 
@@ -73,7 +73,7 @@
             </h2>
             
             <div class="ticket-scroll-container">
-                {% include "partials/ticket_section_content.html" with tickets=closed_tickets_page empty_message="No closed tickets found." page_param="closed_page" preserve_params=closed_tickets_preserve_params style="compact" %}
+                {% include "partials/ticket_section_content.html" with tickets=closed_tickets_page empty_message="No closed tickets found." page_param="closed_page" preserve_params=closed_tickets_preserve_params display_style="compact" %}
             </div>
         </div>
 

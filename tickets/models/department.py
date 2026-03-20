@@ -174,30 +174,33 @@ class Department(models.Model):
         """Return ticket-related context for the department page."""
         active_tickets = self.get_tickets([Ticket.Status.OPEN, Ticket.Status.PENDING])
         closed_tickets = self.get_tickets([Ticket.Status.CLOSED])
-        active_count = active_tickets.count()
-        closed_count = closed_tickets.count()
+        return self._ticket_context_dict(request, active_tickets, closed_tickets)
+
+    def _ticket_context_dict(self, request, active_tickets, closed_tickets):
+        """Build and return the ticket context dictionary."""
         return {
             "active_tickets": active_tickets,
             "active_tickets_page": self._paginate_queryset(
                 request, active_tickets, "active_page", per_page=10
             ),
-            "active_tickets_count": active_count,
+            "active_tickets_count": active_tickets.count(),
             "active_tickets_preserve_params": self._build_preserve_params(request, ["staff_page", "closed_page"]),
             "closed_tickets": closed_tickets,
             "closed_tickets_page": self._paginate_queryset(
                 request, closed_tickets, "closed_page", per_page=10
             ),
-            "closed_tickets_count": closed_count,
+            "closed_tickets_count": closed_tickets.count(),
             "closed_tickets_preserve_params": self._build_preserve_params(request, ["staff_page", "active_page"]),
         }
 
     @staticmethod
     def _build_preserve_params(request, param_names):
         """Build a query string for preserving specified parameters."""
-        params = []
-        for param_name in param_names:
-            if param_name in request.GET:
-                params.append(f"&{param_name}={request.GET[param_name]}")
+        params = [
+            f"&{name}={request.GET[name]}"
+            for name in param_names
+            if name in request.GET
+        ]
         return "".join(params)
 
     @staticmethod
