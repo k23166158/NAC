@@ -178,19 +178,22 @@ class Department(models.Model):
 
     def _ticket_context_dict(self, request, active_tickets, closed_tickets):
         """Build and return the ticket context dictionary."""
+        ctx = {}
+        ctx.update(self._ticket_section_context(request, active_tickets, "active", ["staff_page", "closed_page"]))
+        ctx.update(self._ticket_section_context(request, closed_tickets, "closed", ["staff_page", "active_page"]))
+        ctx["active_tickets_preview"] = active_tickets
+        ctx["closed_tickets_preview"] = closed_tickets
+        return ctx
+
+    def _ticket_section_context(self, request, tickets, prefix, exclude_params):
+        """Build context entries for a single ticket status group."""
+        page_param = f"{prefix}_page"
+        preserve = self._build_preserve_params(request, exclude_params)
         return {
-            "active_tickets": active_tickets,
-            "active_tickets_page": self._paginate_queryset(
-                request, active_tickets, "active_page", per_page=10
-            ),
-            "active_tickets_count": active_tickets.count(),
-            "active_tickets_preserve_params": self._build_preserve_params(request, ["staff_page", "closed_page"]),
-            "closed_tickets": closed_tickets,
-            "closed_tickets_page": self._paginate_queryset(
-                request, closed_tickets, "closed_page", per_page=10
-            ),
-            "closed_tickets_count": closed_tickets.count(),
-            "closed_tickets_preserve_params": self._build_preserve_params(request, ["staff_page", "active_page"]),
+            f"{prefix}_tickets": tickets,
+            f"{prefix}_tickets_page": self._paginate_queryset(request, tickets, page_param, per_page=10),
+            f"{prefix}_tickets_count": tickets.count(),
+            f"{prefix}_tickets_preserve_params": preserve,
         }
 
     @staticmethod
