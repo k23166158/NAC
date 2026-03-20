@@ -58,3 +58,5 @@ class EditDepartmentViewTests(TestCase):
         view = DepartmentFormView()
         with self.assertRaises(NotImplementedError):
             view.render_form(None, None)
+
+            

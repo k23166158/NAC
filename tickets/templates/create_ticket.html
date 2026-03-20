@@ -6,6 +6,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/create_ticket.css' %}">
 <link rel="stylesheet" href="{% static 'css/attachments.css' %}">
+<link rel="stylesheet" href="{% static 'css/faq_suggestions.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -32,6 +33,14 @@
         <label class="label" for="{{ form.title.id_for_label }}">Title</label>
         {{ form.title }}
         {% if form.title.errors %}<div class="error">{{ form.title.errors }}</div>{% endif %}
+
+        <div id="faqSuggestions" class="faq-suggestions">
+          <div class="faq-suggestions-header">
+            <span class="faq-suggestions-icon">?</span>
+            Already answered in FAQs
+          </div>
+          <div id="faqSuggestionsList"></div>
+        </div>
       </div>
 
       <div class="field">
@@ -284,6 +293,82 @@
       e.preventDefault();
       fileUploadWrapper.classList.remove('dragover');
       addFiles(e.dataTransfer.files);
+    });
+  })();
+
+  (function () {
+    const titleInput = document.getElementById('{{ form.title.id_for_label }}');
+    const suggestionsPanel = document.getElementById('faqSuggestions');
+    const suggestionsList = document.getElementById('faqSuggestionsList');
+    const checkboxes = document.querySelectorAll('.dept-checkbox');
+    let debounceTimer = null;
+
+    function getSelectedDepartmentIds() {
+      const ids = [];
+      checkboxes.forEach(function (cb) {
+        if (cb.checked) ids.push(cb.value);
+      });
+      return ids;
+    }
+
+    function fetchFaqSuggestions(query) {
+      const params = new URLSearchParams({ q: query });
+      getSelectedDepartmentIds().forEach(function (id) {
+        params.append('departments', id);
+      });
+
+      suggestionsList.innerHTML = '<div class="faq-suggestions-loading">Searching FAQs...</div>';
+      suggestionsPanel.classList.add('visible');
+
+      fetch('{% url "search_faqs" %}?' + params.toString())
+        .then(function (res) { return res.json(); })
+        .then(function (results) {
+          if (results.length === 0) {
+            suggestionsPanel.classList.remove('visible');
+            suggestionsList.innerHTML = '';
+            return;
+          }
+          renderSuggestions(results);
+        })
+        .catch(function () {
+          suggestionsPanel.classList.remove('visible');
+          suggestionsList.innerHTML = '';
+        });
+    }
+
+    function renderSuggestions(results) {
+      suggestionsList.innerHTML = '';
+      results.forEach(function (faq) {
+        const item = document.createElement('div');
+        item.className = 'faq-suggestion-item';
+        item.innerHTML =
+          '<div class="faq-suggestion-dept">' + escapeHtml(faq.department) + '</div>' +
+          '<div class="faq-suggestion-question">' + escapeHtml(faq.question) + '</div>' +
+          '<div class="faq-suggestion-answer">' + escapeHtml(faq.answer) + '</div>';
+        item.addEventListener('click', function () {
+          item.classList.toggle('expanded');
+        });
+        suggestionsList.appendChild(item);
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    titleInput.addEventListener('input', function () {
+      clearTimeout(debounceTimer);
+      const query = this.value.trim();
+      if (query.length < 3) {
+        suggestionsPanel.classList.remove('visible');
+        suggestionsList.innerHTML = '';
+        return;
+      }
+      debounceTimer = setTimeout(function () {
+        fetchFaqSuggestions(query);
+      }, 400);
     });
   })();
 </script>
