@@ -22,6 +22,7 @@ from tickets.views import (
     TicketThreadView, ForwardTicketView, CreateTicketView,
     DepartmentView, CreateDepartmentView, DepartmentManageView, EditDepartmentView, DeleteDepartmentView,
     DepartmentActiveTicketsView, DepartmentClosedTicketsView,
+    DepartmentStaffView,
     UserManagementView, ToggleUserStatusView, AdminStatisticsView
 )
 from django.contrib.auth.views import LogoutView
@@ -61,6 +62,7 @@ urlpatterns = [
     path('department/<slug:department_slug>/', DepartmentView.as_view(), name='department'),
     path('department/<slug:department_slug>/active-tickets/', DepartmentActiveTicketsView.as_view(), name='department_active_tickets'),
     path('department/<slug:department_slug>/closed-tickets/', DepartmentClosedTicketsView.as_view(), name='department_closed_tickets'),
+    path('department/<slug:department_slug>/staff/', DepartmentStaffView.as_view(), name='department_staff'),
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
     path('manage-users/', UserManagementView.as_view(), name='manage_users'),
     path('manage-users/<int:pk>/toggle-status/', ToggleUserStatusView.as_view(), name='toggle_user_status'),
