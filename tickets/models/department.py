@@ -177,12 +177,23 @@ class Department(models.Model):
                 request, active_tickets, "active_page", per_page=10
             ),
             "active_tickets_count": active_tickets.count(),
+            "active_tickets_preserve_params": self._build_preserve_params(request, ["staff_page", "closed_page"]),
             "closed_tickets": closed_tickets,
             "closed_tickets_page": self._paginate_queryset(
                 request, closed_tickets, "closed_page", per_page=10
             ),
             "closed_tickets_count": closed_tickets.count(),
+            "closed_tickets_preserve_params": self._build_preserve_params(request, ["staff_page", "active_page"]),
         }
+
+    @staticmethod
+    def _build_preserve_params(request, param_names):
+        """Build a query string for preserving specified parameters."""
+        params = []
+        for param_name in param_names:
+            if param_name in request.GET:
+                params.append(f"&{param_name}={request.GET[param_name]}")
+        return "".join(params)
 
     @staticmethod
     def _paginate_queryset(request, queryset, page_param, *, per_page):

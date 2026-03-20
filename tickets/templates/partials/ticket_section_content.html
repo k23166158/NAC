@@ -1,0 +1,43 @@
+{% if tickets %}
+  {% include "partials/ticket_list.html" with tickets=tickets %}
+  
+  {% if tickets.has_other_pages %}
+    {% if style == "full" %}
+      <div class="pagination">
+        <span class="step-links">
+          {% if tickets.has_previous %}
+            <a href="?{{ page_param }}=1{{ pagination_query }}" class="pagination-link">&laquo; first</a>
+            <a href="?{{ page_param }}={{ tickets.previous_page_number }}{{ pagination_query }}" class="pagination-link">previous</a>
+          {% endif %}
+
+          <span class="current">
+            Page {{ tickets.number }} of {{ tickets.paginator.num_pages }}
+          </span>
+
+          {% if tickets.has_next %}
+            <a href="?{{ page_param }}={{ tickets.next_page_number }}{{ pagination_query }}" class="pagination-link">next</a>
+            <a href="?{{ page_param }}={{ tickets.paginator.num_pages }}{{ pagination_query }}" class="pagination-link">last &raquo;</a>
+          {% endif %}
+        </span>
+      </div>
+    {% else %}
+      <div class="pagination pagination-sm">
+        <span class="step-links">
+          {% if tickets.has_previous %}
+            <a href="?{{ page_param }}={{ tickets.previous_page_number }}{{ preserve_params }}" class="pagination-link">&laquo;</a>
+          {% endif %}
+          
+          <span class="current">
+            {{ tickets.number }} / {{ tickets.paginator.num_pages }}
+          </span>
+          
+          {% if tickets.has_next %}
+            <a href="?{{ page_param }}={{ tickets.next_page_number }}{{ preserve_params }}" class="pagination-link">&raquo;</a>
+          {% endif %}
+        </span>
+      </div>
+    {% endif %}
+  {% endif %}
+{% else %}
+  <div class="empty{% if style == "compact" %} empty-state{% endif %}">{{ empty_message }}</div>
+{% endif %}

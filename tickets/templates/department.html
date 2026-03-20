@@ -63,29 +63,7 @@
             </h2>
             
             <div class="ticket-scroll-container">
-                {% if active_tickets_page %}
-                    {% include "partials/ticket_list.html" with tickets=active_tickets_page %}
-                    
-                    {% if active_tickets_page.has_other_pages %}
-                    <div class="pagination pagination-sm">
-                        <span class="step-links">
-                            {% if active_tickets_page.has_previous %}
-                                <a href="?active_page={{ active_tickets_page.previous_page_number }}{% if request.GET.staff_page %}&staff_page={{ request.GET.staff_page }}{% endif %}{% if request.GET.closed_page %}&closed_page={{ request.GET.closed_page }}{% endif %}" class="pagination-link">&laquo;</a>
-                            {% endif %}
-                            
-                            <span class="current">
-                                {{ active_tickets_page.number }} / {{ active_tickets_page.paginator.num_pages }}
-                            </span>
-                            
-                            {% if active_tickets_page.has_next %}
-                                <a href="?active_page={{ active_tickets_page.next_page_number }}{% if request.GET.staff_page %}&staff_page={{ request.GET.staff_page }}{% endif %}{% if request.GET.closed_page %}&closed_page={{ request.GET.closed_page }}{% endif %}" class="pagination-link">&raquo;</a>
-                            {% endif %}
-                        </span>
-                    </div>
-                    {% endif %}
-                {% else %}
-                    <div class="empty empty-state">No active tickets found.</div>
-                {% endif %}
+                {% include "partials/ticket_section_content.html" with tickets=active_tickets_page empty_message="No active tickets found." page_param="active_page" preserve_params=active_tickets_preserve_params style="compact" %}
             </div>
         </div>
 
@@ -96,29 +74,7 @@
             </h2>
             
             <div class="ticket-scroll-container">
-                {% if closed_tickets_page %}
-                    {% include "partials/ticket_list.html" with tickets=closed_tickets_page %}
-                    
-                    {% if closed_tickets_page.has_other_pages %}
-                    <div class="pagination pagination-sm">
-                        <span class="step-links">
-                            {% if closed_tickets_page.has_previous %}
-                                <a href="?closed_page={{ closed_tickets_page.previous_page_number }}{% if request.GET.staff_page %}&staff_page={{ request.GET.staff_page }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">&laquo;</a>
-                            {% endif %}
-                            
-                            <span class="current">
-                                {{ closed_tickets_page.number }} / {{ closed_tickets_page.paginator.num_pages }}
-                            </span>
-                            
-                            {% if closed_tickets_page.has_next %}
-                                <a href="?closed_page={{ closed_tickets_page.next_page_number }}{% if request.GET.staff_page %}&staff_page={{ request.GET.staff_page }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">&raquo;</a>
-                            {% endif %}
-                        </span>
-                    </div>
-                    {% endif %}
-                {% else %}
-                    <div class="empty empty-state">No closed tickets found.</div>
-                {% endif %}
+                {% include "partials/ticket_section_content.html" with tickets=closed_tickets_page empty_message="No closed tickets found." page_param="closed_page" preserve_params=closed_tickets_preserve_params style="compact" %}
             </div>
         </div>
 

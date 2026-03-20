@@ -194,31 +194,7 @@
     </div>
 
     <section id="panel-active" class="tab-panel" role="tabpanel">
-      {% if active_tickets_page %}
-        {% include "partials/ticket_list.html" with tickets=active_tickets_page %}
-        
-        {% if active_tickets_page.has_other_pages %}
-        <div class="pagination">
-          <span class="step-links">
-            {% if active_tickets_page.has_previous %}
-              <a href="?active_page=1{{ active_pagination_query }}" class="pagination-link">&laquo; first</a>
-              <a href="?active_page={{ active_tickets_page.previous_page_number }}{{ active_pagination_query }}" class="pagination-link">previous</a>
-            {% endif %}
-
-            <span class="current">
-              Page {{ active_tickets_page.number }} of {{ active_tickets_page.paginator.num_pages }}
-            </span>
-
-            {% if active_tickets_page.has_next %}
-              <a href="?active_page={{ active_tickets_page.next_page_number }}{{ active_pagination_query }}" class="pagination-link">next</a>
-              <a href="?active_page={{ active_tickets_page.paginator.num_pages }}{{ active_pagination_query }}" class="pagination-link">last &raquo;</a>
-            {% endif %}
-          </span>
-        </div>
-        {% endif %}
-      {% else %}
-        <div class="empty">No active tickets right now.</div>
-      {% endif %}
+      {% include "partials/ticket_section_content.html" with tickets=active_tickets_page empty_message="No active tickets right now." page_param="active_page" pagination_query=active_pagination_query style="full" %}
     </section>
     <section id="panel-overdue" class="tab-panel" role="tabpanel" hidden>
       {% if overdue_tickets %}
@@ -228,28 +204,7 @@
       {% endif %}
     </section>
     <section id="panel-completed" class="tab-panel" role="tabpanel" hidden>
-      {% if completed_tickets_page %}
-        {% include "partials/ticket_list.html" with tickets=completed_tickets_page %}
-        {% if completed_tickets_page.has_other_pages %}
-        <div class="pagination">
-          <span class="step-links">
-            {% if completed_tickets_page.has_previous %}
-              <a href="?completed_page=1{{ completed_pagination_query }}" class="pagination-link">&laquo; first</a>
-              <a href="?completed_page={{ completed_tickets_page.previous_page_number }}{{ completed_pagination_query }}" class="pagination-link">previous</a>
-            {% endif %}
-            <span class="current">
-              Page {{ completed_tickets_page.number }} of {{ completed_tickets_page.paginator.num_pages }}
-            </span>
-            {% if completed_tickets_page.has_next %}
-              <a href="?completed_page={{ completed_tickets_page.next_page_number }}{{ completed_pagination_query }}" class="pagination-link">next</a>
-              <a href="?completed_page={{ completed_tickets_page.paginator.num_pages }}{{ completed_pagination_query }}" class="pagination-link">last &raquo;</a>
-            {% endif %}
-          </span>
-        </div>
-        {% endif %}
-      {% else %}
-        <div class="empty">No completed tickets yet.</div>
-      {% endif %}
+      {% include "partials/ticket_section_content.html" with tickets=completed_tickets_page empty_message="No completed tickets yet." page_param="completed_page" pagination_query=completed_pagination_query style="full" %}
     </section>
   </div>
 </div>
