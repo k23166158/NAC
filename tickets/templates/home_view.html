@@ -329,6 +329,8 @@
         if (key === name) el.removeAttribute("hidden");
         else el.setAttribute("hidden", "hidden");
       });
+      
+      localStorage.setItem("homeTicketTab", name);
     }
 
     buttons.forEach(btn =>
@@ -336,7 +338,8 @@
     );
 
     const params = new URLSearchParams(window.location.search);
-    const initial = params.get("tab") || "active";
+    const savedTab = localStorage.getItem("homeTicketTab");
+    const initial = params.get("tab") || savedTab || "active";
     openTab(panels[initial] ? initial : "active");
 
     function setSearchExpanded(expanded) {
@@ -344,6 +347,7 @@
       searchFields.hidden = !expanded;
       searchForm.classList.toggle("is-collapsed", !expanded);
       searchCollapseToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+      localStorage.setItem("homeSearchExpanded", expanded ? "true" : "false");
     }
 
     if (searchCollapseToggle) {
@@ -351,7 +355,9 @@
         const expanded = searchCollapseToggle.getAttribute("aria-expanded") === "true";
         setSearchExpanded(!expanded);
       });
-      setSearchExpanded(false);
+      const savedState = localStorage.getItem("homeSearchExpanded");
+      const initialExpanded = savedState !== null ? savedState === "true" : false;
+      setSearchExpanded(initialExpanded);
     }
 
     function submitDependentRefresh() {
