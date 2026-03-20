@@ -38,8 +38,8 @@ class DepartmentViewTests(TestCase):
 
         self.client.force_login(self.mem)
         res = self.client.get(self.url)
-        self.assertEqual(len(res.context["active_tickets_page"]), 1)
-        self.assertEqual(len(res.context["closed_tickets_page"]), 1)
+        self.assertEqual(len(res.context["active_tickets_preview"]), 1)
+        self.assertEqual(len(res.context["closed_tickets_preview"]), 1)
         self.assertContains(res, reverse("profile", args=[self.mem.profile_slug]))
 
     def test_department_post_actions_owner(self):

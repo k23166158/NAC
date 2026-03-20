@@ -156,32 +156,35 @@ class Department(models.Model):
         """Return users with pending invitations for this department."""
         return [invite.recipient for invite in self.get_pending_invitations()]
 
+    STAFF_PREVIEW_LIMIT = 8
+
     def _staff_context(self, request, current_staff, invited_users):
         """Return staff-related context for the department page."""
+        all_members = current_staff + invited_users
         return {
-            "staff_page": self._paginate_queryset(
-                request, current_staff + invited_users, "staff_page", per_page=8
-            ),
+            "staff_preview": all_members[:self.STAFF_PREVIEW_LIMIT],
+            "staff_total": len(all_members),
+            "show_all_staff": len(all_members) > self.STAFF_PREVIEW_LIMIT,
             "invited_staff": invited_users,
             "invited_users": invited_users,
             "available_staff": self.get_available_staff(current_staff, invited_users),
         }
 
+    TICKET_PREVIEW_LIMIT = 8
+
     def _ticket_context(self, request):
         """Return ticket-related context for the department page."""
         active_tickets = self.get_tickets([Ticket.Status.OPEN, Ticket.Status.PENDING])
         closed_tickets = self.get_tickets([Ticket.Status.CLOSED])
+        active_count = active_tickets.count()
+        closed_count = closed_tickets.count()
         return {
-            "active_tickets": active_tickets,
-            "active_tickets_page": self._paginate_queryset(
-                request, active_tickets, "active_page", per_page=10
-            ),
-            "active_tickets_count": active_tickets.count(),
-            "closed_tickets": closed_tickets,
-            "closed_tickets_page": self._paginate_queryset(
-                request, closed_tickets, "closed_page", per_page=10
-            ),
-            "closed_tickets_count": closed_tickets.count(),
+            "active_tickets_preview": active_tickets[:self.TICKET_PREVIEW_LIMIT],
+            "active_tickets_count": active_count,
+            "show_all_active": active_count > self.TICKET_PREVIEW_LIMIT,
+            "closed_tickets_preview": closed_tickets[:self.TICKET_PREVIEW_LIMIT],
+            "closed_tickets_count": closed_count,
+            "show_all_closed": closed_count > self.TICKET_PREVIEW_LIMIT,
         }
 
     @staticmethod

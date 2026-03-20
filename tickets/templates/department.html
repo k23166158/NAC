@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
 <link rel="stylesheet" href="{% static 'css/department_view.css' %}">
 <link rel="stylesheet" href="{% static 'css/user_search_bar.css' %}">
-<link rel="stylesheet" href="{% static 'css/pagination.css' %}">
 <link rel="stylesheet" href="{% static 'css/department_faq.css' %}">
 {% endblock %}
 
@@ -33,7 +32,7 @@
             {% endif %}
         </div>
         <div class="dept-meta">
-            <span class="pill dept-meta-pill">Staff {{ staff_page.paginator.count }}</span>
+            <span class="pill dept-meta-pill">Staff {{ staff_total }}</span>
             <span class="pill dept-meta-pill">Active tickets {{ active_tickets_count }}</span>
             <span class="pill dept-meta-pill">Closed tickets {{ closed_tickets_count }}</span>
         </div>
@@ -52,7 +51,7 @@
                 <h3 class="staff-card-header">Assigned & Invited</h3>
                 
                 <div class="staff-list">
-                    {% for pill_user in staff_page %}
+                    {% for pill_user in staff_preview %}
                         <div class="staff-row {% if pill_user in invited_users %}staff-row-invited{% endif %}">
                             <a class="content-link-flex staff-info" href="{% url 'profile' pill_user.profile_slug %}">
                                 {% include "partials/user_avatar.html" with avatar_user=pill_user %}
@@ -69,7 +68,7 @@
                                 {% endif %}
                             </a>
 
-                            {% if department.created_by == user or user.is_superuser %} 
+                            {% if department.created_by == user or user.is_superuser %}
                                 {% if pill_user in invited_users %}
                                     <form method="POST" class="remove-staff-form">
                                         {% csrf_token %}
@@ -99,23 +98,9 @@
                         <div class="empty empty-state">No staff assigned or invited yet.</div>
                     {% endfor %}
                 </div>
-                
-                {% if staff_page.has_other_pages %}
-                <div class="pagination pagination-sm">
-                    <span class="step-links">
-                        {% if staff_page.has_previous %}
-                            <a href="?staff_page={{ staff_page.previous_page_number }}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}{% if request.GET.closed_page %}&closed_page={{ request.GET.closed_page }}{% endif %}" class="pagination-link">&laquo;</a>
-                        {% endif %}
-                        
-                        <span class="current">
-                            {{ staff_page.number }} / {{ staff_page.paginator.num_pages }}
-                        </span>
-                        
-                        {% if staff_page.has_next %}
-                            <a href="?staff_page={{ staff_page.next_page_number }}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}{% if request.GET.closed_page %}&closed_page={{ request.GET.closed_page }}{% endif %}" class="pagination-link">&raquo;</a>
-                        {% endif %}
-                    </span>
-                </div>
+
+                {% if show_all_staff %}
+                <a href="{% url 'department_staff' department.slug %}" class="see-all-link">See All Staff ({{ staff_total }})</a>
                 {% endif %}
             </div>
             {% if department.created_by == user or user.is_superuser %}
@@ -132,25 +117,11 @@
             </h2>
             
             <div class="ticket-scroll-container">
-                {% if active_tickets_page %}
-                    {% include "partials/ticket_list.html" with tickets=active_tickets_page %}
-                    
-                    {% if active_tickets_page.has_other_pages %}
-                    <div class="pagination pagination-sm">
-                        <span class="step-links">
-                            {% if active_tickets_page.has_previous %}
-                                <a href="?active_page={{ active_tickets_page.previous_page_number }}{% if request.GET.staff_page %}&staff_page={{ request.GET.staff_page }}{% endif %}{% if request.GET.closed_page %}&closed_page={{ request.GET.closed_page }}{% endif %}" class="pagination-link">&laquo;</a>
-                            {% endif %}
-                            
-                            <span class="current">
-                                {{ active_tickets_page.number }} / {{ active_tickets_page.paginator.num_pages }}
-                            </span>
-                            
-                            {% if active_tickets_page.has_next %}
-                                <a href="?active_page={{ active_tickets_page.next_page_number }}{% if request.GET.staff_page %}&staff_page={{ request.GET.staff_page }}{% endif %}{% if request.GET.closed_page %}&closed_page={{ request.GET.closed_page }}{% endif %}" class="pagination-link">&raquo;</a>
-                            {% endif %}
-                        </span>
-                    </div>
+                {% if active_tickets_preview %}
+                    {% include "partials/ticket_list.html" with tickets=active_tickets_preview %}
+
+                    {% if show_all_active %}
+                    <a href="{% url 'department_active_tickets' department.slug %}" class="see-all-link">See All Active Tickets ({{ active_tickets_count }})</a>
                     {% endif %}
                 {% else %}
                     <div class="empty empty-state">No active tickets found.</div>
@@ -165,25 +136,11 @@
             </h2>
             
             <div class="ticket-scroll-container">
-                {% if closed_tickets_page %}
-                    {% include "partials/ticket_list.html" with tickets=closed_tickets_page %}
-                    
-                    {% if closed_tickets_page.has_other_pages %}
-                    <div class="pagination pagination-sm">
-                        <span class="step-links">
-                            {% if closed_tickets_page.has_previous %}
-                                <a href="?closed_page={{ closed_tickets_page.previous_page_number }}{% if request.GET.staff_page %}&staff_page={{ request.GET.staff_page }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">&laquo;</a>
-                            {% endif %}
-                            
-                            <span class="current">
-                                {{ closed_tickets_page.number }} / {{ closed_tickets_page.paginator.num_pages }}
-                            </span>
-                            
-                            {% if closed_tickets_page.has_next %}
-                                <a href="?closed_page={{ closed_tickets_page.next_page_number }}{% if request.GET.staff_page %}&staff_page={{ request.GET.staff_page }}{% endif %}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}" class="pagination-link">&raquo;</a>
-                            {% endif %}
-                        </span>
-                    </div>
+                {% if closed_tickets_preview %}
+                    {% include "partials/ticket_list.html" with tickets=closed_tickets_preview %}
+
+                    {% if show_all_closed %}
+                    <a href="{% url 'department_closed_tickets' department.slug %}" class="see-all-link">See All Closed Tickets ({{ closed_tickets_count }})</a>
                     {% endif %}
                 {% else %}
                     <div class="empty empty-state">No closed tickets found.</div>
