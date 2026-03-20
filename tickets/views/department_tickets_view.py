@@ -11,6 +11,7 @@ class DepartmentActiveTicketsView(LoginRequiredMixin, View):
     """List all active tickets for a department with pagination."""
 
     def get(self, request, department_slug):
+        """Handle GET request for active tickets list."""
         department = Department.get_by_slug_or_404(department_slug)
         if not department.can_view(request.user):
             return HttpResponseForbidden("You are not allowed to access this.")
@@ -31,6 +32,7 @@ class DepartmentClosedTicketsView(LoginRequiredMixin, View):
     """List all closed tickets for a department with pagination."""
 
     def get(self, request, department_slug):
+        """Handle GET request for closed tickets list."""
         department = Department.get_by_slug_or_404(department_slug)
         if not department.can_view(request.user):
             return HttpResponseForbidden("You are not allowed to access this.")

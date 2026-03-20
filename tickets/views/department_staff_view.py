@@ -11,17 +11,14 @@ class DepartmentStaffView(LoginRequiredMixin, View):
     """List all staff members for a department with pagination."""
 
     def get(self, request, department_slug):
+        """Handle GET request for staff members list."""
         department = Department.get_by_slug_or_404(department_slug)
         if not department.can_view(request.user):
             return HttpResponseForbidden("You are not allowed to access this.")
 
         current_staff = department.get_current_staff()
-        invited_users = [
-            invite.recipient for invite in department.get_pending_invitations()
-        ]
-        all_members = current_staff + invited_users
-
-        paginator = Paginator(all_members, 8)
+        invited_users = [i.recipient for i in department.get_pending_invitations()]
+        paginator = Paginator(current_staff + invited_users, 8)
         page = paginator.get_page(request.GET.get("page"))
 
         return render(request, "department_staff.html", {
