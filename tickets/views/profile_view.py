@@ -61,8 +61,8 @@ class ProfileView(View):
         qs = UserDepartments.objects.select_related("department").filter(
             user=profile_user
         )
-        names = [ud.department.name for ud in qs]
+        departments = [ud.department for ud in qs]
         return {
             "department_count": qs.count(),
-            "department_names": names,
+            "departments": departments,
         }

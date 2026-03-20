@@ -54,7 +54,7 @@
                 <div class="staff-list">
                     {% for pill_user in staff_page %}
                         <div class="staff-row {% if pill_user in invited_users %}staff-row-invited{% endif %}">
-                            <div class="staff-info">
+                            <a class="content-link-flex staff-info" href="{% url 'profile' pill_user.profile_slug %}">
                                 {% include "partials/user_avatar.html" with avatar_user=pill_user %}
                                 {% if pill_user in invited_users %}
                                     <div class="staff-copy">
@@ -67,7 +67,7 @@
                                         <span class="staff-role">Active member</span>
                                     </div>
                                 {% endif %}
-                            </div>
+                            </a>
 
                             {% if department.created_by == user or user.is_superuser %} 
                                 {% if pill_user in invited_users %}

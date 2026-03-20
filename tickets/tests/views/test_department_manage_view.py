@@ -52,6 +52,8 @@ class DepartmentManageViewTests(TestCase):
         self.assertEqual(depts[0].active_ticket_count, 1)
         self.assertEqual(depts[0].completed_ticket_count, 1)
         self.assertEqual(list(resp.context['invitations']), [inv])
+        self.assertContains(resp, reverse("department", args=[dept.slug]))
+        self.assertContains(resp, reverse("profile", args=[self.other.profile_slug]))
 
     def test_get_search_filtering(self):
         """Test that departments can be filtered by a search query."""

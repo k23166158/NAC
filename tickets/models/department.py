@@ -127,6 +127,7 @@ class Department(models.Model):
             last_message_at=Subquery(last_msg.values("edited_at")[:1]),
             last_message_body=Subquery(last_msg.values("body")[:1]),
             last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
+            last_sender_slug=Subquery(last_msg.values("sender__profile_slug")[:1]),
             last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
             last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
             last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),

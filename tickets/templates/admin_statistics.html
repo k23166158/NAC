@@ -44,7 +44,7 @@
             <ul class="stats-list">
                 {% for c in user_stats.top_creators %}
                 <li class="stats-list-item">
-                    <span>{{ c.username }}</span>
+                    <span><a class="content-link" href="{% url 'profile' c.profile_slug %}">{{ c.username }}</a></span>
                     <span class="stats-badge">{{ c.ticket_count }} created</span>
                 </li>
                 {% empty %}
@@ -58,7 +58,7 @@
             <ul class="stats-list">
                 {% for r in user_stats.top_responders %}
                 <li class="stats-list-item">
-                    <span>{{ r.username }}</span>
+                    <span><a class="content-link" href="{% url 'profile' r.profile_slug %}">{{ r.username }}</a></span>
                     <span class="stats-badge">{{ r.msgs }} msgs</span>
                 </li>
                 {% empty %}

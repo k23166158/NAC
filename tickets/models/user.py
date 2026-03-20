@@ -75,7 +75,7 @@ class User(AbstractUser):
         return list(
             cls.objects.annotate(ticket_count=Count("tickets_created", distinct=True))
             .order_by("-ticket_count")
-            .values("username", "ticket_count")[:limit]
+            .values("username", "profile_slug", "ticket_count")[:limit]
         )
 
     @classmethod
@@ -85,7 +85,7 @@ class User(AbstractUser):
             cls.objects.filter(is_staff=True)
             .annotate(msgs=Count("ticket_messages", distinct=True))
             .order_by("-msgs")
-            .values("username", "msgs")[:limit]
+            .values("username", "profile_slug", "msgs")[:limit]
         )
 
     @classmethod

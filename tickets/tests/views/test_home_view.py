@@ -125,6 +125,19 @@ class HomeViewTests(TestCase):
         self.assertIn(match, response.context["active_tickets"])
         self.assertNotIn(miss, response.context["active_tickets"])
 
+    def test_home_ticket_row_profile_links_render(self):
+        """Home ticket rows should link creator and latest sender profiles."""
+        ticket = Ticket.objects.create(
+            title="Linked ticket", created_by=self.u, status=Ticket.Status.OPEN
+        )
+        TicketMessage.objects.create(ticket=ticket, sender=self.s1, body="Latest")
+
+        self.c.force_login(self.u)
+        response = self.c.get(self.url)
+
+        self.assertContains(response, reverse("profile", args=[self.u.profile_slug]))
+        self.assertContains(response, reverse("profile", args=[self.s1.profile_slug]))
+
     def test_home_assigned_staff_filter_excludes_unassigned_tickets(self):
         """Assigned-staff filter should only show tickets that include that staff user."""
         dept = Department.objects.create(name="Support", created_by=self.s1)

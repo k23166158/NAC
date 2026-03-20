@@ -45,8 +45,10 @@
         <div class="ticket-expanded-top">
           <div class="meta-row">
             <span class="meta-item">
-              {% include "partials/user_avatar.html" with avatar_user=t.created_by avatar_class="meta-avatar" avatar_placeholder_class="meta-avatar-placeholder" %}
-              <span><strong>{{ t.created_by.first_name }} {{ t.created_by.last_name }}</strong></span>
+              <a class="content-link-flex" href="{% url 'profile' t.created_by.profile_slug %}">
+                {% include "partials/user_avatar.html" with avatar_user=t.created_by avatar_class="meta-avatar" avatar_placeholder_class="meta-avatar-placeholder" %}
+                <span><strong>{{ t.created_by.first_name }} {{ t.created_by.last_name }}</strong></span>
+              </a>
             </span>
 
             <span class="meta-dot">•</span>
@@ -77,7 +79,11 @@
                   Latest from
                   <strong>
                     {% if t.last_message_sender_id == request.user.id %}
-                      You
+                      <a class="content-link" href="{% url 'profile' request.user.profile_slug %}">You</a>
+                    {% elif t.last_sender_slug %}
+                      <a class="content-link" href="{% url 'profile' t.last_sender_slug %}">
+                        {{ t.last_sender_first }} {{ t.last_sender_last }}
+                      </a>
                     {% else %}
                       {{ t.last_sender_first }} {{ t.last_sender_last }}
                     {% endif %}

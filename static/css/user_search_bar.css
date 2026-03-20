@@ -50,15 +50,29 @@
     border: none;
     border-bottom: 1px solid rgba(226, 232, 240, 0.9);
     padding: 12px 15px;
-    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    gap: 12px;
     transition: 0.2s;
 }
 
 .dropdown-item:hover {
     background: rgba(37, 99, 235, 0.06);
+}
+
+.dropdown-user-link {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    gap: 10px;
+    justify-content: flex-start;
+}
+
+.dropdown-user-link:hover .dropdown-name,
+.dropdown-user-link:focus .dropdown-name,
+.dropdown-user-link:active .dropdown-name {
+    text-decoration: underline;
 }
 
 .avatar-small,
@@ -90,6 +104,32 @@
 
 .dropdown-username {
     color: #64748b;
+}
+
+.dropdown-add-btn {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #1f2937;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 20px;
+    line-height: 20px;
+    font-weight: 300;
+    cursor: pointer;
+    flex: 0 0 auto;
+    margin-left: auto;
+    transition: color 0.12s ease, transform 0.06s ease;
+    transform: translateY(-1px);
+}
+
+.dropdown-add-btn:hover {
+    color: #111827;
+    transform: translateY(0);
 }
 
 /* Ticket Sections */

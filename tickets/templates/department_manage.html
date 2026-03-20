@@ -32,9 +32,9 @@
           {% for invitation in invitations %}
             <li class="invitation-item">
               <div class="invitation-info">
-                <span class="invitation-department">{{ invitation.department.name }}</span>
+                <a class="content-link invitation-department" href="{% url 'department' invitation.department.slug %}">{{ invitation.department.name }}</a>
                 <span
-                    class="invitation-sender">Invited by {{ invitation.sender.get_full_name|default:invitation.sender.username }}</span>
+                    class="invitation-sender">Invited by <a class="content-link" href="{% url 'profile' invitation.sender.profile_slug %}">{{ invitation.sender.get_full_name|default:invitation.sender.username }}</a></span>
                 <span class="invitation-timestamp">{{ invitation.created_at|date:"M j, Y, g:i A" }}</span>
               </div>
               <div class="invitation-actions">
@@ -77,15 +77,15 @@
         </div>
         <div class="department-list" id="departmentList">
           {% for department in departments %}
-            <a href="{% url 'department' department_slug=department.slug %}" class="department-item"
+            <div class="department-item"
                data-name="{{ department.name|lower }}" data-description="{{ department.description|lower|default:'' }}">
               <div class="department-item-content">
                 <div class="department-item-header">
-                  <div class="department-item-icon">
+                  <a href="{% url 'department' department_slug=department.slug %}" class="department-item-icon content-link">
                     <i class="bi bi-building"></i>
-                  </div>
+                  </a>
                 </div>
-                <h3 class="department-item-name">{{ department.name }}</h3>
+                <h3 class="department-item-name"><a class="content-link" href="{% url 'department' department_slug=department.slug %}">{{ department.name }}</a></h3>
                 <div class="department-item-role-row">
                   {% if department.created_by_id == user.id %}
                     <span class="department-role role-owner">Owner</span>
@@ -102,10 +102,11 @@
                   {% with staff_list=department.assigned_users.all %}
                     <div class="department-facepile" aria-label="Department staff">
                       {% for assignment in staff_list|slice:":3" %}
-                        <div class="facepile-avatar"
+                        <a class="facepile-avatar content-link-flex"
+                             href="{% url 'profile' assignment.user.profile_slug %}"
                              title="{{ assignment.user.get_full_name|default:assignment.user.username }}">
                           {% include "partials/user_avatar.html" with avatar_user=assignment.user %}
-                        </div>
+                        </a>
                       {% endfor %}
                       {% if staff_list|length > 3 %}
                         <span class="facepile-more">+{{ staff_list|length|add:"-3" }}</span>
@@ -120,11 +121,13 @@
                                                                   aria-hidden="true"></span>Closed {{ department.completed_ticket_count }}</span>
                 </div>
                 <div class="department-item-footer">
-                  <span class="department-item-footer-text">View details</span>
-                  <i class="bi bi-arrow-right department-item-arrow"></i>
+                  <a class="content-link" href="{% url 'department' department_slug=department.slug %}">
+                    <span class="department-item-footer-text">View details</span>
+                    <i class="bi bi-arrow-right department-item-arrow"></i>
+                  </a>
                 </div>
               </div>
-            </a>
+            </div>
           {% endfor %}
         </div>
         <div id="noDepartmentsMsg" class="empty empty-state empty-state-hidden">
