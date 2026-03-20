@@ -241,6 +241,22 @@
     margin: 0;
 }
 
+.see-all-link {
+    display: block;
+    text-align: center;
+    padding: 12px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--blue, #2563eb);
+    text-decoration: none;
+    border-top: 1px solid rgba(226, 232, 240, 0.9);
+    margin-top: 8px;
+}
+
+.see-all-link:hover {
+    background: rgba(37, 99, 235, 0.04);
+}
+
 .empty-state-block {
     display: block;
 }

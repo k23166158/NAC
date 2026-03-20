@@ -2,6 +2,8 @@ from .home_view import HomeView
 from .ticket_thread_view import TicketThreadView
 from .auth import CustomLoginView, SignUpView
 from .department_view import DepartmentView
+from .department_tickets_view import DepartmentActiveTicketsView, DepartmentClosedTicketsView
+from .department_staff_view import DepartmentStaffView
 from .ticket_create import CreateTicketView
 from .department_form_view import DepartmentFormView
 from .department_create_view import CreateDepartmentView

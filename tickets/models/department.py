@@ -158,11 +158,14 @@ class Department(models.Model):
 
     def _staff_context(self, request, current_staff, invited_users):
         """Return staff-related context for the department page."""
+        all_members = current_staff + invited_users
+        staff_page = self._paginate_queryset(
+            request, all_members, "staff_page", per_page=10
+        )
+        staff_total = len(all_members)
         return {
-            "staff_page": self._paginate_queryset(
-                request, current_staff + invited_users, "staff_page", per_page=8
-            ),
-            "invited_staff": invited_users,
+            "staff_page": staff_page,
+            "staff_total": staff_total,
             "invited_users": invited_users,
             "available_staff": self.get_available_staff(current_staff, invited_users),
         }
@@ -171,18 +174,20 @@ class Department(models.Model):
         """Return ticket-related context for the department page."""
         active_tickets = self.get_tickets([Ticket.Status.OPEN, Ticket.Status.PENDING])
         closed_tickets = self.get_tickets([Ticket.Status.CLOSED])
+        active_count = active_tickets.count()
+        closed_count = closed_tickets.count()
         return {
             "active_tickets": active_tickets,
             "active_tickets_page": self._paginate_queryset(
                 request, active_tickets, "active_page", per_page=10
             ),
-            "active_tickets_count": active_tickets.count(),
+            "active_tickets_count": active_count,
             "active_tickets_preserve_params": self._build_preserve_params(request, ["staff_page", "closed_page"]),
             "closed_tickets": closed_tickets,
             "closed_tickets_page": self._paginate_queryset(
                 request, closed_tickets, "closed_page", per_page=10
             ),
-            "closed_tickets_count": closed_tickets.count(),
+            "closed_tickets_count": closed_count,
             "closed_tickets_preserve_params": self._build_preserve_params(request, ["staff_page", "active_page"]),
         }
 

@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
 <link rel="stylesheet" href="{% static 'css/department_view.css' %}">
 <link rel="stylesheet" href="{% static 'css/user_search_bar.css' %}">
-<link rel="stylesheet" href="{% static 'css/pagination.css' %}">
 <link rel="stylesheet" href="{% static 'css/department_faq.css' %}">
 {% endblock %}
 
@@ -33,7 +32,7 @@
             {% endif %}
         </div>
         <div class="dept-meta">
-            <span class="pill dept-meta-pill">Staff {{ staff_page.paginator.count }}</span>
+            <span class="pill dept-meta-pill">Staff {{ staff_total }}</span>
             <span class="pill dept-meta-pill">Active tickets {{ active_tickets_count }}</span>
             <span class="pill dept-meta-pill">Closed tickets {{ closed_tickets_count }}</span>
         </div>
