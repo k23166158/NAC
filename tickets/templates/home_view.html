@@ -117,7 +117,7 @@
       <input type="hidden" name="applied_created_from" id="homeAppliedCreatedFromInput" value="{{ applied_filters.created_from }}">
       <input type="hidden" name="applied_created_to" id="homeAppliedCreatedToInput" value="{{ applied_filters.created_to }}">
       <div class="search-collapse-row">
-        <button type="button" class="search-collapse-toggle" id="searchCollapseToggle" aria-expanded="true" aria-controls="homeSearchFields" aria-label="Toggle search filters">
+        <button type="button" class="search-collapse-toggle" id="searchCollapseToggle" aria-expanded="false" aria-controls="homeSearchFields" aria-label="Toggle search filters">
           <span class="search-collapse-text">Filters</span>
           <span class="search-collapse-icon" aria-hidden="true"></span>
         </button>
@@ -351,7 +351,7 @@
         const expanded = searchCollapseToggle.getAttribute("aria-expanded") === "true";
         setSearchExpanded(!expanded);
       });
-      setSearchExpanded(true);
+      setSearchExpanded(false);
     }
 
     function submitDependentRefresh() {
