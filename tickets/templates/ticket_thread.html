@@ -219,24 +219,7 @@
         <div class="section-wrapper">
         <h2 class="section-title">Staff Members</h2>
           <div class="staff-grid">
-            <div class="staff-card">
-              <h3 class="staff-card-header">Assigned</h3>
-              <div class="staff-list">
-                {% for staff_user in staff %}
-                  {% if staff_user != user or ticket.created_by != user %}
-                    <div class="pill staff-row">
-                      <a class="content-link-flex staff-info" href="{% url 'profile' staff_user.profile_slug %}">
-                        {% include "partials/user_avatar.html" with avatar_user=staff_user %}
-                        <span class="staff-name">{% if staff_user == user %}{{ staff_user.full_name }} [You]{% else %}{{ staff_user.full_name }}{% endif %}</span>
-                      </a>
-                      {% if staff|length > 1 %}
-                        <form method="post" class="remove-staff-form">{% csrf_token %}<input type="hidden" name="action" value="remove"><input type="hidden" name="target_type" value="staff"><input type="hidden" name="target_id" value="{{ staff_user.id }}"><button type="submit" class="btn-icon-remove" title="Remove staff"><i class="bi bi-trash3"></i></button></form>
-                      {% endif %}
-                    </div>
-                  {% endif %}
-                {% empty %}<div class="empty empty-state">No staff assigned yet.</div>{% endfor %}
-              </div>
-            </div>
+            {% include 'partials/staff_list_card.html' with header="Assigned" staff_list=staff view_type="ticket" current_user=user ticket=ticket %}
             {% include 'partials/staff_user_search_card.html' with header="Forward ticket to staff" staff=available_staff %}
           </div>
         </div>
