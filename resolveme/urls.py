@@ -31,6 +31,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from tickets.views.notifications_view import NotificationView
 from tickets.views.search_assignables_view import search_assignables
+from tickets.views.search_faqs_view import search_faqs
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -50,6 +51,7 @@ urlpatterns = [
     ),
     path("tickets/create/", CreateTicketView.as_view(), name="ticket_create"),
     path("ticket/search-assignables/", search_assignables, name="search_assignables"),
+    path("ticket/search-faqs/", search_faqs, name="search_faqs"),
 
     path('department/manage/', DepartmentManageView.as_view(), name='department_manage'),
     path('department/create/', CreateDepartmentView.as_view(), name='create_department'),

@@ -1,0 +1,93 @@
+/* ── FAQ Suggestions Panel ────────────────────────────── */
+.faq-suggestions {
+  display: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 25px rgba(17, 24, 39, .06);
+  overflow: hidden;
+  animation: faq-suggest-fade-in 0.18s ease;
+}
+
+.faq-suggestions.visible {
+  display: block;
+}
+
+@keyframes faq-suggest-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.faq-suggestions-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.faq-suggestions-icon {
+  font-size: 13px;
+}
+
+/* ── Individual suggestion item ─────────────────────── */
+.faq-suggestion-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.faq-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.faq-suggestion-item:hover {
+  background: #f8fafc;
+}
+
+.faq-suggestion-question {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.faq-suggestion-dept {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--blue);
+  margin-bottom: 6px;
+}
+
+.faq-suggestion-answer {
+  display: none;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.65;
+  padding-top: 8px;
+  border-top: 1px solid rgba(226, 232, 240, 0.5);
+  margin-top: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.faq-suggestion-item.expanded .faq-suggestion-answer {
+  display: block;
+  animation: faq-suggest-fade-in 0.15s ease;
+}
+
+/* ── Loading state ──────────────────────────────────── */
+.faq-suggestions-loading {
+  padding: 14px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+}
