@@ -85,7 +85,7 @@ header nav ul li a {
 header nav ul li a:hover {
     opacity: 1;
     text-decoration: none;
-    background: rgba(255, 255, 255, .52);
+    background: rgba(203, 213, 225, 0.85);
 }
 
 .logout-btn {
@@ -107,7 +107,7 @@ header nav ul li a:hover {
 .logout-btn:hover {
     opacity: 1;
     text-decoration: none;
-    background: rgba(255, 255, 255, .52);
+    background: rgba(203, 213, 225, 0.85);
 }
 
 .logout-form {
@@ -122,8 +122,8 @@ header nav ul li a:hover {
 
 .nav-unread-badge {
     position: absolute;
-    top: -8px;
-    right: -16px;
+    top: -3px;
+    right: -7px;
 
     min-width: 18px;
     height: 18px;
