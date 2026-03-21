@@ -37,13 +37,10 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         if not self.has_edit_permissions(self.object, request.user):
             return HttpResponseForbidden("You don't have permission to do this.")
         action = request.POST.get("action")
-        target_type = request.POST.get("target_type")
+        if action in {"add", "remove"} and not self._can_manage_assignments(request.user):
+            return HttpResponseForbidden("Assignment changes are not allowed for this ticket.")
         if action in {"add", "remove"}:
-            if not self._can_manage_assignments(request.user):
-                return HttpResponseForbidden(
-                    "Assignment changes are not allowed for this ticket."
-                )
-            return self._handle_add_remove(request, target_type)
+            return self._handle_add_remove(request, request.POST.get("target_type"))
         self.dispatch_post_action(action, request)
         return self.get(request, uuid)
 
@@ -74,19 +71,13 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         messages = self.get_messages_queryset()
         staff = self.get_ticket_staff()
         departments = self.get_ticket_departments()
-        user_has_removed = self.user_has_removed_themselves(self.request.user)
-        can_manage = (
-            self.object.status != "closed" and not user_has_removed
-        )
-        return {"ticket": self.object, "staff": staff,
-            "available_staff": self.get_available_staff(staff),
-            "ticket_departments": departments,
-            "available_departments": self.get_available_departments(departments),
-            "first_message": self.get_first_message(messages),
-            "messages": self.get_reply_messages(messages),
-            "last_user_message_id": self.get_last_user_message_id(messages),
-            "user_has_removed": user_has_removed,
-            "can_manage_assignments": can_manage,
+        removed = self.user_has_removed_themselves(self.request.user)
+        return {
+            "ticket": self.object, "staff": staff, "available_staff": self.get_available_staff(staff),
+            "ticket_departments": departments, "available_departments": self.get_available_departments(departments),
+            "first_message": self.get_first_message(messages), "messages": self.get_reply_messages(messages),
+            "last_user_message_id": self.get_last_user_message_id(messages), "user_has_removed": removed,
+            "can_manage_assignments": self.object.status != "closed" and not removed,
         }
 
     def _back_to_url(self, request):
