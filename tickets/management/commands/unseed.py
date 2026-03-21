@@ -20,6 +20,36 @@ from tickets.models import (
 
 User = get_user_model()
 
+COUNTED_MODELS = [
+    ("notifications", Notification),
+    ("ticket_departments", TicketDepartment),
+    ("ticket_assignments", TicketAssigned),
+    ("participants", TicketParticipant),
+    ("attachments", TicketMessageAttachment),
+    ("messages", TicketMessage),
+    ("invitations", DepartmentInvitation),
+    ("user_departments", UserDepartments),
+    ("faqs", DepartmentFAQ),
+    ("tickets", Ticket),
+    ("departments", Department),
+    ("users", User),
+]
+
+DELETE_MODELS_IN_ORDER = [
+    Notification,
+    TicketDepartment,
+    TicketAssigned,
+    TicketParticipant,
+    TicketMessageAttachment,
+    TicketMessage,
+    DepartmentInvitation,
+    UserDepartments,
+    DepartmentFAQ,
+    Ticket,
+    Department,
+    User,
+]
+
 
 class Command(BaseCommand):
     """Build automation command to unseed the database."""
@@ -81,40 +111,15 @@ class Command(BaseCommand):
 
     def _record_counts(self):
         """Return counts for models cleared by unseed."""
-        model_counts = [
-            ("notifications", Notification),
-            ("ticket_departments", TicketDepartment),
-            ("ticket_assignments", TicketAssigned),
-            ("participants", TicketParticipant),
-            ("attachments", TicketMessageAttachment),
-            ("messages", TicketMessage),
-            ("invitations", DepartmentInvitation),
-            ("user_departments", UserDepartments),
-            ("faqs", DepartmentFAQ),
-            ("tickets", Ticket),
-            ("departments", Department),
-            ("users", User),
-        ]
-        return {name: model.objects.count() for name, model in model_counts}
+        return {
+            name: model.objects.count()
+            for name, model in COUNTED_MODELS
+        }
 
     def _delete_all_seeded_querysets(self):
         """Delete all seeded rows in dependency-safe order."""
-        querysets = [
-            Notification.objects.all(),
-            TicketDepartment.objects.all(),
-            TicketAssigned.objects.all(),
-            TicketParticipant.objects.all(),
-            TicketMessageAttachment.objects.all(),
-            TicketMessage.objects.all(),
-            DepartmentInvitation.objects.all(),
-            UserDepartments.objects.all(),
-            DepartmentFAQ.objects.all(),
-            Ticket.objects.all(),
-            Department.objects.all(),
-            User.objects.all(),
-        ]
-        for queryset in querysets:
-            queryset.delete()
+        for model in DELETE_MODELS_IN_ORDER:
+            model.objects.all().delete()
 
     def _cleanup_empty_media_directories(self):
         """Remove empty media subdirectories left behind after file deletion."""
