@@ -29,84 +29,107 @@ class Command(BaseCommand):
         Delete all seeded application data and cleanup uploaded media files.
         """
         self.stdout.write("Unseeding data...")
+        summary = self._unseed_summary()
+        self.stdout.write(self._summary_message(summary))
 
+    def _unseed_summary(self):
+        """Run all unseed steps and return a summary dictionary."""
         attachment_count = self._delete_attachment_files()
         profile_picture_count = self._delete_profile_pictures()
         deleted_counts = self._delete_seeded_records()
         self._cleanup_empty_media_directories()
+        return {
+            "attachment_count": attachment_count,
+            "profile_picture_count": profile_picture_count,
+            "deleted_counts": deleted_counts,
+        }
 
-        self.stdout.write(
+    def _summary_message(self, summary):
+        """Return the completion message for the unseed command."""
+        deleted_counts = summary["deleted_counts"]
+        return (
             "Unseeding complete. "
             f"Deleted {deleted_counts['users']} users, "
             f"{deleted_counts['departments']} departments, "
             f"{deleted_counts['tickets']} tickets, "
             f"{deleted_counts['notifications']} notifications, "
             f"{deleted_counts['faqs']} FAQs, "
-            f"{attachment_count} attachment files, and "
-            f"{profile_picture_count} profile pictures."
+            f"{summary['attachment_count']} attachment files, and "
+            f"{summary['profile_picture_count']} profile pictures."
         )
 
     def _delete_attachment_files(self):
         """Delete uploaded ticket attachment files from storage."""
-        deleted = 0
-        for attachment in TicketMessageAttachment.objects.exclude(file=""):
-            if attachment.file:
-                attachment.file.delete(save=False)
-                deleted += 1
-        return deleted
+        attachments = [a for a in TicketMessageAttachment.objects.exclude(file="") if a.file]
+        for attachment in attachments:
+            attachment.file.delete(save=False)
+        return len(attachments)
 
     def _delete_profile_pictures(self):
         """Delete uploaded profile picture files from storage."""
-        deleted = 0
-        for user in User.objects.exclude(profile_picture=""):
-            if user.profile_picture:
-                user.profile_picture.delete(save=False)
-                deleted += 1
-        return deleted
+        users = [user for user in User.objects.exclude(profile_picture="") if user.profile_picture]
+        for user in users:
+            user.profile_picture.delete(save=False)
+        return len(users)
 
     @transaction.atomic
     def _delete_seeded_records(self):
         """Delete seeded rows from all application tables."""
-        counts = {
-            "notifications": Notification.objects.count(),
-            "ticket_departments": TicketDepartment.objects.count(),
-            "ticket_assignments": TicketAssigned.objects.count(),
-            "participants": TicketParticipant.objects.count(),
-            "attachments": TicketMessageAttachment.objects.count(),
-            "messages": TicketMessage.objects.count(),
-            "invitations": DepartmentInvitation.objects.count(),
-            "user_departments": UserDepartments.objects.count(),
-            "faqs": DepartmentFAQ.objects.count(),
-            "tickets": Ticket.objects.count(),
-            "departments": Department.objects.count(),
-            "users": User.objects.count(),
-        }
-
-        Notification.objects.all().delete()
-        TicketDepartment.objects.all().delete()
-        TicketAssigned.objects.all().delete()
-        TicketParticipant.objects.all().delete()
-        TicketMessageAttachment.objects.all().delete()
-        TicketMessage.objects.all().delete()
-        DepartmentInvitation.objects.all().delete()
-        UserDepartments.objects.all().delete()
-        DepartmentFAQ.objects.all().delete()
-        Ticket.objects.all().delete()
-        Department.objects.all().delete()
-        User.objects.all().delete()
-
+        counts = self._record_counts()
+        self._delete_all_seeded_querysets()
         return counts
+
+    def _record_counts(self):
+        """Return counts for models cleared by unseed."""
+        model_counts = [
+            ("notifications", Notification),
+            ("ticket_departments", TicketDepartment),
+            ("ticket_assignments", TicketAssigned),
+            ("participants", TicketParticipant),
+            ("attachments", TicketMessageAttachment),
+            ("messages", TicketMessage),
+            ("invitations", DepartmentInvitation),
+            ("user_departments", UserDepartments),
+            ("faqs", DepartmentFAQ),
+            ("tickets", Ticket),
+            ("departments", Department),
+            ("users", User),
+        ]
+        return {name: model.objects.count() for name, model in model_counts}
+
+    def _delete_all_seeded_querysets(self):
+        """Delete all seeded rows in dependency-safe order."""
+        querysets = [
+            Notification.objects.all(),
+            TicketDepartment.objects.all(),
+            TicketAssigned.objects.all(),
+            TicketParticipant.objects.all(),
+            TicketMessageAttachment.objects.all(),
+            TicketMessage.objects.all(),
+            DepartmentInvitation.objects.all(),
+            UserDepartments.objects.all(),
+            DepartmentFAQ.objects.all(),
+            Ticket.objects.all(),
+            Department.objects.all(),
+            User.objects.all(),
+        ]
+        for queryset in querysets:
+            queryset.delete()
 
     def _cleanup_empty_media_directories(self):
         """Remove empty media subdirectories left behind after file deletion."""
         media_root = Path("media")
         if not media_root.exists():
             return
+        for directory in self._empty_media_directories(media_root):
+            directory.rmdir()
 
-        for directory in sorted(
-            (path for path in media_root.rglob("*") if path.is_dir()),
+    def _empty_media_directories(self, media_root):
+        """Return empty media directories in deepest-first order."""
+        directories = [path for path in media_root.rglob("*") if path.is_dir()]
+        ordered_directories = sorted(
+            directories,
             key=lambda path: len(path.parts),
             reverse=True,
-        ):
-            if not any(directory.iterdir()):
-                directory.rmdir()
+        )
+        return [directory for directory in ordered_directories if not any(directory.iterdir())]
