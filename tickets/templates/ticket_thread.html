@@ -15,7 +15,7 @@
 {% block content %}
 <div class="tickets-wrap tickets-wrap-staff">
   <div class="staff-thread-shell">
-    <aside class="staff-thread-sidebar">
+    <aside class="staff-thread-sidebar{% if not user.is_staff %} staff-thread-sidebar-solo{% endif %}">
       <div class="back-link-container">
         <a href="{{ back_to_url }}" class="ticket-link">← {{ back_to_label }}</a>
       </div>

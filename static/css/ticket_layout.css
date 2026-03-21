@@ -40,6 +40,30 @@
     scrollbar-color: rgba(148, 163, 184, 0.8) transparent;
 }
 
+.staff-thread-main {
+    overflow-y: auto;
+    padding-right: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.8) transparent;
+}
+
+.staff-thread-sidebar-solo {
+    overflow: hidden;
+}
+
+.staff-thread-sidebar-solo .ticket-header-card {
+    flex: 1 1 auto;
+    height: 100%;
+}
+
+.staff-thread-sidebar-solo .ticket-header-card .col-body {
+    flex: 1 1 auto;
+}
+
 .staff-thread-sidebar::-webkit-scrollbar {
     width: 8px;
 }
@@ -64,13 +88,21 @@
     min-height: 0;
 }
 
-.staff-thread-main {
-    overflow-y: auto;
-    padding-right: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    min-width: 0;
+.staff-thread-main::-webkit-scrollbar {
+    width: 8px;
+}
+
+.staff-thread-main::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.staff-thread-main::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.8);
+    border-radius: 999px;
+}
+
+.staff-thread-main::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.9);
 }
 
 .back-link-container {
