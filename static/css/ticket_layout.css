@@ -56,12 +56,12 @@
 }
 
 .staff-thread-sidebar-solo .ticket-header-card {
-    flex: 1 1 auto;
-    height: 100%;
+    flex: 0 0 auto;
+    height: auto;
 }
 
 .staff-thread-sidebar-solo .ticket-header-card .col-body {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
 }
 
 .staff-thread-sidebar::-webkit-scrollbar {
