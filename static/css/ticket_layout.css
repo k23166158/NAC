@@ -10,6 +10,48 @@
     gap: 18px;
 }
 
+.tickets-wrap-staff {
+    max-width: none;
+    height: 100%;
+    padding: 0;
+}
+
+.staff-thread-shell {
+    display: grid;
+    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+    gap: 24px;
+    height: 100%;
+    min-height: 0;
+}
+
+.staff-thread-sidebar,
+.staff-thread-main {
+    min-height: 0;
+}
+
+.staff-thread-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    height: 100%;
+}
+
+.staff-thread-sidebar-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-height: 0;
+}
+
+.staff-thread-main {
+    overflow-y: auto;
+    padding-right: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+}
+
 .back-link-container {
     display: flex;
     align-items: center;
@@ -313,6 +355,23 @@
     .reply-container .col-head {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .tickets-wrap-staff {
+        height: auto;
+        padding: 12px 0 28px;
+    }
+
+    .staff-thread-shell {
+        grid-template-columns: minmax(0, 1fr);
+        height: auto;
+    }
+
+    .staff-thread-sidebar,
+    .staff-thread-main {
+        overflow: visible;
+        height: auto;
+        padding-right: 0;
     }
 }
 
