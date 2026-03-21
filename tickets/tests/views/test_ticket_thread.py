@@ -160,6 +160,24 @@ class TicketThreadViewTests(TestCase):
         self.assertEqual(self.t.status, Ticket.Status.CLOSED)
         self.assertEqual(self.t.resolution_summary, "Solved by support")
 
+    def test_thread_assignment_prevented_when_closed_or_removed(self):
+        """Assignments should be forbidden if ticket is closed or user removed themselves."""
+        self.client.force_login(self.u1)
+        
+        # Test self-removed user
+        TicketParticipant.objects.create(ticket=self.t, user=self.u1, removed_self=True)
+        resp1 = self.client.post(self.url, data=self._csrf(action="add", user_id="1"))
+        self.assertEqual(resp1.status_code, 403)
+        self.assertIn(b"Assignment changes are not allowed", resp1.content)
+
+        # Test closed ticket
+        TicketParticipant.objects.filter(ticket=self.t, user=self.u1).delete()
+        self.t.status = Ticket.Status.CLOSED
+        self.t.save()
+        resp2 = self.client.post(self.url, data=self._csrf(action="remove", user_id="1"))
+        self.assertEqual(resp2.status_code, 403)
+        self.assertIn(b"Assignment changes are not allowed", resp2.content)
+
     def test_thread_reopen_action_and_lifecycle_history(self):
         """Reopening from the thread should reopen the ticket and render history."""
         self.client.force_login(self.u1)
