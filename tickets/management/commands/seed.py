@@ -406,12 +406,27 @@ class Command(BaseCommand):
 
     def create_known_users(self):
         """Create users from predefined fixtures."""
-        for fixture in user_fixtures: 
-            User.objects.create_user(
-                username=fixture['username'], email=fixture['email'], password=self.DEFAULT_PASSWORD,
-                first_name=fixture['first_name'], last_name=fixture['last_name'],
-                is_superuser=fixture.get('superuser', False), is_staff=fixture.get('staff', False)
+        for fixture in user_fixtures:
+            user, _created = User.objects.update_or_create(
+                username=fixture['username'],
+                defaults=self._known_user_defaults(fixture),
             )
+            self._set_seed_password(user)
+
+    def _known_user_defaults(self, fixture):
+        """Return update defaults for a fixture-backed user."""
+        return {
+            'email': fixture['email'],
+            'first_name': fixture['first_name'],
+            'last_name': fixture['last_name'],
+            'is_superuser': fixture.get('superuser', False),
+            'is_staff': fixture.get('staff', False),
+        }
+
+    def _set_seed_password(self, user):
+        """Ensure a seeded user has the default password."""
+        user.set_password(self.DEFAULT_PASSWORD)
+        user.save(update_fields=['password'])
 
     def create_random_staff_users(self):
         """Create random staff users using Faker library."""
@@ -457,10 +472,12 @@ class Command(BaseCommand):
         """Create departments from predefined fixtures."""
         for fixture in department_fixtures:
             creator = User.objects.get(username=fixture['created_by'])
-            Department.objects.create(
+            Department.objects.update_or_create(
                 name=fixture['name'],
-                description=fixture.get('description', ''),
-                created_by=creator
+                defaults={
+                    'description': fixture.get('description', ''),
+                    'created_by': creator,
+                },
             )
 
     def create_random_departments(self):
@@ -470,18 +487,30 @@ class Command(BaseCommand):
         available_names = [name for name in kcl_department_pool if name not in existing_names]
         for index in range(self.DEPARTMENT_COUNT - len(department_fixtures)):
             name = self._department_name_for_index(index, available_names)
-            description = (
-                "Provides support for students and staff with administrative and academic service requests."
-            )
-            created_by = choice(staff)
+            Department.objects.get_or_create(name=name, defaults=self._random_department_defaults(staff))
+            existing_names.add(name)
 
-            Department.objects.create(name=name, description=description, created_by=created_by)
+    def _random_department_defaults(self, staff):
+        """Return defaults for a random seeded department."""
+        return {
+            'description': (
+                "Provides support for students and staff with administrative and academic service requests."
+            ),
+            'created_by': choice(staff),
+        }
 
     def _department_name_for_index(self, index, available_names):
         """Return the most suitable seeded department name for an index."""
         if index < len(available_names):
             return available_names[index]
-        return f"Student Services Unit {index + 1}"
+        return self._next_fallback_department_name()
+
+    def _next_fallback_department_name(self):
+        """Return the next available fallback department name."""
+        number = 1
+        while Department.objects.filter(name=f"Student Services Unit {number}").exists():
+            number += 1
+        return f"Student Services Unit {number}"
 
     def try_create_department(self, **kwargs):
         """Attempt to create a department, handling any errors."""
