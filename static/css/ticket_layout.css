@@ -52,7 +52,7 @@
 }
 
 .staff-thread-sidebar-solo {
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .staff-thread-sidebar-solo .ticket-header-card {
