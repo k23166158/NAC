@@ -36,6 +36,25 @@
     height: 100%;
     overflow-y: auto;
     padding-right: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.8) transparent;
+}
+
+.staff-thread-sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.staff-thread-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.staff-thread-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.8);
+    border-radius: 999px;
+}
+
+.staff-thread-sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.9);
 }
 
 .staff-thread-sidebar-panels {
