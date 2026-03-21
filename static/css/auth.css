@@ -112,8 +112,10 @@ input[type="file"] { padding: 6px; }
     padding: 34px 36px;
 }
 .signup-kicker {
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: center;
+    width: fit-content;
     min-height: 30px;
     padding: 0 12px;
     border-radius: 999px;

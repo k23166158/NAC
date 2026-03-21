@@ -47,62 +47,7 @@
         </div>
 
         <div class="staff-grid">
-            <div class="staff-card">
-                <h3 class="staff-card-header">Assigned & Invited</h3>
-                
-                <div class="staff-list">
-                    {% for pill_user in staff_preview %}
-                        <div class="staff-row {% if pill_user in invited_users %}staff-row-invited{% endif %}">
-                            <a class="content-link-flex staff-info" href="{% url 'profile' pill_user.profile_slug %}">
-                                {% include "partials/user_avatar.html" with avatar_user=pill_user %}
-                                {% if pill_user in invited_users %}
-                                    <div class="staff-copy">
-                                        <i class="staff-name">{{ pill_user.full_name }}</i>
-                                        <span class="staff-role staff-role-invited">Invited</span>
-                                    </div>
-                                {% else %}
-                                    <div class="staff-copy">
-                                        <span class="staff-name">{{ pill_user.full_name }}</span>
-                                        <span class="staff-role">Active member</span>
-                                    </div>
-                                {% endif %}
-                            </a>
-
-                            {% if department.created_by == user or user.is_superuser %}
-                                {% if pill_user in invited_users %}
-                                    <form method="POST" class="remove-staff-form">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="action" value="remove_invite">
-                                        <input type="hidden" name="user_id" value="{{ pill_user.id }}">
-                                        <button type="submit" class="btn-icon-remove" title="Revoke invite">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
-                                    </form>
-                                {% else %}
-                                    {% if department.created_by != pill_user %}
-                                        <form method="POST" class="remove-staff-form">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="remove">
-                                            <input type="hidden" name="user_id" value="{{ pill_user.id }}">
-                                            <button type="submit" class="btn-icon-remove" title="Remove staff">
-                                                <i class="bi bi-trash3"></i>
-                                            </button>
-                                        </form>
-                                    {% else %}
-                                        <div class="remove-btn-spacer"></div>
-                                    {% endif %}
-                                {% endif %}
-                            {% endif %}
-                        </div>
-                    {% empty %}
-                        <div class="empty empty-state">No staff assigned or invited yet.</div>
-                    {% endfor %}
-                </div>
-
-                {% if show_all_staff %}
-                <a href="{% url 'department_staff' department.slug %}" class="see-all-link">See All Staff ({{ staff_total }})</a>
-                {% endif %}
-            </div>
+            {% include 'partials/staff_list_card.html' with header="Assigned & Invited" staff_list=staff_page invited_users=invited_users view_type="department" current_user=user pagination=staff_page department=department %}
             {% if department.created_by == user or user.is_superuser %}
             {% include 'partials/staff_user_search_card.html' with header="Invite Staff" staff=available_staff %}
             {% endif %}
@@ -117,15 +62,7 @@
             </h2>
             
             <div class="ticket-scroll-container">
-                {% if active_tickets_preview %}
-                    {% include "partials/ticket_list.html" with tickets=active_tickets_preview %}
-
-                    {% if show_all_active %}
-                    <a href="{% url 'department_active_tickets' department.slug %}" class="see-all-link">See All Active Tickets ({{ active_tickets_count }})</a>
-                    {% endif %}
-                {% else %}
-                    <div class="empty empty-state">No active tickets found.</div>
-                {% endif %}
+                {% include "partials/ticket_section_content.html" with tickets=active_tickets_page empty_message="No active tickets found." page_param="active_page" preserve_params=active_tickets_preserve_params display_style="compact" %}
             </div>
         </div>
 
@@ -136,15 +73,7 @@
             </h2>
             
             <div class="ticket-scroll-container">
-                {% if closed_tickets_preview %}
-                    {% include "partials/ticket_list.html" with tickets=closed_tickets_preview %}
-
-                    {% if show_all_closed %}
-                    <a href="{% url 'department_closed_tickets' department.slug %}" class="see-all-link">See All Closed Tickets ({{ closed_tickets_count }})</a>
-                    {% endif %}
-                {% else %}
-                    <div class="empty empty-state">No closed tickets found.</div>
-                {% endif %}
+                {% include "partials/ticket_section_content.html" with tickets=closed_tickets_page empty_message="No closed tickets found." page_param="closed_page" preserve_params=closed_tickets_preserve_params display_style="compact" %}
             </div>
         </div>
 
