@@ -20,6 +20,213 @@ department_fixtures = [
     {'name': 'Informatics', 'description': 'Handles all issues related to Informatics', 'created_by': 'janedoe'},
 ]
 
+generic_department_faq_templates = [
+    {
+        "question": "How do I contact {department} about my query?",
+        "answer": (
+            "Raise a ticket with your full name, K number, programme details, and a short summary "
+            "of the issue so the {department} team can route it quickly."
+        ),
+    },
+    {
+        "question": "What details should I include when I submit a query to {department}?",
+        "answer": (
+            "Include your university email address, student ID, the relevant module or service, any deadlines, "
+            "and screenshots or documents that help explain the request."
+        ),
+    },
+]
+
+department_specific_faqs = {
+    "Informatics": [
+        {
+            "question": "How do I report a KEATS, lab machine, or coding environment issue in Informatics?",
+            "answer": (
+                "Share the module name, device or lab location, exact error message, and when the issue started. "
+                "If it is coursework-related, mention any deadline so Informatics staff can prioritise the request."
+            ),
+        },
+    ],
+    "IT Service Desk": [
+        {
+            "question": "How do I reset my password for KEATS, email, or Student Records?",
+            "answer": (
+                "Use the King's password reset service first. If the reset does not work, raise a ticket with "
+                "your K number, the affected service, and a screenshot of the error."
+            ),
+        },
+        {
+            "question": "How do I connect my laptop or phone to eduroam?",
+            "answer": (
+                "Use your full university email address as the username and your current password. If setup fails, "
+                "tell the IT Service Desk your device type, campus, and the step where the connection breaks."
+            ),
+        },
+    ],
+    "Registry Services": [
+        {
+            "question": "How do I update my legal name or personal details on my student record?",
+            "answer": (
+                "Contact Registry Services with your student ID and supporting evidence, such as official ID or a "
+                "document showing the change. The team will confirm what can be updated in Student Records."
+            ),
+        },
+    ],
+    "Student Records": [
+        {
+            "question": "How do I request an official transcript or council tax letter from Student Records?",
+            "answer": (
+                "Submit the request through the student documents process and include your student ID, delivery "
+                "preference, and any deadline for the letter or transcript."
+            ),
+        },
+    ],
+    "Timetabling Office": [
+        {
+            "question": "Who do I contact if my timetable is missing a lecture, seminar, or lab?",
+            "answer": (
+                "Send the module code, teaching week, and the activity that is missing from your timetable. "
+                "The Timetabling Office can then check whether the session has moved or not yet been published."
+            ),
+        },
+    ],
+    "Assessment and Examinations": [
+        {
+            "question": "How do I check my exam timetable or report an exam clash?",
+            "answer": (
+                "Include your student ID, module codes, and the exams that appear to clash. The Assessment and "
+                "Examinations team can confirm the timetable and explain the next steps."
+            ),
+        },
+    ],
+    "Library Services": [
+        {
+            "question": "How do I access an online journal, e-book, or reading list item through the library?",
+            "answer": (
+                "Share the resource title, module, and the link you tried. Library Services can check access rights, "
+                "database availability, and whether a reading list link needs updating."
+            ),
+        },
+    ],
+    "Student Funding": [
+        {
+            "question": "How do I ask about tuition fee instalments, bursaries, or hardship funding?",
+            "answer": (
+                "Include your K number, programme, funding concern, and any urgent deadline. Student Funding can "
+                "advise on payment dates, evidence requirements, and available support."
+            ),
+        },
+    ],
+    "Wellbeing and Counselling": [
+        {
+            "question": "How do I access wellbeing or counselling support as a student?",
+            "answer": (
+                "Raise a confidential query with your availability and a brief outline of the support you need. "
+                "If you need urgent help, follow the emergency guidance rather than waiting for a routine reply."
+            ),
+        },
+    ],
+    "Disability Support and Inclusion": [
+        {
+            "question": "How do I register with Disability Support and Inclusion for adjustments?",
+            "answer": (
+                "Share your student ID, programme, and any supporting medical evidence you already have. The team "
+                "will explain the registration process and the timeline for putting adjustments in place."
+            ),
+        },
+    ],
+    "King's Language Centre": [
+        {
+            "question": "How do I enrol on a King's Language Centre module or evening language course?",
+            "answer": (
+                "Include the language, level, and whether you need the class for credit or personal study. The "
+                "Language Centre can confirm availability, eligibility, and enrolment steps."
+            ),
+        },
+    ],
+    "Careers and Employability": [
+        {
+            "question": "How do I book a CV check or careers appointment through King's Careers and Employability?",
+            "answer": (
+                "Send your preferred appointment type, your course or career goal, and any deadline such as an "
+                "application closing date so the team can point you to the right service."
+            ),
+        },
+    ],
+    "Accommodation Services": [
+        {
+            "question": "How do I report a maintenance issue or room concern in student accommodation?",
+            "answer": (
+                "Include your residence, room number, photos if relevant, and whether the issue affects safety. "
+                "Accommodation Services can then route it to the correct residence or maintenance team."
+            ),
+        },
+    ],
+    "Visa and International Advice": [
+        {
+            "question": "How do I ask for visa or CAS advice before travelling or re-enrolling?",
+            "answer": (
+                "Explain your visa type, travel dates, and the question you need answered. Include your student ID "
+                "so the Visa and International Advice team can give the right guidance."
+            ),
+        },
+    ],
+    "Graduation Office": [
+        {
+            "question": "How do I check my graduation eligibility or ceremony booking?",
+            "answer": (
+                "Include your student ID, programme, and expected completion date. The Graduation Office can confirm "
+                "whether you are eligible and what actions are still outstanding."
+            ),
+        },
+    ],
+    "Student Conduct and Appeals": [
+        {
+            "question": "How do I submit an academic appeal or ask about the student conduct process?",
+            "answer": (
+                "Share the decision you are querying, the date you received it, and any evidence you already have. "
+                "The team can explain the correct route and the deadline that applies to your case."
+            ),
+        },
+    ],
+    "Digital Education": [
+        {
+            "question": "Who should I contact if a KEATS submission, quiz, or Turnitin link is not working?",
+            "answer": (
+                "Send the module code, the KEATS activity link, the deadline, and a screenshot of the issue. "
+                "Digital Education can help determine whether it is a setup problem or a wider platform issue."
+            ),
+        },
+    ],
+    "King's Online Support": [
+        {
+            "question": "How do I get help with accessing online teaching or recorded classes?",
+            "answer": (
+                "Let King's Online Support know the module, platform, device, and what happens when you try to join "
+                "or replay the session so they can troubleshoot efficiently."
+            ),
+        },
+    ],
+    "Module Registration Team": [
+        {
+            "question": "How do I change modules or check my module registration?",
+            "answer": (
+                "Include your programme, current modules, and the module you want to add or drop. The Module "
+                "Registration Team can confirm deadlines, availability, and any approval needed."
+            ),
+        },
+    ],
+    "Academic Skills Centre": [
+        {
+            "question": "How do I book academic writing, study skills, or revision support?",
+            "answer": (
+                "Share the kind of support you want, your course, and any upcoming assessment deadline. The "
+                "Academic Skills Centre can direct you to workshops, tutorials, or self-study resources."
+            ),
+        },
+    ],
+}
+
 kcl_department_pool = [
     "IT Service Desk",
     "Registry Services",
@@ -180,6 +387,7 @@ class Command(BaseCommand):
         self.create_users()
         self.create_departments()
         self.assign_users_to_departments()
+        self.create_department_faqs()
         self.create_tickets()
         self.assign_tickets_to_departments()
         self.create_ticket_messages()
@@ -256,7 +464,7 @@ class Command(BaseCommand):
             )
 
     def create_random_departments(self):
-        """Create KCL-style department names and descriptions."""
+        """Create university-style department names and descriptions."""
         staff = list(User.objects.filter(is_staff=True))
         existing_names = {dept.name for dept in Department.objects.all()}
         available_names = [name for name in kcl_department_pool if name not in existing_names]
@@ -281,6 +489,50 @@ class Command(BaseCommand):
             Department.objects.create(**kwargs)
         except Exception:
             pass
+
+    def create_department_faqs(self):
+        """Create university-style FAQs for every seeded department."""
+        print("Creating department FAQs...")
+        created = sum(
+            self._create_faqs_for_department(department)
+            for department in Department.objects.all().order_by("name")
+        )
+        print(f"{created} Department FAQs created.")
+
+    def _faq_entries_for_department(self, department):
+        """Return generic and department-specific FAQ entries for a department."""
+        formatted_generic_entries = [
+            {
+                "question": template["question"].format(department=department.name),
+                "answer": template["answer"].format(department=department.name),
+            }
+            for template in generic_department_faq_templates
+        ]
+        return formatted_generic_entries + department_specific_faqs.get(department.name, [])
+
+    def _create_faqs_for_department(self, department):
+        """Create FAQ entries for one department and return how many were added."""
+        created = 0
+        for order, faq in enumerate(self._faq_entries_for_department(department)):
+            created += self._create_department_faq(department, faq, order)
+        return created
+
+    def _create_department_faq(self, department, faq, order):
+        """Create one department FAQ if it does not already exist."""
+        _, was_created = DepartmentFAQ.objects.get_or_create(
+            department=department,
+            question=faq["question"],
+            defaults=self._department_faq_defaults(department, faq, order),
+        )
+        return int(was_created)
+
+    def _department_faq_defaults(self, department, faq, order):
+        """Return default values for a seeded department FAQ."""
+        return {
+            "answer": faq["answer"],
+            "created_by": department.created_by,
+            "order": order,
+        }
 
     def assign_users_to_departments(self):
         """Randomly assign users to departments."""
