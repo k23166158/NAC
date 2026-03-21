@@ -493,23 +493,10 @@ class Command(BaseCommand):
     def create_department_faqs(self):
         """Create university-style FAQs for every seeded department."""
         print("Creating department FAQs...")
-        created = 0
-
-        for department in Department.objects.all().order_by("name"):
-            faq_entries = self._faq_entries_for_department(department)
-            for order, faq in enumerate(faq_entries):
-                _, was_created = DepartmentFAQ.objects.get_or_create(
-                    department=department,
-                    question=faq["question"],
-                    defaults={
-                        "answer": faq["answer"],
-                        "created_by": department.created_by,
-                        "order": order,
-                    },
-                )
-                if was_created:
-                    created += 1
-
+        created = sum(
+            self._create_faqs_for_department(department)
+            for department in Department.objects.all().order_by("name")
+        )
         print(f"{created} Department FAQs created.")
 
     def _faq_entries_for_department(self, department):
@@ -522,6 +509,30 @@ class Command(BaseCommand):
             for template in generic_department_faq_templates
         ]
         return formatted_generic_entries + department_specific_faqs.get(department.name, [])
+
+    def _create_faqs_for_department(self, department):
+        """Create FAQ entries for one department and return how many were added."""
+        created = 0
+        for order, faq in enumerate(self._faq_entries_for_department(department)):
+            created += self._create_department_faq(department, faq, order)
+        return created
+
+    def _create_department_faq(self, department, faq, order):
+        """Create one department FAQ if it does not already exist."""
+        _, was_created = DepartmentFAQ.objects.get_or_create(
+            department=department,
+            question=faq["question"],
+            defaults=self._department_faq_defaults(department, faq, order),
+        )
+        return int(was_created)
+
+    def _department_faq_defaults(self, department, faq, order):
+        """Return default values for a seeded department FAQ."""
+        return {
+            "answer": faq["answer"],
+            "created_by": department.created_by,
+            "order": order,
+        }
 
     def assign_users_to_departments(self):
         """Randomly assign users to departments."""
