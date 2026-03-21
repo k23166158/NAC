@@ -34,6 +34,8 @@
     flex-direction: column;
     gap: 18px;
     height: 100%;
+    overflow-y: auto;
+    padding-right: 6px;
 }
 
 .staff-thread-sidebar-panels {
