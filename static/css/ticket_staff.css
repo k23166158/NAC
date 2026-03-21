@@ -1,5 +1,21 @@
 /* Staff & Department Section */
 
+body.ticket-thread-staff-page {
+    height: 100vh;
+    overflow: hidden;
+}
+
+body.ticket-thread-staff-page main {
+    max-width: none;
+    height: 100%;
+    padding: 18px 18px 20px;
+    overflow: hidden;
+}
+
+body.ticket-thread-staff-page footer {
+    display: none;
+}
+
 .section-wrapper {
     margin-top: 18px;
     padding: 16px 18px 18px;
@@ -7,6 +23,10 @@
     border-radius: var(--radius);
     border: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
+}
+
+.ticket-thread-staff-page .staff-thread-sidebar .section-wrapper {
+    margin-top: 0;
 }
 
 .section-title {
@@ -25,6 +45,11 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 18px;
+}
+
+.ticket-thread-staff-page .staff-thread-sidebar .staff-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
 }
 
 .staff-card {
@@ -53,6 +78,10 @@
     max-height: 260px;
     overflow-y: auto;
     padding-right: 4px;
+}
+
+.ticket-thread-staff-page .staff-thread-sidebar .staff-list {
+    max-height: 200px;
 }
 
 /* Individual staff row */
@@ -246,8 +275,27 @@
 /* Responsive adjustments */
 
 @media (max-width: 800px) {
+    body.ticket-thread-staff-page {
+        height: auto;
+        overflow: auto;
+    }
+
+    body.ticket-thread-staff-page main {
+        height: auto;
+        padding: 22px 18px 40px;
+        overflow: visible;
+    }
+
+    body.ticket-thread-staff-page footer {
+        display: block;
+    }
+
     .staff-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ticket-thread-staff-page .staff-thread-sidebar .staff-list {
+        max-height: 260px;
     }
 }
 
