@@ -39,6 +39,10 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         action = request.POST.get("action")
         target_type = request.POST.get("target_type")
         if action in {"add", "remove"}:
+            if not self._can_manage_assignments(request.user):
+                return HttpResponseForbidden(
+                    "Assignment changes are not allowed for this ticket."
+                )
             return self._handle_add_remove(request, target_type)
         self.dispatch_post_action(action, request)
         return self.get(request, uuid)
@@ -55,11 +59,25 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         """Return whether a user can edit a ticket."""
         return ticket.can_edit(user)
 
+    def _can_manage_assignments(self, user):
+        """Return True if the user may add/remove staff or departments.
+
+        Returns False when the ticket is closed, or when the requesting
+        user has removed themselves from the ticket.
+        """
+        if self.ticket.status == "closed":
+            return False
+        return not self.user_has_removed_themselves(user)
+
     def get_context_data(self):
         """Build context for rendering the ticket thread template."""
         messages = self.get_messages_queryset()
         staff = self.get_ticket_staff()
         departments = self.get_ticket_departments()
+        user_has_removed = self.user_has_removed_themselves(self.request.user)
+        can_manage = (
+            self.object.status != "closed" and not user_has_removed
+        )
         return {"ticket": self.object, "staff": staff,
             "available_staff": self.get_available_staff(staff),
             "ticket_departments": departments,
@@ -67,7 +85,8 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
             "first_message": self.get_first_message(messages),
             "messages": self.get_reply_messages(messages),
             "last_user_message_id": self.get_last_user_message_id(messages),
-            "user_has_removed": self.user_has_removed_themselves(self.request.user),
+            "user_has_removed": user_has_removed,
+            "can_manage_assignments": can_manage,
         }
 
     def _back_to_url(self, request):

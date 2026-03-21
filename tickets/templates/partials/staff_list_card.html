@@ -10,7 +10,7 @@
               {% include "partials/user_avatar.html" with avatar_user=staff_user %}
               <span class="staff-name">{% if staff_user == current_user %}{{ staff_user.full_name }} [You]{% else %}{{ staff_user.full_name }}{% endif %}</span>
             </a>
-            {% if staff_list|length > 1 %}
+            {% if staff_list|length > 1 and can_manage %}
               <form method="post" class="remove-staff-form">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="remove">

@@ -75,17 +75,42 @@
       </div>
       {% if user.is_staff %}
         <div class="staff-thread-sidebar-panels">
-          <div class="section-wrapper">
-            <h2 class="section-title">Staff Members</h2>
+          <div class="section-wrapper{% if not can_manage_assignments %} section-wrapper--locked{% endif %}">
+            <h2 class="section-title">Staff Members
+              {% if not can_manage_assignments %}
+                <span class="assignment-lock-badge"><i class="bi bi-lock-fill"></i></span>
+              {% endif %}
+            </h2>
+            {% if not can_manage_assignments %}
+              <p class="assignment-locked-notice">
+                {% if ticket.status == 'closed' %}Ticket is closed — staff changes are disabled.{% else %}You have left this ticket — staff changes are disabled.{% endif %}
+              </p>
+            {% endif %}
             <div class="staff-grid">
-              {% include 'partials/staff_list_card.html' with header="Assigned" staff_list=staff view_type="ticket" current_user=user ticket=ticket %}
-              {% include 'partials/staff_user_search_card.html' with header="Forward ticket to staff" staff=available_staff %}
+              {% include 'partials/staff_list_card.html' with header="Assigned" staff_list=staff view_type="ticket" current_user=user ticket=ticket can_manage=can_manage_assignments %}
+              {% if can_manage_assignments %}
+                {% include 'partials/staff_user_search_card.html' with header="Forward ticket to staff" staff=available_staff %}
+              {% else %}
+                <div class="staff-card staff-card--locked">
+                  <h3 class="staff-card-header">Add staff</h3>
+                  <p class="assignment-locked-placeholder">Unavailable</p>
+                </div>
+              {% endif %}
             </div>
           </div>
-          <div class="section-wrapper">
-            <h2 class="section-title">Departments</h2>
+          <div class="section-wrapper{% if not can_manage_assignments %} section-wrapper--locked{% endif %}">
+            <h2 class="section-title">Departments
+              {% if not can_manage_assignments %}
+                <span class="assignment-lock-badge"><i class="bi bi-lock-fill"></i></span>
+              {% endif %}
+            </h2>
+            {% if not can_manage_assignments %}
+              <p class="assignment-locked-notice">
+                {% if ticket.status == 'closed' %}Ticket is closed — department changes are disabled.{% else %}You have left this ticket — department changes are disabled.{% endif %}
+              </p>
+            {% endif %}
             <div class="staff-grid">
-              <div class="staff-card">
+              <div class="staff-card{% if not can_manage_assignments %} staff-card--locked{% endif %}">
                 <h3 class="staff-card-header">Assigned</h3>
                 <div class="staff-list">
                   {% for department in ticket_departments %}
@@ -96,38 +121,44 @@
                         </div>
                         <span class="staff-name department-name">{{ department.name }}</span>
                       </a>
-                      <form method="post" class="remove-department-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="remove">
-                        <input type="hidden" name="target_type" value="department">
-                        <input type="hidden" name="target_id" value="{{ department.id }}">
-                        <button type="submit" class="btn-icon-remove" title="Remove department">
-                          <i class="bi bi-trash3"></i>
-                        </button>
-                      </form>
+                      {% if can_manage_assignments %}
+                        <form method="post" class="remove-department-form">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="remove">
+                          <input type="hidden" name="target_type" value="department">
+                          <input type="hidden" name="target_id" value="{{ department.id }}">
+                          <button type="submit" class="btn-icon-remove" title="Remove department">
+                            <i class="bi bi-trash3"></i>
+                          </button>
+                        </form>
+                      {% endif %}
                     </div>
                   {% empty %}<div class="empty empty-state">No departments assigned.</div>{% endfor %}
                 </div>
               </div>
-              <div class="staff-card">
+              <div class="staff-card{% if not can_manage_assignments %} staff-card--locked{% endif %}">
                 <h3 class="staff-card-header">Add department</h3>
                 <div class="staff-list">
-                  {% for department in available_departments %}
-                    <form method="post" class="add-department-form">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="add">
-                      <input type="hidden" name="target_type" value="department">
-                      <input type="hidden" name="target_id" value="{{ department.id }}">
-                      <div class="pill department-pill">
-                        <a class="content-link department-pill-link" href="{% url 'department' department.slug %}">
-                          <span class="department-pill-name">{{ department.name }}</span>
-                        </a>
-                        <button type="submit" class="department-add-btn" title="Add department" aria-label="Add {{ department.name }}">
-                          +
-                        </button>
-                      </div>
-                    </form>
-                  {% empty %}<div class="empty empty-state">All departments added.</div>{% endfor %}
+                  {% if can_manage_assignments %}
+                    {% for department in available_departments %}
+                      <form method="post" class="add-department-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="target_type" value="department">
+                        <input type="hidden" name="target_id" value="{{ department.id }}">
+                        <div class="pill department-pill">
+                          <a class="content-link department-pill-link" href="{% url 'department' department.slug %}">
+                            <span class="department-pill-name">{{ department.name }}</span>
+                          </a>
+                          <button type="submit" class="department-add-btn" title="Add department" aria-label="Add {{ department.name }}">
+                            +
+                          </button>
+                        </div>
+                      </form>
+                    {% empty %}<div class="empty empty-state">All departments added.</div>{% endfor %}
+                  {% else %}
+                    <p class="assignment-locked-placeholder">Unavailable</p>
+                  {% endif %}
                 </div>
               </div>
             </div>
