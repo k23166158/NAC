@@ -13,66 +13,66 @@
 {% endblock %}
 
 {% block content %}
-<div class="tickets-wrap{% if user.is_staff %} tickets-wrap-staff{% endif %}">
-  {% if user.is_staff %}
-    <div class="staff-thread-shell">
-      <aside class="staff-thread-sidebar">
-        <div class="back-link-container">
-          <a href="{{ back_to_url }}" class="ticket-link">← {{ back_to_label }}</a>
+<div class="tickets-wrap tickets-wrap-staff">
+  <div class="staff-thread-shell">
+    <aside class="staff-thread-sidebar">
+      <div class="back-link-container">
+        <a href="{{ back_to_url }}" class="ticket-link">← {{ back_to_label }}</a>
+      </div>
+      <div class="ticket-header-card">
+        <div class="col-head">
+          <h1 class="tickets-title">{{ ticket.title }}</h1>
+          {% if ticket.status == 'closed' %}
+            <span class="pill status status-completed">CLOSED</span>
+          {% elif ticket.status == 'pending' %}
+            <span class="pill status status-overdue">PENDING</span>
+          {% else %}
+            <span class="pill status status-active">OPEN</span>
+          {% endif %}
         </div>
-        <div class="ticket-header-card">
-          <div class="col-head">
-            <h1 class="tickets-title">{{ ticket.title }}</h1>
-            {% if ticket.status == 'closed' %}
-              <span class="pill status status-completed">CLOSED</span>
-            {% elif ticket.status == 'pending' %}
-              <span class="pill status status-overdue">PENDING</span>
-            {% else %}
-              <span class="pill status status-active">OPEN</span>
+        <div class="col-body">
+          <div class="ticket-meta">
+            <span class="pill">Created by <strong><a class="content-link" href="{% url 'profile' ticket.created_by.profile_slug %}">{{ ticket.created_by.username }}</a></strong></span>
+            <span class="pill">Created {{ ticket.created_at|date:"M d, Y H:i" }}</span>
+            <span class="pill">Updated: {{ ticket.updated_at|date:"M d, Y H:i" }}</span>
+            {% if ticket.closed_by %}
+              <span class="pill">Closed by <a class="content-link" href="{% url 'profile' ticket.closed_by.profile_slug %}">{{ ticket.closed_by.username }}</a></span>
+            {% endif %}
+            {% if ticket.closed_at %}
+              <span class="pill">Closed {{ ticket.closed_at|date:"M d, Y H:i" }}</span>
+            {% endif %}
+            {% if ticket.reopened_by %}
+              <span class="pill">Reopened by <a class="content-link" href="{% url 'profile' ticket.reopened_by.profile_slug %}">{{ ticket.reopened_by.username }}</a></span>
+            {% endif %}
+            {% if ticket.reopened_at %}
+              <span class="pill">Reopened {{ ticket.reopened_at|date:"M d, Y H:i" }}</span>
             {% endif %}
           </div>
-          <div class="col-body">
-            <div class="ticket-meta">
-              <span class="pill">Created by <strong><a class="content-link" href="{% url 'profile' ticket.created_by.profile_slug %}">{{ ticket.created_by.username }}</a></strong></span>
-              <span class="pill">Created {{ ticket.created_at|date:"M d, Y H:i" }}</span>
-              <span class="pill">Updated: {{ ticket.updated_at|date:"M d, Y H:i" }}</span>
-              {% if ticket.closed_by %}
-                <span class="pill">Closed by <a class="content-link" href="{% url 'profile' ticket.closed_by.profile_slug %}">{{ ticket.closed_by.username }}</a></span>
-              {% endif %}
-              {% if ticket.closed_at %}
-                <span class="pill">Closed {{ ticket.closed_at|date:"M d, Y H:i" }}</span>
-              {% endif %}
-              {% if ticket.reopened_by %}
-                <span class="pill">Reopened by <a class="content-link" href="{% url 'profile' ticket.reopened_by.profile_slug %}">{{ ticket.reopened_by.username }}</a></span>
-              {% endif %}
-              {% if ticket.reopened_at %}
-                <span class="pill">Reopened {{ ticket.reopened_at|date:"M d, Y H:i" }}</span>
-              {% endif %}
+          {% if ticket.status == 'closed' and ticket.resolution_summary %}
+            <div class="ticket-description">
+              <p class="message-body"><strong>Resolution summary:</strong> {{ ticket.resolution_summary }}</p>
             </div>
-            {% if ticket.status == 'closed' and ticket.resolution_summary %}
-              <div class="ticket-description">
-                <p class="message-body"><strong>Resolution summary:</strong> {{ ticket.resolution_summary }}</p>
-              </div>
-            {% endif %}
-            {% if first_message %}
-              <div class="ticket-description">
-                <p class="message-body">{{ first_message.body }}</p>
-                {% with atts=first_message.attachments.all %}
-                  {% if atts %}
-                    <div class="msg-attachments">
-                      {% for a in atts %}
-                        <a class="msg-attachment" href="{{ a.file.url }}" target="_blank" rel="noopener">
-                          <span class="msg-attachment-name">{{ a.original_name|default:"Attachment" }}</span>
-                          {% if a.size_bytes %}<span class="msg-attachment-meta">({{ a.size_bytes }} bytes)</span>{% endif %}
-                        </a>
-                      {% endfor %}
-                    </div>
-                  {% endif %}
-                {% endwith %}
-              </div>
-            {% endif %}
-          </div>
+          {% endif %}
+          {% if first_message %}
+            <div class="ticket-description">
+              <p class="message-body">{{ first_message.body }}</p>
+              {% with atts=first_message.attachments.all %}
+                {% if atts %}
+                  <div class="msg-attachments">
+                    {% for a in atts %}
+                      <a class="msg-attachment" href="{{ a.file.url }}" target="_blank" rel="noopener">
+                        <span class="msg-attachment-name">{{ a.original_name|default:"Attachment" }}</span>
+                        {% if a.size_bytes %}<span class="msg-attachment-meta">({{ a.size_bytes }} bytes)</span>{% endif %}
+                      </a>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% endwith %}
+            </div>
+          {% endif %}
         </div>
+      </div>
+      {% if user.is_staff %}
         <div class="staff-thread-sidebar-panels">
           <div class="section-wrapper">
             <h2 class="section-title">Staff Members</h2>
@@ -132,66 +132,9 @@
             </div>
           </div>
         </div>
-      </aside>
-      <div class="staff-thread-main">
-  {% else %}
-    <div class="back-link-container">
-      <a href="{{ back_to_url }}" class="ticket-link">← {{ back_to_label }}</a>
-    </div>
-    <div class="ticket-header-card">
-      <div class="col-head">
-        <h1 class="tickets-title">{{ ticket.title }}</h1>
-        {% if ticket.status == 'closed' %}
-          <span class="pill status status-completed">CLOSED</span>
-        {% elif ticket.status == 'pending' %}
-          <span class="pill status status-overdue">PENDING</span>
-        {% else %}
-          <span class="pill status status-active">OPEN</span>
-        {% endif %}
-      </div>
-      <div class="col-body">
-        <div class="ticket-meta">
-          <span class="pill">Created by <strong><a class="content-link" href="{% url 'profile' ticket.created_by.profile_slug %}">{{ ticket.created_by.username }}</a></strong></span>
-          <span class="pill">Created {{ ticket.created_at|date:"M d, Y H:i" }}</span>
-          <span class="pill">Updated: {{ ticket.updated_at|date:"M d, Y H:i" }}</span>
-          {% if ticket.closed_by %}
-            <span class="pill">Closed by <a class="content-link" href="{% url 'profile' ticket.closed_by.profile_slug %}">{{ ticket.closed_by.username }}</a></span>
-          {% endif %}
-          {% if ticket.closed_at %}
-            <span class="pill">Closed {{ ticket.closed_at|date:"M d, Y H:i" }}</span>
-          {% endif %}
-          {% if ticket.reopened_by %}
-            <span class="pill">Reopened by <a class="content-link" href="{% url 'profile' ticket.reopened_by.profile_slug %}">{{ ticket.reopened_by.username }}</a></span>
-          {% endif %}
-          {% if ticket.reopened_at %}
-            <span class="pill">Reopened {{ ticket.reopened_at|date:"M d, Y H:i" }}</span>
-          {% endif %}
-        </div>
-        {% if ticket.status == 'closed' and ticket.resolution_summary %}
-          <div class="ticket-description">
-            <p class="message-body"><strong>Resolution summary:</strong> {{ ticket.resolution_summary }}</p>
-          </div>
-        {% endif %}
-        {% if first_message %}
-          <div class="ticket-description">
-            <p class="message-body">{{ first_message.body }}</p>
-            {% with atts=first_message.attachments.all %}
-              {% if atts %}
-                <div class="msg-attachments">
-                  {% for a in atts %}
-                    <a class="msg-attachment" href="{{ a.file.url }}" target="_blank" rel="noopener">
-                      <span class="msg-attachment-name">{{ a.original_name|default:"Attachment" }}</span>
-                      {% if a.size_bytes %}<span class="msg-attachment-meta">({{ a.size_bytes }} bytes)</span>{% endif %}
-                    </a>
-                  {% endfor %}
-                </div>
-              {% endif %}
-            {% endwith %}
-          </div>
-        {% endif %}
-      </div>
-    </div>
-  {% endif %}
+      {% endif %}
+    </aside>
+    <div class="staff-thread-main">
   <div class="thread-section">
     <div class="thread-section-head">
       <div>
@@ -356,18 +299,13 @@
       <div class="ticket-closed-notice">You do not have permission to make changes to this ticket.</div>
     {% endif %}
   {% endif %}
-  {% if user.is_staff %}
-      </div>
     </div>
-  {% endif %}
+  </div>
 </div>
 
 <script>
 (function () {
-  if (document.body.classList.contains('ticket-thread-staff-page')) return;
-  {% if user.is_staff %}
-    document.body.classList.add('ticket-thread-staff-page');
-  {% endif %}
+  document.body.classList.add('ticket-thread-staff-page');
 })();
 
 (function () {
