@@ -7,6 +7,8 @@ from tickets.models import *
 from django.contrib.contenttypes.models import ContentType
 from tickets.models.notification import Notification
 from collections import defaultdict
+from django.utils import timezone
+from datetime import timedelta
 
 user_fixtures = [
     {'username': 'johndoe', 'email': 'johndoe@example.org', 'first_name': 'John', 'last_name': 'Doe', 'superuser' : True, 'staff': True},
@@ -586,28 +588,56 @@ class Command(BaseCommand):
         """Create tickets in the database using FAQ-style content."""
         print("Creating tickets...")
         users = list(User.objects.all())
+        self._seed_fixture_user_tickets()
         self._create_seeded_faq_tickets(users)
         self._create_remaining_tickets(users)
         print(f"{Ticket.objects.count()} Tickets created.")
 
+    def _seed_fixture_user_tickets(self):
+        """Ensure all fixture users have a minimum number of personal tickets."""
+        fixture_usernames = [f['username'] for f in user_fixtures]
+        fixture_users = User.objects.filter(username__in=fixture_usernames)
+
+        for user in fixture_users:
+            num_tickets = randint(60, 80)
+            self._create_num_tickets(num_tickets, user)
+
+    def _create_num_tickets(self, num_tickets, user):
+        """Create num_tickets tickets for the user"""
+        for _ in range(num_tickets):
+            self._create_ticket_with_title(choice(faq_tickets)['title'], user)
+
     def _create_seeded_faq_tickets(self, users):
         """Create one ticket per FAQ entry."""
         for faq in faq_tickets:
-            self._create_ticket_with_title(faq['title'], users)
+            self._create_ticket_with_title(faq['title'], choice(users))
 
     def _create_remaining_tickets(self, users):
         """Fill up ticket count using FAQ-style titles."""
-        remaining = self.TICKET_COUNT - len(faq_tickets)
+        current_count = Ticket.objects.count()
+        remaining = self.TICKET_COUNT - current_count
+        
         for _ in range(max(0, remaining)):
-            self._create_ticket_with_title(choice(faq_tickets)['title'], users)
+            self._create_ticket_with_title(choice(faq_tickets)['title'], choice(users))
 
-    def _create_ticket_with_title(self, title, users):
-        """Create a single ticket with a realistic title."""
-        Ticket.objects.create(
+    def _create_ticket_with_title(self, title, creator):
+        """Create a single ticket with a realistic title and random date."""
+        ticket = Ticket.objects.create(
             title=title,
             status=choice(['open', 'closed']),
-            created_by=choice(users),
+            created_by=creator,
         )
+        
+        random_days = randint(5, 14)
+        random_seconds = randint(0, 86400)
+        past_date = timezone.now() - timedelta(days=random_days, seconds=random_seconds)
+
+        Ticket.objects.filter(id=ticket.id).update(
+            created_at=past_date,
+            updated_at=past_date
+        )
+        
+        return ticket
 
     def assign_tickets_to_departments(self):
         """Randomly assign tickets to departments."""
@@ -635,13 +665,17 @@ class Command(BaseCommand):
         
         for ticket in tickets:
             initial_body = faq_bodies_by_title.get(ticket.title, choice(fallback_ticket_bodies))
-            TicketMessage.objects.get_or_create(
+            past_date = timezone.now() - timedelta(days=randint(5, 14), seconds=randint(0, 86400))
+            msg = TicketMessage.objects.get_or_create(
                 ticket=ticket,
                 body=initial_body,
                 sender=ticket.created_by,
+            )[0]
+            TicketMessage.objects.filter(id=msg.id).update(
+                created_at=past_date,
+                edited_at=past_date
             )
             self.create_ticket_response_messages(ticket)
-
         print("Ticket messages created.")
     
     def create_ticket_response_messages(self, ticket):
@@ -661,14 +695,26 @@ class Command(BaseCommand):
         if available_senders:
             sender = choice(available_senders)
             body = choice(faq_responses)
-            TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
+            msg = TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
+            past_date = timezone.now() - timedelta(days=randint(5, 14), seconds=randint(0, 86400))
+
+            TicketMessage.objects.filter(id=msg.id).update(
+                created_at=past_date,
+                edited_at=past_date
+            )
     
     def random_create_user_ticket_response_messages(self, ticket):
         """Randomly create follow-up messages from users for a ticket."""
         if randint(0, 1):
             sender = ticket.created_by
             body = choice(follow_up_responses)
-            TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
+            msg = TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
+            past_date = timezone.now() - timedelta(days=randint(5, 14), seconds=randint(0, 86400))
+
+            TicketMessage.objects.filter(id=msg.id).update(
+                created_at=past_date,
+                edited_at=past_date
+            )
 
     def _create_single_attachment(self, message):
         """Create one attachment for a message with realistic document names."""
