@@ -24,9 +24,11 @@
         <div class="col-head">
           <h1 class="tickets-title">{{ ticket.title }}</h1>
           {% if ticket.status == 'closed' %}
-            <span class="pill status status-completed">CLOSED</span>
+            <span class="pill status status-completed">Closed</span>
+          {% elif ticket.is_overdue %}
+            <span class="pill status status-overdue">Overdue</span>
           {% else %}
-            <span class="pill status status-active">OPEN</span>
+            <span class="pill status status-active">Open</span>
           {% endif %}
         </div>
         <div class="col-body">

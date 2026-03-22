@@ -19,7 +19,8 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
 
     def get(self, request, uuid):
         """Render the ticket thread page."""
-        self.ticket = get_object_or_404(Ticket, uuid=uuid)
+        qs = Ticket._annotate_last_message_for_user(Ticket.objects.all(), request.user)
+        self.ticket = get_object_or_404(qs, uuid=uuid)
         self.object = self.ticket
         self.ticket.mark_read_for(request.user)
         context = self.get_context_data()
@@ -31,7 +32,8 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
 
     def post(self, request, uuid):
         """Handle POST actions for the ticket thread."""
-        self.ticket = get_object_or_404(Ticket, uuid=uuid)
+        qs = Ticket._annotate_last_message_for_user(Ticket.objects.all(), request.user)
+        self.ticket = get_object_or_404(qs, uuid=uuid)
         self.object = self.ticket
         self.request = request
         if not self.has_edit_permissions(self.object, request.user):

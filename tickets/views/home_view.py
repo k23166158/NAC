@@ -12,8 +12,8 @@ class HomeView(View):
         if not request.user.is_authenticated:
             return render(request, "unauthenticated_home.html")
 
-        qs, scope, overdue = self.filtered_ticket_state(request)
-        ctx = self.get_context(request, qs, scope, overdue)
+        qs, scope = self.filtered_ticket_state(request)
+        ctx = self.get_context(request, qs, scope)
         ctx.update(self.get_search_context(request.user, scope))
         if self.is_admin(request.user):
             ctx.update(self.get_admin_stats())
@@ -25,21 +25,19 @@ class HomeView(View):
         from django.core.paginator import Paginator
         return Paginator(queryset, per_page).get_page(request.GET.get(param_name, 1))
 
-    def get_context(self, request, qs, scope, overdue):
+    def get_context(self, request, qs, scope):
         """Build the base context dictionary for the view, with pagination for the lists."""
-        active_qs = self.active_tickets(qs, overdue)
+        active_qs = self.active_tickets(qs)
         completed_qs = self.completed_tickets(qs)
-        context = self.base_context(active_qs, completed_qs, overdue, scope)
+        context = self.base_context(active_qs, completed_qs, scope)
         context["display_visible_ticket_count"] = self.display_visible_ticket_count(
             request,
             context["visible_ticket_count"],
         )
         context["active_tickets_page"] = self._get_page(request, active_qs, 'active_page')
-        context["overdue_tickets_page"] = self._get_page(request, overdue, 'overdue_page')
         context["completed_tickets_page"] = self._get_page(request, completed_qs, 'completed_page')
         context["active_pagination_query"] = self._pagination_query(request, "active_page")
         context["completed_pagination_query"] = self._pagination_query(request, "completed_page")
-        context["overdue_pagination_query"] = self._pagination_query(request, "overdue_page")
         return context
 
     def filtered_ticket_state(self, request):
@@ -51,17 +49,16 @@ class HomeView(View):
         self.filters["scope"] = scope
         self.applied_filters["scope"] = scope
         qs = self.apply_filters(qs, self.applied_filters)
-        return qs, scope, self.overdue_tickets(qs)
+        return qs, scope
 
     @staticmethod
-    def base_context(active_qs, completed_qs, overdue, scope):
+    def base_context(active_qs, completed_qs, scope):
         """Return the non-paginated home context values."""
         return {
             "scope": scope,
             "completed_tickets": completed_qs,
-            "overdue_tickets": overdue,
             "active_tickets": active_qs,
-            "visible_ticket_count": active_qs.count() + completed_qs.count() + overdue.count(),
+            "visible_ticket_count": active_qs.count() + completed_qs.count(),
         }
 
     def _pagination_query(self, request, page_param):
@@ -151,10 +148,6 @@ class HomeView(View):
         """Tickets that are completed/closed."""
         return Ticket.completed_from(qs)
 
-    def overdue_tickets(self, qs):
-        """Tickets that are overdue for a response."""
-        return Ticket.overdue_from(qs)
-
-    def active_tickets(self, qs, overdue):
-        """Tickets that are active and not overdue."""
-        return Ticket.active_from(qs, overdue)
+    def active_tickets(self, qs):
+        """Tickets that are active."""
+        return Ticket.active_from(qs)

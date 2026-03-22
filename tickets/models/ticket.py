@@ -322,22 +322,37 @@ class Ticket(models.Model):
         return qs.filter(status=cls.Status.CLOSED).order_by("-updated_at")
 
     @classmethod
-    def overdue_from(cls, qs, *, days=7):
-        """Return overdue open tickets based on latest non-staff message age."""
-        cutoff = timezone.now() - timedelta(days=days)
+    def active_from(cls, qs):
+        """Return active open tickets, sorting overdue tickets to the top."""
+        from django.db.models import Case, When, Value, IntegerField
+        from django.db.models.functions import Coalesce
+        
+        cutoff = timezone.now() - timedelta(days=7)
+        
         return qs.filter(
             status__in=[cls.Status.OPEN],
-            last_message_at__lt=cutoff,
-        ).order_by("-last_message_at")
+        ).annotate(
+            effective_date=Coalesce('last_message_at', 'created_at')
+        ).annotate(
+            overdue_sort=Case(
+                When(effective_date__lt=cutoff, then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField()
+            )
+        ).order_by("overdue_sort", "-updated_at")
 
-    @classmethod
-    def active_from(cls, qs, overdue):
-        """Return active (non-overdue) open tickets."""
-        return qs.filter(
-            status__in=[cls.Status.OPEN],
-        ).exclude(
-            id__in=overdue.values_list("id", flat=True)
-        ).order_by("-updated_at")
+    @property
+    def is_overdue(self):
+        """Return True if the ticket is open and its last message is older than 7 days."""
+        if self.status != self.Status.OPEN:
+            return False
+            
+        last_time = getattr(self, 'last_message_at', None)
+        if not last_time:
+            last_time = self.created_at
+            
+        cutoff = timezone.now() - timedelta(days=7)
+        return last_time < cutoff
 
     def mark_read_for(self, user):
         """Create/update participant read marker for this user."""

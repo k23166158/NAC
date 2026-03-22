@@ -7,6 +7,9 @@ from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from .notification import Notification
 from tickets.helpers.notifications import create_notification
+from datetime import timedelta
+from django.utils import timezone
+from django.db.models.functions import Coalesce
 
 from .ticket import Ticket
 from .ticket_message import TicketMessage
@@ -134,9 +137,19 @@ class Department(models.Model):
         )
 
     def get_tickets(self, status_list):
-        """Return department tickets for the provided status list."""
+        """Return department tickets for the provided status list, sorting overdue tickets to the top."""
         qs = Ticket.objects.filter(assignments__department=self, status__in=status_list)
-        return Department.annotate_tickets(qs).order_by("-updated_at")
+        qs = Department.annotate_tickets(qs)
+        cutoff = timezone.now() - timedelta(days=7)
+        return qs.annotate(
+            effective_date=Coalesce("last_message_at", "created_at")
+        ).annotate(
+            overdue_sort=models.Case(
+                models.When(models.Q(status="open") & models.Q(effective_date__lt=cutoff), then=models.Value(0)),
+                default=models.Value(1),
+                output_field=models.IntegerField()
+            )
+        ).order_by("overdue_sort", "-updated_at")
 
     def build_view_context(self, request):
         """Build the context payload for the department details page."""

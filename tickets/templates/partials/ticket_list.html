@@ -24,7 +24,7 @@
           <div class="ticket-bar-right">
             {% if t.status == 'closed' %}
               <span class="pill status status-completed">Closed</span>
-            {% elif t.status == 'overdue' %}
+            {% elif t.is_overdue %}
               <span class="pill status status-overdue">Overdue</span>
             {% else %}
               <span class="pill status status-active">Open</span>

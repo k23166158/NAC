@@ -179,15 +179,6 @@
     </form>
 
     <div class="tabs tabs-centered" role="tablist" aria-label="Ticket tabs">
-
-      {% if overdue_tickets|length > 0 %}
-        <button class="tab-btn" type="button" role="tab" aria-selected="false"
-                aria-controls="panel-overdue" data-tab="overdue">
-          <span class="tab-dot dot-overdue"></span>
-          Overdue <span class="tab-count">{{ overdue_tickets|length }}</span>
-        </button>
-      {% endif %}
-
       <button class="tab-btn is-active" type="button" role="tab" aria-selected="true"
               aria-controls="panel-active" data-tab="active">
         <span class="tab-dot dot-active"></span>
@@ -258,8 +249,7 @@
     const appliedCreatedToInput = document.getElementById("homeAppliedCreatedToInput");
     const panels = {
       active: document.getElementById("panel-active"),
-      completed: document.getElementById("panel-completed"),
-      overdue: document.getElementById("panel-overdue")
+      completed: document.getElementById("panel-completed")
     };
 
     function openTab(name) {
