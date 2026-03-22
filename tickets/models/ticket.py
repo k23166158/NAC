@@ -8,6 +8,8 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, DateTimeField, Exists, F, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
+from tickets.models.notification import Notification
 
 class Ticket(models.Model):
     """Represents a support ticket in the system."""
@@ -348,6 +350,43 @@ class Ticket(models.Model):
             
         cutoff = timezone.now() - timedelta(days=7)
         return last_time < cutoff
+
+    def can_send_reminder(self):
+        """Return whether a reminder can be sent for an overdue ticket."""
+        if not self.is_overdue:
+            return False
+            
+        ticket_ct = ContentType.objects.get_for_model(self)
+        cutoff = timezone.now() - timedelta(hours=24)
+        
+        return not Notification.objects.filter(
+            content_type=ticket_ct,
+            object_id=self.id,
+            notification_type=Notification.NotificationType.TICKET_OVERDUE,
+            created_at__gte=cutoff
+        ).exists()
+
+    def send_reminder(self, actor):
+        """Send a reminder notification if the ticket is overdue and no recent reminder exists."""
+        if self.can_send_reminder():
+            from tickets.helpers.notifications import notify_overdue_ticket
+            notify_overdue_ticket(self, actor=actor)
+            return True
+        return False
+
+    def user_has_removed_themselves(self, user):
+        """Return True if the user has explicitly opted out of this ticket thread."""
+        if not user or not user.is_authenticated:
+            return False
+            
+        from .ticket_participant import TicketParticipant
+        return TicketParticipant.objects.filter(ticket=self, user=user, removed_self=True).exists()
+
+    def can_manage_assignments(self, user):
+        """Return True if the user may add/remove staff or departments."""
+        if self.status == self.Status.CLOSED:
+            return False
+        return not self.user_has_removed_themselves(user)
 
     def mark_read_for(self, user):
         """Create/update participant read marker for this user."""
