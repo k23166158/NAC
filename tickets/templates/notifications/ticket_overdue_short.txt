@@ -1,0 +1,1 @@
+{{ actor.get_full_name }} has reminded you this ticket is still active: "<a href="{{ link }}">{{ target.title }}</a>"

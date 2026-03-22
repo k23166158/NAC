@@ -43,3 +43,19 @@ def notify_ticket_participants(ticket, actor, notification_type):
     link = f"/tickets/{ticket.uuid}/"
     for user in get_ticket_participants(ticket, exclude_user=actor):
         create_notification(user, actor, notification_type, link=link, target_object=ticket)
+
+def notify_overdue_ticket(ticket, actor):
+    """Notify staff participants that a ticket is overdue."""
+    link = f"/tickets/{ticket.uuid}/"
+    
+    staff_to_notify = set(ticket.get_ticket_staff())
+    staff_to_notify.update(ticket.get_department_staff())
+    
+    for user in staff_to_notify:
+        create_notification(
+            user=user, 
+            actor=actor, 
+            notification_type='TICKET_OVERDUE',
+            link=link, 
+            target_object=ticket
+        )
