@@ -71,6 +71,23 @@
               {% endwith %}
             </div>
           {% endif %}
+
+          {% if ticket.is_overdue %}
+            {% if ticket.created_by.username == user.username or user.is_superuser %}
+              <div class="reminder-section">
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="remind_staff">
+                  <button type="submit" class="btn-submit btn-reminder {% if not can_send_reminder %}btn-disabled{% endif %}" {% if not can_send_reminder %}disabled{% endif %}>
+                    Remind Staff
+                  </button>
+                  {% if not can_send_reminder %}
+                    <p class="reminder-help-text">Reminder sent within the last 24 hours.</p>
+                  {% endif %}
+                </form>
+            </div>
+            {% endif %}
+          {% endif %}
         </div>
       </div>
       {% if user.is_staff %}

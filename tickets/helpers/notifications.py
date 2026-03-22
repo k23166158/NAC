@@ -50,6 +50,7 @@ def notify_overdue_ticket(ticket, actor):
     
     staff_to_notify = set(ticket.get_ticket_staff())
     staff_to_notify.update(ticket.get_department_staff())
+    staff_to_notify.discard(ticket.created_by)
     
     for user in staff_to_notify:
         create_notification(
