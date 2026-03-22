@@ -15,7 +15,6 @@ class Ticket(models.Model):
     class Status(models.TextChoices):
         """Represents the status of a support ticket."""
         OPEN = 'open', 'Open'
-        PENDING = 'pending', 'Pending'
         CLOSED = 'closed', 'Closed'
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True)
@@ -84,7 +83,6 @@ class Ticket(models.Model):
         """Return ticket counts grouped by status keys used by dashboard."""
         return {
             "open": cls.objects.filter(status=cls.Status.OPEN).count(),
-            "pending": cls.objects.filter(status=cls.Status.PENDING).count(),
             "closed": cls.objects.filter(status=cls.Status.CLOSED).count(),
         }
 
@@ -172,7 +170,7 @@ class Ticket(models.Model):
     @classmethod
     def _filter_status(cls, queryset, status):
         """Filter tickets by valid status."""
-        if status not in {cls.Status.OPEN, cls.Status.PENDING, cls.Status.CLOSED}:
+        if status not in {cls.Status.OPEN, cls.Status.CLOSED}:
             return queryset
         return queryset.filter(status=status)
 
@@ -325,20 +323,18 @@ class Ticket(models.Model):
 
     @classmethod
     def overdue_from(cls, qs, *, days=7):
-        """Return overdue open/pending tickets based on latest non-staff message age."""
+        """Return overdue open tickets based on latest non-staff message age."""
         cutoff = timezone.now() - timedelta(days=days)
         return qs.filter(
-            status__in=[cls.Status.OPEN, cls.Status.PENDING],
-            last_message_at__isnull=False,
+            status__in=[cls.Status.OPEN],
             last_message_at__lt=cutoff,
-            last_sender_is_staff=False,
         ).order_by("-last_message_at")
 
     @classmethod
     def active_from(cls, qs, overdue):
-        """Return active (non-overdue) open/pending tickets."""
+        """Return active (non-overdue) open tickets."""
         return qs.filter(
-            status__in=[cls.Status.OPEN, cls.Status.PENDING],
+            status__in=[cls.Status.OPEN],
         ).exclude(
             id__in=overdue.values_list("id", flat=True)
         ).order_by("-updated_at")

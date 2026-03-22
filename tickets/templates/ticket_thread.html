@@ -25,8 +25,6 @@
           <h1 class="tickets-title">{{ ticket.title }}</h1>
           {% if ticket.status == 'closed' %}
             <span class="pill status status-completed">CLOSED</span>
-          {% elif ticket.status == 'pending' %}
-            <span class="pill status status-overdue">PENDING</span>
           {% else %}
             <span class="pill status status-active">OPEN</span>
           {% endif %}

@@ -39,6 +39,7 @@ class HomeView(View):
         context["completed_tickets_page"] = self._get_page(request, completed_qs, 'completed_page')
         context["active_pagination_query"] = self._pagination_query(request, "active_page")
         context["completed_pagination_query"] = self._pagination_query(request, "completed_page")
+        context["overdue_pagination_query"] = self._pagination_query(request, "overdue_page")
         return context
 
     def filtered_ticket_state(self, request):
@@ -60,7 +61,7 @@ class HomeView(View):
             "completed_tickets": completed_qs,
             "overdue_tickets": overdue,
             "active_tickets": active_qs,
-            "visible_ticket_count": active_qs.count() + completed_qs.count(),
+            "visible_ticket_count": active_qs.count() + completed_qs.count() + overdue.count(),
         }
 
     def _pagination_query(self, request, page_param):

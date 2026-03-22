@@ -127,7 +127,6 @@
             <select name="status" class="search-select">
               <option value="">All</option>
               <option value="open" {% if filters.status == "open" %}selected{% endif %}>Open</option>
-              <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>Pending</option>
               <option value="closed" {% if filters.status == "closed" %}selected{% endif %}>Closed</option>
             </select>
           </div>
@@ -180,6 +179,15 @@
     </form>
 
     <div class="tabs tabs-centered" role="tablist" aria-label="Ticket tabs">
+
+      {% if overdue_tickets|length > 0 %}
+        <button class="tab-btn" type="button" role="tab" aria-selected="false"
+                aria-controls="panel-overdue" data-tab="overdue">
+          <span class="tab-dot dot-overdue"></span>
+          Overdue <span class="tab-count">{{ overdue_tickets|length }}</span>
+        </button>
+      {% endif %}
+
       <button class="tab-btn is-active" type="button" role="tab" aria-selected="true"
               aria-controls="panel-active" data-tab="active">
         <span class="tab-dot dot-active"></span>
@@ -193,15 +201,11 @@
       </button>
     </div>
 
+    <section id="panel-overdue" class="tab-panel" role="tabpanel" hidden>
+      {% include "partials/ticket_section_content.html" with tickets=overdue_tickets_page empty_message="No overdue tickets right now." page_param="overdue_page" pagination_query=overdue_pagination_query display_style="full" %}
+    </section>
     <section id="panel-active" class="tab-panel" role="tabpanel">
       {% include "partials/ticket_section_content.html" with tickets=active_tickets_page empty_message="No active tickets right now." page_param="active_page" pagination_query=active_pagination_query display_style="full" %}
-    </section>
-    <section id="panel-overdue" class="tab-panel" role="tabpanel" hidden>
-      {% if overdue_tickets %}
-        {% include "partials/ticket_list.html" with tickets=overdue_tickets %}
-      {% else %}
-        <div class="empty">Nothing overdue</div>
-      {% endif %}
     </section>
     <section id="panel-completed" class="tab-panel" role="tabpanel" hidden>
       {% include "partials/ticket_section_content.html" with tickets=completed_tickets_page empty_message="No completed tickets yet." page_param="completed_page" pagination_query=completed_pagination_query display_style="full" %}
@@ -255,6 +259,7 @@
     const panels = {
       active: document.getElementById("panel-active"),
       completed: document.getElementById("panel-completed"),
+      overdue: document.getElementById("panel-overdue")
     };
 
     function openTab(name) {

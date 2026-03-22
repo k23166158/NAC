@@ -172,7 +172,7 @@ class Department(models.Model):
 
     def _ticket_context(self, request):
         """Return ticket-related context for the department page."""
-        active_tickets = self.get_tickets([Ticket.Status.OPEN, Ticket.Status.PENDING])
+        active_tickets = self.get_tickets([Ticket.Status.OPEN])
         closed_tickets = self.get_tickets([Ticket.Status.CLOSED])
         return self._ticket_context_dict(request, active_tickets, closed_tickets)
 
