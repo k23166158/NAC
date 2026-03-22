@@ -266,6 +266,41 @@ class HomeViewTests(TestCase):
         self.assertEqual(response.context["visible_ticket_count"], 1)
         self.assertEqual(response.context["display_visible_ticket_count"], 2)
 
+    def _staff_dependent_refresh_response(self):
+        """Return a dependent-refresh response with an assigned-staff filter."""
+        support = Department.objects.create(name="Support", created_by=self.s1)
+        UserDepartments.objects.create(user=self.s1, department=support)
+        match = Ticket.objects.create(title="Assigned to s1", created_by=self.u, status=Ticket.Status.OPEN)
+        miss = Ticket.objects.create(title="Assigned to s2", created_by=self.u, status=Ticket.Status.OPEN)
+        TicketAssigned.objects.create(ticket=match, department=support)
+        TicketAssigned.objects.create(ticket=miss, department=support)
+        TicketParticipant.objects.create(ticket=match, user=self.s1, removed_self=False)
+        TicketParticipant.objects.create(ticket=miss, user=self.s2, removed_self=False)
+        self.c.force_login(self.s1)
+        return self.c.get(
+            self.url,
+            {
+                "scope": "department",
+                "assigned_staff": str(self.s1.id),
+                "auto_refresh": "dependent",
+                "display_count": "2",
+                "applied_q": "",
+                "applied_status": "",
+                "applied_department": "",
+                "applied_assigned_staff": "",
+                "applied_created_from": "",
+                "applied_created_to": "",
+            },
+        )
+
+    def test_home_preserves_display_count_for_staff_dependent_refresh(self):
+        """Assigned-staff dependent refresh should keep the visible-count label until apply."""
+        response = self._staff_dependent_refresh_response()
+        self.assertEqual(response.context["filters"]["assigned_staff"], str(self.s1.id))
+        self.assertEqual(response.context["applied_filters"]["assigned_staff"], "")
+        self.assertEqual(response.context["visible_ticket_count"], 2)
+        self.assertEqual(response.context["display_visible_ticket_count"], 2)
+
     def _dependent_refresh_request(self, department_id):
         """Return a dependent-refresh home response for the selected department."""
         return self.c.get(
