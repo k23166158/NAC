@@ -16,7 +16,7 @@ class DepartmentActiveTicketsView(LoginRequiredMixin, View):
         if not department.can_view(request.user):
             return HttpResponseForbidden("You are not allowed to access this.")
 
-        active_tickets = department.get_tickets([Ticket.Status.OPEN, Ticket.Status.PENDING])
+        active_tickets = department.get_tickets([Ticket.Status.OPEN])
         paginator = Paginator(active_tickets, 10)
         page = paginator.get_page(request.GET.get("page"))
 

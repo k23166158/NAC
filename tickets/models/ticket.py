@@ -326,18 +326,13 @@ class Ticket(models.Model):
         """Return active open tickets, sorting overdue tickets to the top."""
         from django.db.models import Case, When, Value, IntegerField
         from django.db.models.functions import Coalesce
-        
         cutoff = timezone.now() - timedelta(days=7)
-        
-        return qs.filter(
-            status__in=[cls.Status.OPEN],
-        ).annotate(
+        return qs.filter(status__in=[cls.Status.OPEN]).annotate(
             effective_date=Coalesce('last_message_at', 'created_at')
         ).annotate(
             overdue_sort=Case(
                 When(effective_date__lt=cutoff, then=Value(0)),
-                default=Value(1),
-                output_field=IntegerField()
+                default=Value(1), output_field=IntegerField()
             )
         ).order_by("overdue_sort", "-updated_at")
 
@@ -463,4 +458,3 @@ class Ticket(models.Model):
     def __str__(self):
         """Returns a string representation of the ticket."""
         return f"#{self.id} - {self.title}"
-    

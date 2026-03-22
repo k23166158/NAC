@@ -71,7 +71,6 @@
               {% endwith %}
             </div>
           {% endif %}
-
           {% if ticket.is_overdue %}
             {% if ticket.created_by.username == user.username or user.is_superuser %}
               <div class="reminder-section">
@@ -351,12 +350,10 @@
     </div>
   </div>
 </div>
-
 <script>
 (function () {
   document.body.classList.add('ticket-thread-staff-page');
 })();
-
 (function () {
   const fileInput = document.getElementById('id_attachments');
   const fileList = document.getElementById('fileList');
@@ -387,13 +384,11 @@
   wrapper.addEventListener('dragleave', () => wrapper.classList.remove('dragover'));
   wrapper.addEventListener('drop', (e) => { e.preventDefault(); wrapper.classList.remove('dragover'); addFiles(e.dataTransfer.files); });
 })();
-
 function toggleEditForm(button, event) {
   event.preventDefault();
   const card = button.closest('.ticket-card');
   const editForm = card.querySelector('.message-edit-form');
   const messageContent = card.querySelector('.message-content');
-
   editForm.classList.toggle('hidden');
   messageContent.classList.toggle('hidden');
   if (!editForm.classList.contains('hidden')) {
@@ -401,5 +396,4 @@ function toggleEditForm(button, event) {
   }
 }
 </script>
-
 {% endblock %}

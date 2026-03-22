@@ -43,30 +43,31 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         self.request = request
         if not self.has_edit_permissions(self.object, request.user):
             return HttpResponseForbidden("You don't have permission to do this.")
+            
         action = request.POST.get("action")
-        
         if action == "remind_staff":
-            if self.ticket.is_overdue:
-                ticket_ct = ContentType.objects.get_for_model(Ticket)
-                cutoff = timezone.now() - timedelta(hours=24)
-                recent_reminder = Notification.objects.filter(
-                    content_type=ticket_ct,
-                    object_id=self.ticket.id,
-                    notification_type=Notification.NotificationType.TICKET_OVERDUE,
-                    created_at__gte=cutoff
-                ).exists()
-                
-                if not recent_reminder:
-                    notify_overdue_ticket(self.ticket, actor=request.user)
-                    messages.success(request, "A reminder has been sent to the assigned staff.")
-                else:
-                    messages.error(request, "A reminder was already sent within the last 24 hours.")
-            else:
-                messages.error(request, "This ticket is not currently overdue.")
+            self._handle_remind_staff(request)
             return self.get(request, uuid)
 
         if action in {"add", "remove"} and not self._can_manage_assignments(request.user):
             return HttpResponseForbidden("Assignment changes are not allowed for this ticket.")
+
+    def _handle_remind_staff(self, request):
+        """Handle sending a reminder to staff for an overdue ticket."""
+        if not self.ticket.is_overdue:
+            messages.error(request, "This ticket is not currently overdue.")
+            return
+
+        ticket_ct = ContentType.objects.get_for_model(Ticket)
+        cutoff = timezone.now() - timedelta(hours=24)
+        recent = Notification.objects.filter(
+            content_type=ticket_ct, object_id=self.ticket.id,
+            notification_type=Notification.NotificationType.TICKET_OVERDUE,
+            created_at__gte=cutoff
+        ).exists()
+        
+        if not recent:
+            notify_overdue_ticket(self.ticket, actor=request.user)
 
     def _handle_add_remove(self, request, target_type):
         """Route add/remove actions to the correct assignment handler."""
@@ -81,11 +82,7 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         return ticket.can_edit(user)
 
     def _can_manage_assignments(self, user):
-        """Return True if the user may add/remove staff or departments.
-
-        Returns False when the ticket is closed, or when the requesting
-        user has removed themselves from the ticket.
-        """
+        """Return True if the user may add/remove staff or departments."""
         if self.ticket.status == "closed":
             return False
         return not self.user_has_removed_themselves(user)
@@ -96,17 +93,6 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         staff = self.get_ticket_staff()
         departments = self.get_ticket_departments()
         removed = self.user_has_removed_themselves(self.request.user)
-        
-        can_send_reminder = False
-        if self.object.is_overdue:
-            ticket_ct = ContentType.objects.get_for_model(Ticket)
-            cutoff = timezone.now() - timedelta(hours=24)
-            can_send_reminder = not Notification.objects.filter(
-                content_type=ticket_ct,
-                object_id=self.object.id,
-                notification_type=Notification.NotificationType.TICKET_OVERDUE,
-                created_at__gte=cutoff
-            ).exists()
 
         return {
             "ticket": self.object, "staff": staff, "available_staff": self.get_available_staff(staff),
@@ -114,8 +100,21 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
             "first_message": self.get_first_message(messages), "messages": self.get_reply_messages(messages),
             "last_user_message_id": self.get_last_user_message_id(messages), "user_has_removed": removed,
             "can_manage_assignments": self.object.status != "closed" and not removed,
-            "can_send_reminder": can_send_reminder,
+            "can_send_reminder": self._can_send_reminder(),
         }
+
+    def _can_send_reminder(self):
+        """Check if a reminder can be sent for an overdue ticket."""
+        if not self.object.is_overdue:
+            return False
+        ticket_ct = ContentType.objects.get_for_model(Ticket)
+        cutoff = timezone.now() - timedelta(hours=24)
+        return not Notification.objects.filter(
+            content_type=ticket_ct,
+            object_id=self.object.id,
+            notification_type=Notification.NotificationType.TICKET_OVERDUE,
+            created_at__gte=cutoff
+        ).exists()
 
     def _back_to_url(self, request):
         """Return the URL used by the thread page back link."""

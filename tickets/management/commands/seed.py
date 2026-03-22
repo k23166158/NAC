@@ -622,21 +622,10 @@ class Command(BaseCommand):
 
     def _create_ticket_with_title(self, title, creator):
         """Create a single ticket with a realistic title and random date."""
-        ticket = Ticket.objects.create(
-            title=title,
-            status=choice(['open', 'closed']),
-            created_by=creator,
-        )
-        
-        random_days = randint(5, 14)
-        random_seconds = randint(0, 86400)
+        ticket = Ticket.objects.create(title=title, status=choice(['open', 'closed']), created_by=creator)
+        random_days, random_seconds = randint(5, 14), randint(0, 86400)
         past_date = timezone.now() - timedelta(days=random_days, seconds=random_seconds)
-
-        Ticket.objects.filter(id=ticket.id).update(
-            created_at=past_date,
-            updated_at=past_date
-        )
-        
+        Ticket.objects.filter(id=ticket.id).update(created_at=past_date, updated_at=past_date)
         return ticket
 
     def assign_tickets_to_departments(self):
@@ -661,22 +650,19 @@ class Command(BaseCommand):
     def create_ticket_messages(self):
         """Create ticket messages in the database using FAQ-style responses."""
         print("Creating ticket messages...")
-        tickets = list(Ticket.objects.all())
-        
-        for ticket in tickets:
-            initial_body = faq_bodies_by_title.get(ticket.title, choice(fallback_ticket_bodies))
-            past_date = timezone.now() - timedelta(days=randint(5, 14), seconds=randint(0, 86400))
-            msg = TicketMessage.objects.get_or_create(
-                ticket=ticket,
-                body=initial_body,
-                sender=ticket.created_by,
-            )[0]
-            TicketMessage.objects.filter(id=msg.id).update(
-                created_at=past_date,
-                edited_at=past_date
-            )
+        for ticket in Ticket.objects.all():
+            self._create_initial_message_for_ticket(ticket)
             self.create_ticket_response_messages(ticket)
         print("Ticket messages created.")
+
+    def _create_initial_message_for_ticket(self, ticket):
+        """Create the initial message for a single ticket."""
+        initial_body = faq_bodies_by_title.get(ticket.title, choice(fallback_ticket_bodies))
+        past_date = timezone.now() - timedelta(days=randint(5, 14), seconds=randint(0, 86400))
+        msg = TicketMessage.objects.get_or_create(
+            ticket=ticket, body=initial_body, sender=ticket.created_by
+        )[0]
+        TicketMessage.objects.filter(id=msg.id).update(created_at=past_date, edited_at=past_date)
     
     def create_ticket_response_messages(self, ticket):
         """Create response messages from staff using FAQ-style responses."""
