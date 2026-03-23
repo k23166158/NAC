@@ -24,12 +24,30 @@ class DepartmentManageViewTests(TestCase):
         self.other = User.objects.create_user(username="other", email="o@example.com", password="123", is_staff=True)
 
     def test_access_permissions(self):
-        """Test access restrictions for unauthenticated and non-staff users."""
+        """Test access restrictions for unauthenticated users only."""
         resp = self.client.get(self.url)
         self.assertIn('/login/', resp.url)
-        
+
+    def test_non_staff_can_browse_all_departments(self):
+        """Non-staff users should see a read-only list of all departments."""
+        dept_a = Department.objects.create(name="Alpha", created_by=self.staff)
+        dept_b = Department.objects.create(name="Beta", created_by=self.other)
+        UserDepartments.objects.create(user=self.staff, department=dept_a)
+        UserDepartments.objects.create(user=self.other, department=dept_b)
+
         self.client.force_login(self.reg)
-        self.assertEqual(self.client.get(self.url).status_code, 403)
+        response = self.client.get(self.url)
+
+        departments = list(response.context["departments"])
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "department_manage.html")
+        self.assertTrue(response.context["browse_only"])
+        self.assertContains(response, "All Departments")
+        self.assertContains(response, reverse("department", args=[dept_a.slug]))
+        self.assertContains(response, reverse("department", args=[dept_b.slug]))
+        self.assertNotContains(response, "Create Department")
+        self.assertNotContains(response, "Pending invites")
+        self.assertEqual({department.name for department in departments}, {"Alpha", "Beta"})
 
     def test_get_comprehensive_context(self):
         """Test department listing, ticket counts, and pending invitations."""
@@ -92,6 +110,12 @@ class DepartmentManageViewTests(TestCase):
         self.client.post(self.url, {'invite_id': inv_d.id, 'action': 'decline'})
         inv_d.refresh_from_db()
         self.assertEqual(inv_d.status, 'declined')
+
+    def test_non_staff_post_is_forbidden(self):
+        """Non-staff users should not be able to process invitation actions."""
+        self.client.force_login(self.reg)
+        response = self.client.post(self.url, {"action": "accept", "invite_id": 1})
+        self.assertEqual(response.status_code, 403)
 
     def test_accept_invitation_creates_notification_for_sender(self):
         """Accepting an invite creates a notification for the sender."""

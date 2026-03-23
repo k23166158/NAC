@@ -26,7 +26,9 @@ class DepartmentViewTests(TestCase):
     def test_department_access_and_context(self):
         """Test role-based access validation and contextual ticket population."""
         self.client.force_login(self.out)
-        self.assertEqual(self.client.get(self.url).status_code, 403)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "department_public.html")
         su = User.objects.create_superuser(username="su", email="su@e.com", password="p")
         self.client.force_login(su)
         self.assertEqual(self.client.get(self.url).status_code, 200)
@@ -36,11 +38,50 @@ class DepartmentViewTests(TestCase):
         TicketAssigned.objects.create(ticket=t_open, department=self.dept)
         TicketAssigned.objects.create(ticket=t_closed, department=self.dept)
 
-        self.client.force_login(self.mem)
+        self.client.force_login(self.owner)
         res = self.client.get(self.url)
         self.assertEqual(len(res.context["active_tickets_preview"]), 1)
         self.assertEqual(len(res.context["closed_tickets_preview"]), 1)
-        self.assertContains(res, reverse("profile", args=[self.mem.profile_slug]))
+        self.assertContains(res, reverse("profile", args=[self.owner.profile_slug]))
+
+    def _create_department_public_view_fixtures(self):
+        """Create active and inactive department members for public-view tests."""
+        active_staff = User.objects.create_user(
+            username="active",
+            email="active@e.com",
+            password="p",
+            is_staff=True,
+            is_active=True,
+        )
+        inactive_staff = User.objects.create_user(
+            username="inactive",
+            email="inactive@e.com",
+            password="p",
+            is_staff=True,
+            is_active=False,
+        )
+        UserDepartments.objects.create(user=active_staff, department=self.dept)
+        UserDepartments.objects.create(user=inactive_staff, department=self.dept)
+        return active_staff, inactive_staff
+
+    def _assert_public_department_context(self, response, active_staff, inactive_staff):
+        """Assert the non-staff department page only exposes active members."""
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "department_public.html")
+        self.assertTrue(response.context["is_public_department_view"])
+        self.assertEqual(response.context["staff_total"], 3)
+        self.assertContains(response, active_staff.get_full_name() or active_staff.username)
+        self.assertNotContains(response, inactive_staff.get_full_name() or inactive_staff.username)
+        self.assertNotContains(response, "Active Tickets")
+        self.assertNotContains(response, "Closed Tickets")
+        self.assertNotContains(response, "Frequently Asked Questions")
+
+    def test_non_staff_user_gets_public_department_view(self):
+        """Non-staff users should see the read-only department page."""
+        active_staff, inactive_staff = self._create_department_public_view_fixtures()
+        self.client.force_login(self.mem)
+        response = self.client.get(self.url)
+        self._assert_public_department_context(response, active_staff, inactive_staff)
 
     def test_department_post_actions_owner(self):
         """Test adding/removing staff and revoking invitations as an owner."""
@@ -101,6 +142,12 @@ class DepartmentViewTests(TestCase):
         self.assertEqual(self.client.post(self.url, {'action': 'add', 'user_id': self.out.id}).status_code, 403)
         self.client.force_login(s_other)
         self.assertEqual(self.client.post(self.url, {'action': 'add', 'user_id': self.out.id}).status_code, 403)
+
+    def test_non_staff_post_to_department_is_forbidden(self):
+        """Non-staff users should not be able to post to the read-only department page."""
+        self.client.force_login(self.mem)
+        response = self.client.post(self.url, {"action": "add_faq"})
+        self.assertEqual(response.status_code, 403)
 
     def test_update_staff_assignment_unknown_action_noop(self):
         """update_staff_assignment should be a no-op when action key is unknown."""
