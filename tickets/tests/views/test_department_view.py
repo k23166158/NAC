@@ -170,7 +170,7 @@ class DepartmentViewTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_staff_outsider_get_is_forbidden(self):
-        """Staff users outside the department should still be blocked."""
+        """Staff users outside the department should get the read-only public view."""
         outsider_staff = User.objects.create_user(
             username="staff_out",
             email="staff_out@e.com",
@@ -179,7 +179,9 @@ class DepartmentViewTests(TestCase):
         )
         self.client.force_login(outsider_staff)
         response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "department_public.html")
+        self.assertTrue(response.context["is_public_department_view"])
 
     def test_staff_outsider_faq_action_is_forbidden(self):
         """Staff outsiders should not reach FAQ handlers."""

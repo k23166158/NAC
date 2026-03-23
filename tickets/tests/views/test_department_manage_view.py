@@ -52,6 +52,7 @@ class DepartmentManageViewTests(TestCase):
     def test_get_comprehensive_context(self):
         """Test department listing, ticket counts, and pending invitations."""
         dept = Department.objects.create(name="Alpha", created_by=self.staff)
+        other_dept = Department.objects.create(name="Beta", created_by=self.other)
         UserDepartments.objects.create(user=self.staff, department=dept)
         
         t1 = Ticket.objects.create(title="T1", created_by=self.reg, status=Ticket.Status.OPEN)
@@ -65,13 +66,26 @@ class DepartmentManageViewTests(TestCase):
 
         self.client.force_login(self.staff)
         resp = self.client.get(self.url)
-        
-        depts = list(resp.context['departments'])
-        self.assertEqual(depts[0].active_ticket_count, 1)
-        self.assertEqual(depts[0].completed_ticket_count, 1)
+        self._assert_department_ticket_counts(resp.context["departments"])
         self.assertEqual(list(resp.context['invitations']), [inv])
         self.assertContains(resp, reverse("department", args=[dept.slug]))
+        self.assertContains(resp, reverse("department", args=[other_dept.slug]))
         self.assertContains(resp, reverse("profile", args=[self.other.profile_slug]))
+        self.assertNotContains(resp, "Browse only")
+
+    def _assert_department_ticket_counts(self, departments):
+        """Assert the annotated ticket counts for listed departments."""
+        self.assertEqual([department.name for department in departments], ["Alpha", "Beta"])
+        alpha = next(department for department in departments if department.name == "Alpha")
+        beta = next(department for department in departments if department.name == "Beta")
+        self.assertEqual(alpha.active_ticket_count, 1)
+        self.assertEqual(alpha.completed_ticket_count, 1)
+        self.assertEqual(beta.active_ticket_count, 0)
+        self.assertEqual(beta.completed_ticket_count, 0)
+        self.assertEqual(alpha.is_current_user_owner, 1)
+        self.assertEqual(beta.is_current_user_owner, 0)
+        self.assertEqual(alpha.is_current_user_member, 1)
+        self.assertEqual(beta.is_current_user_member, 0)
 
     def test_get_search_filtering(self):
         """Test that departments can be filtered by a search query."""
