@@ -163,6 +163,21 @@ class DepartmentViewTests(TestCase):
         self.client.force_login(s_other)
         self.assertEqual(self.client.post(self.url, {'action': 'add', 'user_id': self.out.id}).status_code, 403)
 
+    def test_staff_member_non_owner_post_is_forbidden(self):
+        """Staff members who are not owners should not manage department staff."""
+        member_staff = User.objects.create_user(
+            username="member_staff",
+            email="member_staff@e.com",
+            password="p",
+            is_staff=True,
+        )
+        UserDepartments.objects.create(user=member_staff, department=self.dept)
+        self.client.force_login(member_staff)
+
+        response = self.client.post(self.url, {"action": "add", "user_id": self.out.id})
+
+        self.assertEqual(response.status_code, 403)
+
     def test_non_staff_post_to_department_is_forbidden(self):
         """Non-staff users should not be able to post to the read-only department page."""
         self.client.force_login(self.mem)
@@ -196,6 +211,29 @@ class DepartmentViewTests(TestCase):
             self.url,
             {"action": "add_faq", "question": "Q", "answer": "A"},
         )
+        self.assertEqual(response.status_code, 403)
+
+    def test_faq_action_forbidden_when_public_fallback_is_bypassed(self):
+        """FAQ actions should return 403 when FAQ permissions are denied."""
+        request = RequestFactory().post(
+            self.url,
+            data={"action": "add_faq", "question": "Q", "answer": "A"},
+        )
+        request.user = self.out
+
+        with patch.object(DepartmentView, "_should_render_public_view", return_value=False):
+            response = DepartmentView().post(request, self.dept.slug)
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_get_forbidden_when_public_view_not_used_and_user_cannot_view(self):
+        """GET should return 403 when the user cannot view and no public fallback is used."""
+        request = RequestFactory().get(self.url)
+        request.user = self.out
+
+        with patch.object(DepartmentView, "_should_render_public_view", return_value=False):
+            response = DepartmentView().get(request, self.dept.slug)
+
         self.assertEqual(response.status_code, 403)
 
     def test_update_staff_assignment_unknown_action_noop(self):
@@ -271,3 +309,87 @@ class DepartmentViewTests(TestCase):
                 department=department,
                 action="add",
             )
+
+    def test_owner_can_add_faq_with_valid_form(self):
+        """Owner should be able to add an FAQ."""
+        self.client.force_login(self.owner)
+
+        response = self.client.post(
+            self.url,
+            {"action": "add_faq", "question": "How?", "answer": "Like this."},
+        )
+
+        self.assertRedirects(response, self.url)
+        self.assertTrue(DepartmentFAQ.objects.filter(department=self.dept, question="How?").exists())
+
+    def test_owner_add_faq_with_invalid_form_shows_error(self):
+        """Invalid FAQ add requests should not create records."""
+        self.client.force_login(self.owner)
+
+        response = self.client.post(
+            self.url,
+            {"action": "add_faq", "question": "", "answer": ""},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(DepartmentFAQ.objects.filter(department=self.dept).exists())
+
+    def test_owner_can_edit_faq_with_valid_form(self):
+        """Owner should be able to edit an FAQ."""
+        faq = DepartmentFAQ.objects.create(
+            department=self.dept,
+            question="Old question",
+            answer="Old answer",
+            created_by=self.owner,
+        )
+        self.client.force_login(self.owner)
+
+        response = self.client.post(
+            self.url,
+            {"action": "edit_faq", "faq_id": faq.id, "question": "New question", "answer": "New answer"},
+        )
+
+        self.assertRedirects(response, self.url)
+        faq.refresh_from_db()
+        self.assertEqual(faq.question, "New question")
+        self.assertEqual(faq.answer, "New answer")
+
+    def test_owner_edit_faq_with_invalid_form_shows_error(self):
+        """Invalid FAQ edit requests should keep the original FAQ content."""
+        faq = DepartmentFAQ.objects.create(
+            department=self.dept,
+            question="Keep me",
+            answer="Keep me too",
+            created_by=self.owner,
+        )
+        self.client.force_login(self.owner)
+
+        response = self.client.post(
+            self.url,
+            {"action": "edit_faq", "faq_id": faq.id, "question": "", "answer": ""},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        faq.refresh_from_db()
+        self.assertEqual(faq.question, "Keep me")
+        self.assertEqual(faq.answer, "Keep me too")
+
+    def test_owner_can_delete_faq(self):
+        """Owner should be able to delete an FAQ."""
+        faq = DepartmentFAQ.objects.create(
+            department=self.dept,
+            question="Delete me",
+            answer="Soon gone",
+            created_by=self.owner,
+        )
+        self.client.force_login(self.owner)
+
+        response = self.client.post(
+            self.url,
+            {"action": "delete_faq", "faq_id": faq.id},
+        )
+
+        self.assertRedirects(response, self.url)
+        self.assertFalse(DepartmentFAQ.objects.filter(pk=faq.pk).exists())
