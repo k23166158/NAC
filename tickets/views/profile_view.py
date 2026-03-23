@@ -39,7 +39,7 @@ class ProfileView(View):
         assigned = Ticket.objects.filter(participants__user=profile_user)
         return {
             "assigned_active_count": assigned.filter(
-                status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING]
+                status__in=[Ticket.Status.OPEN]
             ).distinct().count(),
             "assigned_completed_count": assigned.filter(
                 status=Ticket.Status.CLOSED

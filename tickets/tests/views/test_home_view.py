@@ -74,12 +74,14 @@ class HomeViewTests(TestCase):
 
         self.c.force_login(self.u)
         res = self.c.get(self.url)
-        self.assertIn(t1, res.context["overdue_tickets"])
-        self.assertEqual(res.context["overdue_tickets"][0].last_message_body, "Ping")
+        active_tickets = list(res.context["active_tickets"])
+        self.assertIn(t1, active_tickets)
+        self.assertTrue(active_tickets[0].is_overdue)
+        self.assertEqual(active_tickets[0].last_message_body, "Ping")
 
         TicketMessage.objects.create(ticket=t1, sender=self.s1, body="Staff reply")
         res2 = self.c.get(self.url)
-        self.assertNotIn(t1, res2.context["overdue_tickets"])
+        self.assertFalse(list(res2.context["active_tickets"])[0].is_overdue)
 
     def test_home_internal_helpers(self):
         """Direct coverage for internal view methods to hit implicit branches."""
@@ -208,19 +210,25 @@ class HomeViewTests(TestCase):
 
     def test_home_staff_options_follow_selected_department(self):
         """Assigned-staff options should narrow to members of the selected department."""
+        s3 = User.objects.create_user(
+            username="s3", email="s3@e.com", password="p", is_staff=True
+        )
         support = Department.objects.create(name="Support", created_by=self.s1)
         registry = Department.objects.create(name="Registry", created_by=self.s1)
         UserDepartments.objects.create(user=self.s1, department=support)
+        UserDepartments.objects.create(user=s3, department=support)
         UserDepartments.objects.create(user=self.s2, department=registry)
         ticket = Ticket.objects.create(title="Scoped", created_by=self.u, status=Ticket.Status.OPEN)
         TicketAssigned.objects.create(ticket=ticket, department=support)
         TicketParticipant.objects.create(ticket=ticket, user=self.s1)
+        TicketParticipant.objects.create(ticket=ticket, user=s3)
         TicketParticipant.objects.create(ticket=ticket, user=self.s2)
 
         self.c.force_login(self.s1)
         response = self.c.get(self.url, {"scope": "department", "department": str(support.id)})
 
-        self.assertIn(self.s1, list(response.context["staff_users"]))
+        self.assertNotIn(self.s1, list(response.context["staff_users"]))
+        self.assertIn(s3, list(response.context["staff_users"]))
         self.assertNotIn(self.s2, list(response.context["staff_users"]))
 
     def test_home_department_options_follow_selected_staff(self):
@@ -264,6 +272,41 @@ class HomeViewTests(TestCase):
         )
 
         self.assertEqual(response.context["visible_ticket_count"], 1)
+        self.assertEqual(response.context["display_visible_ticket_count"], 2)
+
+    def _staff_dependent_refresh_response(self):
+        """Return a dependent-refresh response with an assigned-staff filter."""
+        support = Department.objects.create(name="Support", created_by=self.s1)
+        UserDepartments.objects.create(user=self.s1, department=support)
+        match = Ticket.objects.create(title="Assigned to s1", created_by=self.u, status=Ticket.Status.OPEN)
+        miss = Ticket.objects.create(title="Assigned to s2", created_by=self.u, status=Ticket.Status.OPEN)
+        TicketAssigned.objects.create(ticket=match, department=support)
+        TicketAssigned.objects.create(ticket=miss, department=support)
+        TicketParticipant.objects.create(ticket=match, user=self.s1, removed_self=False)
+        TicketParticipant.objects.create(ticket=miss, user=self.s2, removed_self=False)
+        self.c.force_login(self.s1)
+        return self.c.get(
+            self.url,
+            {
+                "scope": "department",
+                "assigned_staff": str(self.s1.id),
+                "auto_refresh": "dependent",
+                "display_count": "2",
+                "applied_q": "",
+                "applied_status": "",
+                "applied_department": "",
+                "applied_assigned_staff": "",
+                "applied_created_from": "",
+                "applied_created_to": "",
+            },
+        )
+
+    def test_home_preserves_display_count_for_staff_dependent_refresh(self):
+        """Assigned-staff dependent refresh should keep the visible-count label until apply."""
+        response = self._staff_dependent_refresh_response()
+        self.assertEqual(response.context["filters"]["assigned_staff"], str(self.s1.id))
+        self.assertEqual(response.context["applied_filters"]["assigned_staff"], "")
+        self.assertEqual(response.context["visible_ticket_count"], 2)
         self.assertEqual(response.context["display_visible_ticket_count"], 2)
 
     def _dependent_refresh_request(self, department_id):

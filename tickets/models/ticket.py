@@ -8,6 +8,8 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, DateTimeField, Exists, F, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
+from tickets.models.notification import Notification
 
 class Ticket(models.Model):
     """Represents a support ticket in the system."""
@@ -15,7 +17,6 @@ class Ticket(models.Model):
     class Status(models.TextChoices):
         """Represents the status of a support ticket."""
         OPEN = 'open', 'Open'
-        PENDING = 'pending', 'Pending'
         CLOSED = 'closed', 'Closed'
 
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True)
@@ -84,7 +85,6 @@ class Ticket(models.Model):
         """Return ticket counts grouped by status keys used by dashboard."""
         return {
             "open": cls.objects.filter(status=cls.Status.OPEN).count(),
-            "pending": cls.objects.filter(status=cls.Status.PENDING).count(),
             "closed": cls.objects.filter(status=cls.Status.CLOSED).count(),
         }
 
@@ -172,7 +172,7 @@ class Ticket(models.Model):
     @classmethod
     def _filter_status(cls, queryset, status):
         """Filter tickets by valid status."""
-        if status not in {cls.Status.OPEN, cls.Status.PENDING, cls.Status.CLOSED}:
+        if status not in {cls.Status.OPEN, cls.Status.CLOSED}:
             return queryset
         return queryset.filter(status=status)
 
@@ -225,7 +225,7 @@ class Ticket(models.Model):
             return {"departments": [], "staff_users": []}
         return {
             "departments": cls._department_filter_options(queryset, staff_id),
-            "staff_users": cls._staff_filter_options(queryset, department_id),
+            "staff_users": cls._staff_filter_options(queryset, department_id, user.id),
         }
 
     @staticmethod
@@ -245,13 +245,15 @@ class Ticket(models.Model):
         return options.distinct().order_by("name")
 
     @staticmethod
-    def _staff_filter_options(queryset, department_id=""):
+    def _staff_filter_options(queryset, department_id="", current_user_id=None):
         """Return assigned staff options for tickets in queryset."""
         user_model = get_user_model()
         options = user_model.objects.filter(
             ticket_participations__ticket__in=queryset,
             ticket_participations__removed_self=False,
         )
+        if current_user_id is not None:
+            options = options.exclude(id=current_user_id)
         parsed_department_id = Ticket._parse_optional_int(department_id)
         if department_id and parsed_department_id is None:
             return options.none()
@@ -324,24 +326,69 @@ class Ticket(models.Model):
         return qs.filter(status=cls.Status.CLOSED).order_by("-updated_at")
 
     @classmethod
-    def overdue_from(cls, qs, *, days=7):
-        """Return overdue open/pending tickets based on latest non-staff message age."""
-        cutoff = timezone.now() - timedelta(days=days)
-        return qs.filter(
-            status__in=[cls.Status.OPEN, cls.Status.PENDING],
-            last_message_at__isnull=False,
-            last_message_at__lt=cutoff,
-            last_sender_is_staff=False,
-        ).order_by("-last_message_at")
+    def active_from(cls, qs):
+        """Return active open tickets, sorting overdue tickets to the top."""
+        from django.db.models import Case, When, Value, IntegerField
+        from django.db.models.functions import Coalesce
+        cutoff = timezone.now() - timedelta(days=7)
+        return qs.filter(status__in=[cls.Status.OPEN]).annotate(
+            effective_date=Coalesce('last_message_at', 'created_at')
+        ).annotate(
+            overdue_sort=Case(
+                When(effective_date__lt=cutoff, then=Value(0)),
+                default=Value(1), output_field=IntegerField()
+            )
+        ).order_by("overdue_sort", "-updated_at")
 
-    @classmethod
-    def active_from(cls, qs, overdue):
-        """Return active (non-overdue) open/pending tickets."""
-        return qs.filter(
-            status__in=[cls.Status.OPEN, cls.Status.PENDING],
-        ).exclude(
-            id__in=overdue.values_list("id", flat=True)
-        ).order_by("-updated_at")
+    @property
+    def is_overdue(self):
+        """Return True if the ticket is open and its last message is older than 7 days."""
+        if self.status != self.Status.OPEN:
+            return False
+            
+        last_time = getattr(self, 'last_message_at', None)
+        if not last_time:
+            last_time = self.created_at
+            
+        cutoff = timezone.now() - timedelta(days=7)
+        return last_time < cutoff
+
+    def can_send_reminder(self):
+        """Return whether a reminder can be sent for an overdue ticket."""
+        if not self.is_overdue:
+            return False
+            
+        ticket_ct = ContentType.objects.get_for_model(self)
+        cutoff = timezone.now() - timedelta(hours=24)
+        
+        return not Notification.objects.filter(
+            content_type=ticket_ct,
+            object_id=self.id,
+            notification_type=Notification.NotificationType.TICKET_OVERDUE,
+            created_at__gte=cutoff
+        ).exists()
+
+    def send_reminder(self, actor):
+        """Send a reminder notification if the ticket is overdue and no recent reminder exists."""
+        if self.can_send_reminder():
+            from tickets.helpers.notifications import notify_overdue_ticket
+            notify_overdue_ticket(self, actor=actor)
+            return True
+        return False
+
+    def user_has_removed_themselves(self, user):
+        """Return True if the user has explicitly opted out of this ticket thread."""
+        if not user or not user.is_authenticated:
+            return False
+            
+        from .ticket_participant import TicketParticipant
+        return TicketParticipant.objects.filter(ticket=self, user=user, removed_self=True).exists()
+
+    def can_manage_assignments(self, user):
+        """Return True if the user may add/remove staff or departments."""
+        if self.status == self.Status.CLOSED:
+            return False
+        return not self.user_has_removed_themselves(user)
 
     def mark_read_for(self, user):
         """Create/update participant read marker for this user."""
@@ -452,4 +499,3 @@ class Ticket(models.Model):
     def __str__(self):
         """Returns a string representation of the ticket."""
         return f"#{self.id} - {self.title}"
-    

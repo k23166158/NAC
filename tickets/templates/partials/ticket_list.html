@@ -5,7 +5,7 @@
       id="ticket-{{ t.uuid }}"
       {% if request.GET.open|default:'' == t.uuid|stringformat:"s" %}open{% endif %}
     >
-      <summary class="ticket-bar {% if t.status == 'pending' %}ticket-bar-overdue{% endif %}">
+      <summary class="ticket-bar">
         {% if t.unread_count > 0 %}
           <span class="unread-badge">
             {{ t.unread_count }}
@@ -24,8 +24,8 @@
           <div class="ticket-bar-right">
             {% if t.status == 'closed' %}
               <span class="pill status status-completed">Closed</span>
-            {% elif t.status == 'pending' %}
-              <span class="pill status status-overdue">Pending</span>
+            {% elif t.is_overdue %}
+              <span class="pill status status-overdue">Overdue</span>
             {% else %}
               <span class="pill status status-active">Open</span>
             {% endif %}

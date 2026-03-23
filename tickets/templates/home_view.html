@@ -127,7 +127,6 @@
             <select name="status" class="search-select">
               <option value="">All</option>
               <option value="open" {% if filters.status == "open" %}selected{% endif %}>Open</option>
-              <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>Pending</option>
               <option value="closed" {% if filters.status == "closed" %}selected{% endif %}>Closed</option>
             </select>
           </div>
@@ -193,15 +192,11 @@
       </button>
     </div>
 
+    <section id="panel-overdue" class="tab-panel" role="tabpanel" hidden>
+      {% include "partials/ticket_section_content.html" with tickets=overdue_tickets_page empty_message="No overdue tickets right now." page_param="overdue_page" pagination_query=overdue_pagination_query display_style="full" %}
+    </section>
     <section id="panel-active" class="tab-panel" role="tabpanel">
       {% include "partials/ticket_section_content.html" with tickets=active_tickets_page empty_message="No active tickets right now." page_param="active_page" pagination_query=active_pagination_query display_style="full" %}
-    </section>
-    <section id="panel-overdue" class="tab-panel" role="tabpanel" hidden>
-      {% if overdue_tickets %}
-        {% include "partials/ticket_list.html" with tickets=overdue_tickets %}
-      {% else %}
-        <div class="empty">Nothing overdue</div>
-      {% endif %}
     </section>
     <section id="panel-completed" class="tab-panel" role="tabpanel" hidden>
       {% include "partials/ticket_section_content.html" with tickets=completed_tickets_page empty_message="No completed tickets yet." page_param="completed_page" pagination_query=completed_pagination_query display_style="full" %}
@@ -254,7 +249,7 @@
     const appliedCreatedToInput = document.getElementById("homeAppliedCreatedToInput");
     const panels = {
       active: document.getElementById("panel-active"),
-      completed: document.getElementById("panel-completed"),
+      completed: document.getElementById("panel-completed")
     };
 
     function openTab(name) {
@@ -337,7 +332,7 @@
     }
 
     if (staffSelect) {
-      staffSelect.addEventListener("change", submitAppliedRefresh);
+      staffSelect.addEventListener("change", submitDependentRefresh);
     }
 
   })();
