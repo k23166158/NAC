@@ -198,6 +198,7 @@ class Department(models.Model):
             "department": self,
             "staff_page": self._paginate_queryset(request, active_staff, "staff_page", per_page=10),
             "staff_total": len(active_staff),
+            "faqs": self.faqs.select_related("created_by").all(),
             "is_public_department_view": True,
         }
 

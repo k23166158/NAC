@@ -12,7 +12,7 @@ class DepartmentManageView(LoginRequiredMixin, ListView):
 
     template_name = "department_manage.html"
     context_object_name = "departments"
-    paginate_by = 10
+    paginate_by = 9
     login_url = "/login/"
 
     def get_queryset(self):
