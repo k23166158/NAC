@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AbstractUser
+from django.db import IntegrityError, models, transaction
 from django.db.models import Count, Q
-from django.db import models
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 
@@ -67,6 +67,37 @@ class User(AbstractUser):
             return False
         target_user.is_active = not target_user.is_active
         target_user.save(update_fields=["is_active"])
+        return True
+
+    def apply_profile_changes(self, data, files=None):
+        """Apply profile changes from request data and return password-change status."""
+        self.first_name = (data.get("first_name") or "").strip()
+        self.last_name = (data.get("last_name") or "").strip()
+        self.username = (data.get("username") or "").strip()
+        self.email = (data.get("email") or "").lower().strip()
+        self._apply_profile_picture(files or {})
+        return self._apply_profile_password(data)
+
+    def save_profile_changes(self):
+        """Persist profile changes atomically and return success state."""
+        try:
+            with transaction.atomic():
+                self.save()
+        except IntegrityError:
+            return False
+        return True
+
+    def _apply_profile_picture(self, files):
+        """Apply an uploaded profile picture when present."""
+        if "profile_picture" in files:
+            self.profile_picture = files["profile_picture"]
+
+    def _apply_profile_password(self, data):
+        """Apply a new password if provided and return whether it changed."""
+        password = (data.get("password") or "").strip()
+        if not password:
+            return False
+        self.set_password(password)
         return True
 
     @classmethod

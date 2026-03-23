@@ -50,3 +50,10 @@ class DepartmentForm(forms.ModelForm):
             )
         return name
 
+    def save_for_actor(self, actor):
+        """Persist the department and ensure the actor is assigned to it."""
+        department = self.save(commit=False)
+        department.created_by = actor
+        department.save()
+        department.assign_member(actor)
+        return department

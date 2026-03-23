@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.shortcuts import get_object_or_404
 
 
 class DepartmentFAQ(models.Model):
@@ -20,6 +21,32 @@ class DepartmentFAQ(models.Model):
     )
     created_on = models.DateTimeField(auto_now_add=True)
     order = models.PositiveIntegerField(default=0)
+
+    @classmethod
+    def create_from_form(cls, form, *, department, actor):
+        """Create a department FAQ from a valid form."""
+        faq = form.save(commit=False)
+        faq.department = department
+        faq.created_by = actor
+        faq.save()
+        return faq
+
+    @classmethod
+    def update_from_form(cls, form):
+        """Update an existing department FAQ from a valid form."""
+        return form.save()
+
+    @classmethod
+    def get_for_department_or_404(cls, *, faq_id, department):
+        """Return a department FAQ scoped to the given department."""
+        return get_object_or_404(cls, id=faq_id, department=department)
+
+    def delete_for_department(self, department):
+        """Delete the FAQ when it belongs to the expected department."""
+        if self.department_id != department.id:
+            return False
+        self.delete()
+        return True
 
     def __str__(self):
         """Return string representation of the FAQ."""

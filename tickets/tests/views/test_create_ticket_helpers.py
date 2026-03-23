@@ -2,7 +2,6 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from tickets.models import Ticket, TicketMessage, TicketAssigned, Department, TicketMessageAttachment
-from tickets.views.ticket_create import create_attachments, create_ticket_objects, build_assignments
 
 User = get_user_model()
 
@@ -23,8 +22,8 @@ class TicketCreateHelpersTests(TestCase):
         file2 = SimpleUploadedFile("test2.bin", b"binary")
         file2.content_type = None
         
-        create_attachments(self.ticket, self.message, [file1, file2, None], self.user)
-        create_attachments(self.ticket, self.message, None, self.user)
+        TicketMessageAttachment.create_for_message(self.ticket, self.message, [file1, file2, None], self.user)
+        TicketMessageAttachment.create_for_message(self.ticket, self.message, None, self.user)
         
         self.assertEqual(TicketMessageAttachment.objects.count(), 2)
         
@@ -41,11 +40,11 @@ class TicketCreateHelpersTests(TestCase):
         file = SimpleUploadedFile("test.txt", b"content", content_type="text/plain")
         data = {"title": "T1", "body": "B1", "departments": [self.dept1, self.dept2]}
         
-        ticket = create_ticket_objects(self.user, data, files=[file])
+        ticket = Ticket.create_with_initial_message(creator=self.user, cleaned_data=data, files=[file])
         
         self.assertEqual(ticket.title, "T1")
         self.assertEqual(TicketMessage.objects.get(ticket=ticket).sender, self.user)
         self.assertEqual(TicketAssigned.objects.filter(ticket=ticket).count(), 2)
         self.assertEqual(TicketMessageAttachment.objects.filter(ticket=ticket).count(), 1)
         
-        self.assertEqual(len(build_assignments(self.ticket, [])), 0)
+        self.assertEqual(len(TicketAssigned.build_for_departments(self.ticket, [])), 0)

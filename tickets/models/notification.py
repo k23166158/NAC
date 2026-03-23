@@ -55,6 +55,16 @@ class Notification(models.Model):
         """Meta information for the Notification model."""
         ordering = ['-created_at']
 
+    @classmethod
+    def for_display_for(cls, user):
+        """Return notifications prepared for the notifications page."""
+        return cls.objects.filter(user=user).select_related("actor", "user").order_by("is_read", "-created_at")
+
+    @classmethod
+    def mark_all_read_for(cls, user):
+        """Mark unread notifications as read for the given user."""
+        return cls.objects.filter(user=user, is_read=False).update(is_read=True)
+
     def __str__(self):
         """String representation of the Notification instance."""
         return f"{self.notification_type} for {self.user.username}"

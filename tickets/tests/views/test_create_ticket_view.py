@@ -2,7 +2,6 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from tickets.views.ticket_create import create_attachments
 from tickets.models import Department, Ticket, TicketMessage, TicketAssigned, TicketMessageAttachment
 
 class CreateTicketViewTests(TestCase):
@@ -48,12 +47,12 @@ class CreateTicketViewTests(TestCase):
         self.assertEqual(t.created_by, self.s)
 
     def test_create_attachments_skips_when_no_valid_files(self):
-        """create_attachments should early-return when there are no truthy file objects."""
+        """Attachment helper should early-return when there are no truthy file objects."""
         # Build a ticket and initial message
         t = Ticket.objects.create(title="No files", created_by=self.s)
         msg = TicketMessage.objects.create(ticket=t, sender=self.s, body="Body")
 
         # Pass a list containing only falsy entries; attachments list should be empty
-        create_attachments(t, msg, files=[None, None], user=self.s)
+        TicketMessageAttachment.create_for_message(t, msg, files=[None, None], user=self.s)
 
         self.assertEqual(TicketMessageAttachment.objects.count(), 0)

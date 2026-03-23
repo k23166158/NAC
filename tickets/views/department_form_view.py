@@ -3,7 +3,6 @@ from django.shortcuts import redirect
 from django.views import View
 
 from tickets.forms import DepartmentForm
-from tickets.models import UserDepartments
 
 class DepartmentFormView(LoginRequiredMixin, UserPassesTestMixin, View):
     """View for displaying a department form. Only accessible to staff members."""
@@ -23,10 +22,7 @@ class DepartmentFormView(LoginRequiredMixin, UserPassesTestMixin, View):
         """Handle POST requests - process the department form."""
         form = DepartmentForm(request.POST, instance=instance)
         if form.is_valid():
-            department = form.save(commit=False)
-            department.created_by = request.user
-            department.save()
-            UserDepartments.objects.get_or_create(user=request.user, department=department)
+            department = form.save_for_actor(request.user)
             return redirect('department', department_slug=department.slug)
         return self.render_form(request, form)
 

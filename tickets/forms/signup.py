@@ -17,3 +17,13 @@ class SignUpForm(UserCreationForm):
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError("This email is already in use.")
         return email
+
+    def create_active_user(self):
+        """Create and return a standard active non-staff user from valid form data."""
+        user = self.save(commit=False)
+        user.is_superuser = False
+        user.is_staff = False
+        user.is_active = True
+        user.email = user.email.lower().strip()
+        user.save()
+        return user
