@@ -98,7 +98,7 @@ class Ticket(models.Model):
     def display_reference(self):
         """Return a short stable hashed reference for display purposes."""
         digest = sha256(str(self.uuid).encode("utf-8")).hexdigest()
-        return digest[:10].upper()
+        return digest[:5]
 
     @classmethod
     def allowed_scopes_for(cls, user):
