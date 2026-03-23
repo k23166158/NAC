@@ -1,3 +1,4 @@
+import hashlib
 import random
 from faker import Faker
 from random import randint, choice, sample
@@ -409,11 +410,11 @@ class Command(BaseCommand):
     def create_known_users(self):
         """Create users from predefined fixtures."""
         for fixture in user_fixtures:
-            user, _created = User.objects.update_or_create(
+            self._seed_user(
                 username=fixture['username'],
-                defaults=self._known_user_defaults(fixture),
+                password=self.DEFAULT_PASSWORD,
+                **self._known_user_defaults(fixture),
             )
-            self._set_seed_password(user)
 
     def _known_user_defaults(self, fixture):
         """Return update defaults for a fixture-backed user."""
@@ -425,10 +426,57 @@ class Command(BaseCommand):
             'is_staff': fixture.get('staff', False),
         }
 
-    def _set_seed_password(self, user):
+    def _set_seed_password(self, user, password):
         """Ensure a seeded user has the default password."""
-        user.set_password(self.DEFAULT_PASSWORD)
+        user.set_password(password)
         user.save(update_fields=['password'])
+
+    def _seed_user(self, *, username, password, **defaults):
+        """Create or update one seeded user and apply seed assets."""
+        user, _created = User.objects.update_or_create(
+            username=username,
+            defaults=defaults,
+        )
+        self._set_seed_password(user, password)
+        self._set_seed_profile_picture(user)
+        return user
+
+    def _set_seed_profile_picture(self, user):
+        """Attach a deterministic seeded profile picture to a user."""
+        if user.profile_picture:
+            user.profile_picture.delete(save=False)
+        user.profile_picture.save(
+            self._profile_picture_filename(user),
+            ContentFile(self._profile_picture_svg(user)),
+            save=False,
+        )
+        user.save(update_fields=['profile_picture'])
+
+    def _profile_picture_filename(self, user):
+        """Return the storage filename for a seeded profile picture."""
+        return f"seed-{user.username}.svg"
+
+    def _profile_picture_svg(self, user):
+        """Build a simple SVG avatar using deterministic initials and colour."""
+        initials = self._profile_picture_initials(user)
+        color = self._profile_picture_color(user.username)
+        svg = (
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'>"
+            f"<rect width='128' height='128' rx='24' fill='{color}'/>"
+            f"<text x='50%' y='55%' text-anchor='middle' fill='white' "
+            "font-family='Arial, sans-serif' font-size='44' font-weight='700'>"
+            f"{initials}</text></svg>"
+        )
+        return svg.encode("utf-8")
+
+    def _profile_picture_initials(self, user):
+        """Return initials for seeded profile pictures."""
+        letters = f"{user.first_name[:1]}{user.last_name[:1]}".strip()
+        return (letters or user.username[:2]).upper()
+
+    def _profile_picture_color(self, seed_text):
+        """Return a deterministic avatar background colour."""
+        return f"#{hashlib.md5(seed_text.encode()).hexdigest()[:6]}"
 
     def create_random_staff_users(self):
         """Create random staff users using Faker library."""
@@ -459,7 +507,8 @@ class Command(BaseCommand):
     def try_create_user(self, **kwargs):
         """Attempt to create a user, handling any errors."""
         try:
-            User.objects.create_user(**kwargs)
+            password = kwargs.pop("password")
+            self._seed_user(password=password, **kwargs)
         except Exception:
             pass
 
