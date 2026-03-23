@@ -1,5 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect
 from django.views import View
 
 from tickets.forms import DepartmentForm

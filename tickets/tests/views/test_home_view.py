@@ -86,16 +86,16 @@ class HomeViewTests(TestCase):
     def test_home_internal_helpers(self):
         """Direct coverage for internal view methods to hit implicit branches."""
         view = HomeView()
-        self.assertIsNone(view.base_tickets(self.u, scope="invalid"))
+        self.assertIsNone(Ticket.base_for_scope(self.u, scope="invalid"))
         qs, scope = view.handle_scope(self.s1, "invalid")
         self.assertEqual(scope, "personal")
 
         t = Ticket.objects.create(title="T", created_by=self.u)
         TicketMessage.objects.create(ticket=t, sender=self.s1, body="M")
-        annotated = view._annotate_last_message(Ticket.objects.filter(id=t.id), self.u)
+        annotated = Ticket._annotate_last_message_for_user(Ticket.objects.filter(id=t.id), self.u)
         self.assertEqual(annotated.first().last_message_body, "M")
 
-        unread = view._annotate_unread_count(annotated, self.u)
+        unread = Ticket._annotate_unread_count_for_user(annotated, self.u)
         self.assertEqual(unread.first().unread_count, 1)
 
     def test_home_includes_integrated_search_filters(self):

@@ -123,6 +123,10 @@ class Department(models.Model):
         """Check if user may manage staff for this department."""
         return user.is_superuser or (user.is_staff and self.created_by == user)
 
+    def can_edit(self, user):
+        """Return whether the user may edit this department."""
+        return self.created_by == user or user.is_superuser
+
     def can_manage_faqs(self, user):
         """Check if user may add or delete FAQs for this department."""
         from .user_departments import UserDepartments
@@ -131,6 +135,17 @@ class Department(models.Model):
             user=user,
             department=self,
         ).exists()
+
+    def can_delete(self, user):
+        """Return whether the user may delete this department."""
+        return self.can_edit(user)
+
+    def delete_for_actor(self, actor):
+        """Delete the department when the actor has permission."""
+        if not self.can_delete(actor):
+            return False
+        self.delete()
+        return True
 
     def get_current_staff(self):
         """Return users currently assigned to this department."""

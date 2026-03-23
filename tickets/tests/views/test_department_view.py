@@ -1,4 +1,4 @@
-from django.test import TestCase, Client, RequestFactory
+from django.test import TestCase, RequestFactory
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.fallback import FallbackStorage
@@ -175,14 +175,14 @@ class DepartmentViewTests(TestCase):
         request.user = self.owner
 
         view = DepartmentView()
-        view.update_staff_assignment(request, user_id=self.out.id, department=self.dept, action="unknown_action")
+        view._process_staff_action(request, self.dept)
 
         # No new invitations or membership changes should have been made
         self.assertFalse(DepartmentInvitation.objects.filter(recipient=self.out).exists())
         self.assertTrue(UserDepartments.objects.filter(user=self.out, department=self.dept).count() in (0, 1))
 
-    def test_update_staff_assignment_with_valid_action(self):
-        """update_staff_assignment should process valid actions and send messages."""
+    def test_process_staff_action_with_valid_action(self):
+        """_process_staff_action should process valid actions and send messages."""
         # Create a staff user to invite
         staff_user = User.objects.create_user(username="staff_inv", email="staff_inv@e.com", password="p", is_staff=True)
         
@@ -198,7 +198,7 @@ class DepartmentViewTests(TestCase):
         setattr(request, '_messages', FallbackStorage(request))
 
         view = DepartmentView()
-        view.update_staff_assignment(request, user_id=staff_user.id, department=self.dept, action="add")
+        view._process_staff_action(request, self.dept)
 
         # Valid action should create an invitation
         self.assertTrue(DepartmentInvitation.objects.filter(recipient=staff_user).exists())

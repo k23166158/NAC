@@ -1,6 +1,5 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from io import BytesIO
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from tickets.forms.ticket_create import CreateTicketForm
@@ -85,3 +84,15 @@ class CreateTicketFormTests(TestCase):
         form = CreateTicketForm()
         self.assertIn('attachments', form.fields)
         self.assertTrue(form.fields['attachments'].widget.allow_multiple_selected)
+
+    def test_form_validates_multiple_uploaded_files(self):
+        """Multiple uploaded files should clean to a list without validation errors."""
+        file_one = SimpleUploadedFile("test-one.txt", b"first", content_type="text/plain")
+        file_two = SimpleUploadedFile("test-two.txt", b"second", content_type="text/plain")
+        form = CreateTicketForm(
+            data={"title": "Valid", "body": "Valid", "departments": [self.department.id]},
+            files={"attachments": [file_one, file_two]},
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(len(form.cleaned_data["attachments"]), 2)
