@@ -8,6 +8,23 @@ class MultipleFileInput(ClearableFileInput):
     allow_multiple_selected = True
 
 
+class MultipleFileField(forms.FileField):
+    """Form field that validates each uploaded file from a multi-file widget."""
+
+    def clean(self, data, initial=None):
+        """Return a list of cleaned uploaded files."""
+        single_file_clean = super().clean
+
+        if not data:
+            return []
+
+        if isinstance(data, (list, tuple)):
+            return [single_file_clean(file, initial) for file in data if file]
+
+        cleaned_file = single_file_clean(data, initial)
+        return [cleaned_file] if cleaned_file else []
+
+
 class CreateTicketForm(forms.Form):
     """Form used to create a ticket and its initial message."""
     title = forms.CharField(
@@ -35,7 +52,7 @@ class CreateTicketForm(forms.Form):
         }),
     )
 
-    attachments = forms.FileField(
+    attachments = MultipleFileField(
         label="Attachments",
         required=False,
         widget=MultipleFileInput(attrs={
