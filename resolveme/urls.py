@@ -46,11 +46,7 @@ urlpatterns = [
     
     path('tickets/<uuid:uuid>/', TicketThreadView.as_view(), name='ticket_thread'),
     path("tickets/<uuid:ticket_id>/forward/", ForwardTicketView.as_view(), name="ticket_forward"),
-    path(
-        "tickets/",
-        RedirectView.as_view(pattern_name="home", permanent=False, query_string=True),
-        name="ticket_search",
-    ),
+    path("tickets/",RedirectView.as_view(pattern_name="home", permanent=False, query_string=True),name="ticket_search",),
     path("tickets/create/", CreateTicketView.as_view(), name="ticket_create"),
     path("ticket/search-assignables/", search_assignables, name="search_assignables"),
     path("ticket/search-faqs/", search_faqs, name="search_faqs"),
