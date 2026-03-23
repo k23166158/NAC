@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Prefetch, Subquery
 from django.db import models
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
@@ -49,6 +49,14 @@ class Department(models.Model):
         return queryset.prefetch_related("assigned_users__user").order_by("name")
 
     @classmethod
+    def browsable_with_active_member_counts(cls, search_query=""):
+        """Return all departments for non-staff browsing."""
+        queryset = cls.objects.select_related("created_by")
+        queryset = cls._filter_manage_search(queryset, search_query)
+        queryset = queryset.annotate(active_member_count=cls._active_member_count())
+        return queryset.prefetch_related(cls._active_member_prefetch()).order_by("name")
+
+    @classmethod
     def _assigned_to_user_queryset(cls, user):
         """Return base queryset for departments assigned to user."""
         return cls.objects.filter(assigned_users__user=user).select_related("created_by").distinct()
@@ -68,6 +76,26 @@ class Department(models.Model):
                 distinct=True,
             ),
         }
+
+    @staticmethod
+    def _active_member_count():
+        """Return an annotation counting active department members."""
+        return models.Count(
+            "assigned_users",
+            filter=models.Q(assigned_users__user__is_active=True),
+            distinct=True,
+        )
+
+    @staticmethod
+    def _active_member_prefetch():
+        """Prefetch active membership rows and attached users."""
+        from .user_departments import UserDepartments
+
+        return Prefetch(
+            "assigned_users",
+            queryset=UserDepartments.objects.select_related("user").filter(user__is_active=True),
+            to_attr="active_assignments",
+        )
 
     @staticmethod
     def _filter_manage_search(queryset, search_query):
@@ -104,6 +132,17 @@ class Department(models.Model):
     def get_current_staff(self):
         """Return users currently assigned to this department."""
         return [assignment.user for assignment in self.assigned_users.select_related("user").all()]
+
+    def get_active_staff(self):
+        """Return active users currently assigned to this department."""
+        return [assignment.user for assignment in self._active_assignments()]
+
+    def _active_assignments(self):
+        """Return active user-department assignments."""
+        cached = getattr(self, "active_assignments", None)
+        if cached is not None:
+            return cached
+        return list(self.assigned_users.select_related("user").filter(user__is_active=True))
 
     def get_pending_invitations(self):
         """Return pending invitations for this department."""
@@ -151,6 +190,16 @@ class Department(models.Model):
         context["faq_form"] = DepartmentFAQForm()
         context["user_can_manage_faqs"] = self.can_manage_faqs(request.user)
         return context
+
+    def build_public_view_context(self, request):
+        """Build the read-only department context for non-staff users."""
+        active_staff = self.get_active_staff()
+        return {
+            "department": self,
+            "staff_page": self._paginate_queryset(request, active_staff, "staff_page", per_page=10),
+            "staff_total": len(active_staff),
+            "is_public_department_view": True,
+        }
 
     def _get_invited_users(self):
         """Return users with pending invitations for this department."""
