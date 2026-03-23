@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ department.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/ticket_layout.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_layout_extra.css' %}">
+<link rel="stylesheet" href="{% static 'css/department_view.css' %}">
+<link rel="stylesheet" href="{% static 'css/department_faq.css' %}">
+<link rel="stylesheet" href="{% static 'css/pagination.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tickets-wrap tickets-centered dept-page">
+    <div class="back-link-container">
+        <a href="{% url 'department_manage' %}" class="ticket-link">← Back to Departments</a>
+    </div>
+
+    <div class="ticket-header-card dept-header-card">
+        <div class="dept-header-inner">
+            <div class="dept-header-copy">
+                <span class="dept-kicker">Department overview</span>
+                <h1 class="tickets-title dept-title">{{ department.name }}</h1>
+                <p class="tickets-subtitle dept-subtitle">
+                    {{ department.description|default:"No description available." }}
+                </p>
+            </div>
+        </div>
+        <div class="dept-meta">
+            <span class="pill dept-meta-pill">Active members {{ staff_total }}</span>
+        </div>
+    </div>
+
+    <div class="thread-section">
+        <div class="thread-section-head">
+            <div>
+                <h2 class="thread-section-title">Department Information</h2>
+                <p class="thread-section-copy">See active members and published FAQs for this department.</p>
+            </div>
+        </div>
+
+        <div class="staff-grid">
+            {% include 'partials/staff_list_card.html' with header="Active members" staff_list=staff_page view_type="department" current_user=user pagination=staff_page department=department %}
+
+            <div class="staff-card faq-section">
+                <h3 class="staff-card-header">Published FAQs</h3>
+                <div class="faq-list">
+                    {% for faq in faqs %}
+                    <div class="faq-item">
+                        <div class="faq-view">
+                            <div class="faq-header">
+                                <button class="faq-trigger" type="button" aria-expanded="false">
+                                    <span class="faq-icon">Q</span>
+                                    <span class="faq-question">{{ faq.question }}</span>
+                                    <i class="bi bi-chevron-down faq-chevron"></i>
+                                </button>
+                            </div>
+                            <div class="faq-answer-wrap">
+                                <p class="faq-answer">{{ faq.answer }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="faq-empty">No FAQs published for this department yet.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelectorAll('.faq-trigger').forEach(trigger => {
+        trigger.addEventListener('click', () => {
+            const item = trigger.closest('.faq-item');
+            const isOpen = item.classList.contains('faq-open');
+            item.classList.toggle('faq-open', !isOpen);
+            trigger.setAttribute('aria-expanded', String(!isOpen));
+        });
+    });
+</script>
+{% endblock %}

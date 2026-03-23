@@ -14,12 +14,16 @@ class DepartmentView(LoginRequiredMixin, View):
     def get(self, request, department_slug):
         """Handle GET requests for the department view."""
         department = Department.get_by_slug_or_404(department_slug)
+        if self._should_render_public_view(request.user):
+            return render(request, "department_public.html", department.build_public_view_context(request))
         if not department.can_view(request.user):
             return HttpResponseForbidden("You are not allowed to access this.")
         return render(request, "department.html", department.build_view_context(request))
 
     def post(self, request, department_slug):
         """Handle POST requests for staff and FAQ actions."""
+        if self._should_render_public_view(request.user):
+            return HttpResponseForbidden("You are not allowed to access this.")
         department = Department.get_by_slug_or_404(department_slug)
         action = request.POST.get("action")
         if action in ("add_faq", "edit_faq", "delete_faq"):
@@ -79,6 +83,26 @@ class DepartmentView(LoginRequiredMixin, View):
             actor=request.user,
             user_id=request.POST.get("user_id"),
             action=request.POST.get("action"),
+        )
+        if not outcome:
+            return
+        level, text = outcome
+        getattr(messages, level)(request, text)
+
+    @staticmethod
+    def _should_render_public_view(user):
+        """Return True when the user should see the read-only department view."""
+        return user.is_authenticated and not (user.is_staff or user.is_superuser)
+
+    def update_staff_assignment(self, request, user_id, department, action):
+        """Update staff assignment for a user in a department.
+        
+        This is a no-op for unknown actions.
+        """
+        outcome = department.process_staff_change(
+            actor=request.user,
+            user_id=user_id,
+            action=action,
         )
         if not outcome:
             return

@@ -132,6 +132,17 @@ class ProfileViewTests(TestCase):
 
         self.assertContains(response, reverse("department", args=[department.slug]))
 
+    def test_non_staff_profile_department_link_opens_public_department_view(self):
+        """Non-staff users should reach the read-only department page from profile links."""
+        department = Department.objects.create(name="Support", created_by=self.user)
+        UserDepartments.objects.create(user=self.other, department=department)
+        self.login()
+
+        response = self.client.get(reverse("department", args=[department.slug]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "department_public.html")
+
     def test_unknown_slug_returns_404(self):
         """Unknown slugs should return a 404."""
         self.login()

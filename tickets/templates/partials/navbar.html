@@ -6,9 +6,7 @@
                 <li><a href="{% url 'manage_users' %}">Users</a></li>
             {% endif %}
             {% if user.is_authenticated %}
-                {% if user.is_staff %}
-                    <li><a href="{% url 'department_manage' %}">Departments</a></li>
-                {% endif %}
+                <li><a href="{% url 'department_manage' %}">Departments</a></li>
                 <li>
                     <a href="{% url 'notifications' %}" class="nav-link-notifications">
                         Notifications
