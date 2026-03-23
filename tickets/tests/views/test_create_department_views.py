@@ -1,7 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from unittest.mock import patch
 
 from tickets.models import Department, UserDepartments
 from tickets.views import CreateDepartmentView
@@ -164,4 +163,3 @@ class CreateDepartmentViewTests(TestCase):
         )
         self.assertEqual(user_department.user, self.staff_user)
         self.assertEqual(user_department.department, department)
-
