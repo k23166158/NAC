@@ -19,8 +19,8 @@ class NotificationModelTest(TestCase):
         )
         self.assertEqual(str(notification), "TICKET_CREATED for testuser")
 
-    def test_for_display_for_returns_only_user_notifications(self):
-        """for_display_for should scope notifications to the requested user."""
+    def test_recent_for_user_returns_only_user_notifications(self):
+        """recent_for_user should scope notifications to the requested user."""
         user = User.objects.create_user(
             username="target",
             email="target@example.com",
@@ -49,7 +49,7 @@ class NotificationModelTest(TestCase):
             short_message="Ignored",
         )
 
-        notifications = list(Notification.for_display_for(user))
+        notifications = list(Notification.recent_for_user(user))
 
         self.assertEqual(notifications, [second, first])
 
