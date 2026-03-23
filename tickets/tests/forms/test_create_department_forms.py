@@ -31,3 +31,13 @@ class DepartmentFormTests(TestCase):
         f_none = DepartmentForm()
         f_none.cleaned_data = {'name': None}
         self.assertIsNone(f_none.clean_name())
+
+    def test_save_for_actor_sets_creator_and_membership(self):
+        """save_for_actor should persist the department and assign the actor."""
+        form = DepartmentForm(data={"name": "Finance", "description": "Numbers"})
+
+        self.assertTrue(form.is_valid())
+        department = form.save_for_actor(self.u)
+
+        self.assertEqual(department.created_by, self.u)
+        self.assertTrue(department.assigned_users.filter(user=self.u).exists())

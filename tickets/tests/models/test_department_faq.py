@@ -1,6 +1,8 @@
 from django.test import TestCase
+from django.http import Http404
 from django.contrib.auth import get_user_model
 
+from tickets.forms import DepartmentFAQForm
 from tickets.models import Department, DepartmentFAQ
 
 User = get_user_model()
@@ -76,3 +78,51 @@ class DepartmentFAQModelTests(TestCase):
         self._make_faq()
         self._make_faq(question="Another question?")
         self.assertEqual(self.dept.faqs.count(), 2)
+
+    def test_create_from_form_sets_department_and_creator(self):
+        """create_from_form should persist a faq with department and actor."""
+        form = DepartmentFAQForm(data={"question": "Q", "answer": "A"})
+
+        self.assertTrue(form.is_valid())
+        faq = DepartmentFAQ.create_from_form(form, department=self.dept, actor=self.creator)
+
+        self.assertEqual(faq.department, self.dept)
+        self.assertEqual(faq.created_by, self.creator)
+
+    def test_update_from_form_saves_changes(self):
+        """update_from_form should save a bound FAQ form."""
+        faq = self._make_faq()
+        form = DepartmentFAQForm(
+            data={"question": "Updated", "answer": "Changed"},
+            instance=faq,
+        )
+
+        self.assertTrue(form.is_valid())
+        updated = DepartmentFAQ.update_from_form(form)
+
+        self.assertEqual(updated.question, "Updated")
+        self.assertEqual(updated.answer, "Changed")
+
+    def test_get_for_department_or_404_is_scoped(self):
+        """get_for_department_or_404 should only resolve FAQs in the department."""
+        faq = self._make_faq()
+        other = Department.objects.create(name="Other", created_by=self.creator)
+
+        resolved = DepartmentFAQ.get_for_department_or_404(
+            faq_id=faq.id,
+            department=self.dept,
+        )
+
+        self.assertEqual(resolved, faq)
+        with self.assertRaises(Http404):
+            DepartmentFAQ.get_for_department_or_404(faq_id=faq.id, department=other)
+
+    def test_delete_for_department_checks_membership(self):
+        """delete_for_department should only delete when the department matches."""
+        faq = self._make_faq(question="Delete me")
+        other = Department.objects.create(name="Mismatch", created_by=self.creator)
+
+        self.assertFalse(faq.delete_for_department(other))
+        self.assertTrue(DepartmentFAQ.objects.filter(pk=faq.pk).exists())
+        self.assertTrue(faq.delete_for_department(self.dept))
+        self.assertFalse(DepartmentFAQ.objects.filter(pk=faq.pk).exists())
