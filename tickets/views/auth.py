@@ -22,13 +22,9 @@ def handle_signup_post(request):
         return user, form
     return None, form
 
-def should_redirect_home(user):
-    """Return True if user is authenticated and should be redirected home."""
-    return user.is_authenticated
-
 def SignUpView(request):
     """Render the sign-up page. Redirects if authenticated. Handles GET and POST separately."""
-    if should_redirect_home(request.user):
+    if request.user.is_authenticated:
         return redirect('home')
     if request.method == 'POST':
         user, form = handle_signup_post(request)

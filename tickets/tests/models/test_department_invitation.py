@@ -2,7 +2,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from tickets.models import Department, DepartmentInvitation, UserDepartments
+from tickets.models import Department, DepartmentInvitation
 
 User = get_user_model()
 

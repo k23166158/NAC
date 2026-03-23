@@ -123,26 +123,13 @@ class HomeView(View):
 
         return self.annotated_tickets(user, scope=scope), scope
 
-    def base_tickets(self, user, scope="personal"):
-        """Tickets visible to this user."""
-        return Ticket.base_for_scope(user, scope=scope)
-
     def annotated_tickets(self, user, scope="personal"):
         """Annotate the base ticket queryset with message metadata."""
         return Ticket.annotated_for_home(user, scope=scope)
 
     def apply_filters(self, qs, filters):
         """Apply ticket search filters to the annotated home queryset."""
-        return Ticket._apply_search_filters(qs, filters).distinct()
-
-    def _annotate_last_message(self, qs, user):
-        """Annotate the queryset with details of the last message and last read timestamp."""
-        return Ticket._annotate_last_message_for_user(qs, user
-                                                      )
-
-    def _annotate_unread_count(self, qs, user):
-        """Annotate the queryset with the count of unread messages for the user."""
-        return Ticket._annotate_unread_count_for_user(qs, user)
+        return Ticket.apply_search_filters(qs, filters).distinct()
 
     def completed_tickets(self, qs):
         """Tickets that are completed/closed."""

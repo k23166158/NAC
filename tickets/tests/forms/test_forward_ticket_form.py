@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from types import SimpleNamespace
 from tickets.forms.forward_ticket import ForwardTicketForm
-from tickets.views.forward_ticket_view import _ticket_redirect, _err, _has_field
+from tickets.views.forward_ticket_view import _ticket_redirect, _err
 
 class ForwardTicketFormTests(TestCase):
     """Tests for ForwardTicketForm and helpers."""
@@ -36,5 +36,3 @@ class ForwardTicketFormTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertIn("/?tab=active&open=abc-123", resp["Location"])
         self.assertEqual(_err(SimpleNamespace(errors={})), "Email failed to forward.")
-        Dummy = SimpleNamespace(_meta=SimpleNamespace(fields=[SimpleNamespace(name="foo")]))
-        self.assertFalse(_has_field(Dummy, "missing"))
