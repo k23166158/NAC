@@ -623,7 +623,7 @@ class Command(BaseCommand):
     def _create_ticket_with_title(self, title, creator):
         """Create a single ticket with a realistic title and random date."""
         ticket = Ticket.objects.create(title=title, status=choice(['open', 'closed']), created_by=creator)
-        random_days, random_seconds = randint(5, 14), randint(0, 86400)
+        random_days, random_seconds = randint(2, 10), randint(0, 86400)
         past_date = timezone.now() - timedelta(days=random_days, seconds=random_seconds)
         Ticket.objects.filter(id=ticket.id).update(created_at=past_date, updated_at=past_date)
         return ticket
@@ -658,7 +658,7 @@ class Command(BaseCommand):
     def _create_initial_message_for_ticket(self, ticket):
         """Create the initial message for a single ticket."""
         initial_body = faq_bodies_by_title.get(ticket.title, choice(fallback_ticket_bodies))
-        past_date = timezone.now() - timedelta(days=randint(5, 14), seconds=randint(0, 86400))
+        past_date = timezone.now() - timedelta(days=randint(2, 10), seconds=randint(0, 86400))
         msg = TicketMessage.objects.get_or_create(
             ticket=ticket, body=initial_body, sender=ticket.created_by
         )[0]
@@ -682,7 +682,7 @@ class Command(BaseCommand):
             sender = choice(available_senders)
             body = choice(faq_responses)
             msg = TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
-            past_date = timezone.now() - timedelta(days=randint(5, 14), seconds=randint(0, 86400))
+            past_date = timezone.now() - timedelta(days=randint(2, 10), seconds=randint(0, 86400))
 
             TicketMessage.objects.filter(id=msg.id).update(
                 created_at=past_date,
@@ -695,7 +695,7 @@ class Command(BaseCommand):
             sender = ticket.created_by
             body = choice(follow_up_responses)
             msg = TicketMessage.objects.create(ticket=ticket, sender=sender, body=body)
-            past_date = timezone.now() - timedelta(days=randint(5, 14), seconds=randint(0, 86400))
+            past_date = timezone.now() - timedelta(days=randint(2, 10), seconds=randint(0, 86400))
 
             TicketMessage.objects.filter(id=msg.id).update(
                 created_at=past_date,
