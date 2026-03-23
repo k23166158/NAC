@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
 
-from tickets.models import Department, UserDepartments, DepartmentInvitation, Ticket, TicketAssigned, Notification
+from tickets.models import Department, UserDepartments, DepartmentInvitation, Ticket, TicketAssigned, Notification, DepartmentFAQ
 from tickets.views.department_view import DepartmentView
 
 User = get_user_model()
@@ -82,6 +82,25 @@ class DepartmentViewTests(TestCase):
         self.client.force_login(self.mem)
         response = self.client.get(self.url)
         self._assert_public_department_context(response, active_staff, inactive_staff)
+
+    def test_public_department_view_shows_faqs_as_read_only_accordion(self):
+        """Non-staff users should see published FAQs without edit controls."""
+        DepartmentFAQ.objects.create(
+            department=self.dept,
+            question="How do I get help?",
+            answer="Contact the service desk.",
+            created_by=self.owner,
+        )
+        self.client.force_login(self.mem)
+
+        response = self.client.get(self.url)
+
+        self.assertTemplateUsed(response, "department_public.html")
+        self.assertContains(response, "Published FAQs")
+        self.assertContains(response, "How do I get help?")
+        self.assertContains(response, "Contact the service desk.")
+        self.assertNotContains(response, "Add FAQ")
+        self.assertNotContains(response, "Save FAQ")
 
     def test_department_post_actions_owner(self):
         """Test adding/removing staff and revoking invitations as an owner."""
