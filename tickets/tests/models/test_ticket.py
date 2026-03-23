@@ -267,7 +267,7 @@ class TicketOverdueAndManagementTests(TestCase):
         t.created_at = timezone.now() - timedelta(days=8)
         self.assertTrue(t.is_overdue)
 
-        t.updated_at = timezone.now() - timedelta(days=2)
+        t.created_at = timezone.now() - timedelta(days=2)
         self.assertFalse(t.is_overdue)
 
     def test_can_send_reminder(self):
