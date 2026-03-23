@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/ticket_layout.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_layout_extra.css' %}">
 <link rel="stylesheet" href="{% static 'css/ticket_timeline.css' %}">
 <link rel="stylesheet" href="{% static 'css/ticket_messages.css' %}">
 <link rel="stylesheet" href="{% static 'css/ticket_staff.css' %}">
@@ -13,63 +14,159 @@
 {% endblock %}
 
 {% block content %}
-<div class="tickets-wrap">
-  <div class="back-link-container">
-    <a href="{{ back_to_url }}" class="ticket-link">← {{ back_to_label }}</a>
-  </div>
-  <div class="ticket-header-card">
-    <div class="col-head">
-      <h1 class="tickets-title">{{ ticket.title }}</h1>
-      {% if ticket.status == 'closed' %}
-        <span class="pill status status-completed">CLOSED</span>
-      {% elif ticket.status == 'pending' %}
-        <span class="pill status status-overdue">PENDING</span>
-      {% else %}
-        <span class="pill status status-active">OPEN</span>
-      {% endif %}
-    </div>
-    <div class="col-body">
-      <div class="ticket-meta">
-        <span class="pill">Created by <strong><a class="content-link" href="{% url 'profile' ticket.created_by.profile_slug %}">{{ ticket.created_by.username }}</a></strong></span>
-        <span class="pill">Created {{ ticket.created_at|date:"M d, Y H:i" }}</span>
-        <span class="pill">Updated: {{ ticket.updated_at|date:"M d, Y H:i" }}</span>
-        {% if ticket.closed_by %}
-          <span class="pill">Closed by <a class="content-link" href="{% url 'profile' ticket.closed_by.profile_slug %}">{{ ticket.closed_by.username }}</a></span>
-        {% endif %}
-        {% if ticket.closed_at %}
-          <span class="pill">Closed {{ ticket.closed_at|date:"M d, Y H:i" }}</span>
-        {% endif %}
-        {% if ticket.reopened_by %}
-          <span class="pill">Reopened by <a class="content-link" href="{% url 'profile' ticket.reopened_by.profile_slug %}">{{ ticket.reopened_by.username }}</a></span>
-        {% endif %}
-        {% if ticket.reopened_at %}
-          <span class="pill">Reopened {{ ticket.reopened_at|date:"M d, Y H:i" }}</span>
-        {% endif %}
+<div class="tickets-wrap tickets-wrap-staff">
+  <div class="staff-thread-shell">
+    <aside class="staff-thread-sidebar{% if not user.is_staff %} staff-thread-sidebar-solo{% endif %}">
+      <div class="back-link-container">
+        <a href="{{ back_to_url }}" class="ticket-link">← {{ back_to_label }}</a>
       </div>
-      {% if ticket.status == 'closed' and ticket.resolution_summary %}
-        <div class="ticket-description">
-          <p class="message-body"><strong>Resolution summary:</strong> {{ ticket.resolution_summary }}</p>
+      <div class="ticket-header-card">
+        <div class="col-head">
+          <h1 class="tickets-title">{{ ticket.title }}</h1>
+          {% if ticket.status == 'closed' %}
+            <span class="pill status status-completed">CLOSED</span>
+          {% elif ticket.status == 'pending' %}
+            <span class="pill status status-overdue">PENDING</span>
+          {% else %}
+            <span class="pill status status-active">OPEN</span>
+          {% endif %}
         </div>
-      {% endif %}
-      {% if first_message %}
-        <div class="ticket-description">
-          <p class="message-body">{{ first_message.body }}</p>
-          {% with atts=first_message.attachments.all %}
-            {% if atts %}
-              <div class="msg-attachments">
-                {% for a in atts %}
-                  <a class="msg-attachment" href="{{ a.file.url }}" target="_blank" rel="noopener">
-                    <span class="msg-attachment-name">{{ a.original_name|default:"Attachment" }}</span>
-                    {% if a.size_bytes %}<span class="msg-attachment-meta">({{ a.size_bytes }} bytes)</span>{% endif %}
-                  </a>
-                {% endfor %}
-              </div>
+        <div class="col-body">
+          <div class="ticket-meta">
+            <span class="pill">Created by <strong><a class="content-link" href="{% url 'profile' ticket.created_by.profile_slug %}">{{ ticket.created_by.username }}</a></strong></span>
+            <span class="pill">Created {{ ticket.created_at|date:"M d, Y H:i" }}</span>
+            <span class="pill">Updated: {{ ticket.updated_at|date:"M d, Y H:i" }}</span>
+            {% if ticket.closed_by %}
+              <span class="pill">Closed by <a class="content-link" href="{% url 'profile' ticket.closed_by.profile_slug %}">{{ ticket.closed_by.username }}</a></span>
             {% endif %}
-          {% endwith %}
+            {% if ticket.closed_at %}
+              <span class="pill">Closed {{ ticket.closed_at|date:"M d, Y H:i" }}</span>
+            {% endif %}
+            {% if ticket.reopened_by %}
+              <span class="pill">Reopened by <a class="content-link" href="{% url 'profile' ticket.reopened_by.profile_slug %}">{{ ticket.reopened_by.username }}</a></span>
+            {% endif %}
+            {% if ticket.reopened_at %}
+              <span class="pill">Reopened {{ ticket.reopened_at|date:"M d, Y H:i" }}</span>
+            {% endif %}
+          </div>
+          {% if ticket.status == 'closed' and ticket.resolution_summary %}
+            <div class="ticket-description">
+              <p class="message-body"><strong>Resolution summary:</strong> {{ ticket.resolution_summary }}</p>
+            </div>
+          {% endif %}
+          {% if first_message %}
+            <div class="ticket-description">
+              <p class="message-body">{{ first_message.body }}</p>
+              {% with atts=first_message.attachments.all %}
+                {% if atts %}
+                  <div class="msg-attachments">
+                    {% for a in atts %}
+                      <a class="msg-attachment" href="{{ a.file.url }}" target="_blank" rel="noopener">
+                        <span class="msg-attachment-name">{{ a.original_name|default:"Attachment" }}</span>
+                        {% if a.size_bytes %}<span class="msg-attachment-meta">({{ a.size_bytes }} bytes)</span>{% endif %}
+                      </a>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% endwith %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% if user.is_staff %}
+        <div class="staff-thread-sidebar-panels">
+          <div class="section-wrapper{% if not can_manage_assignments %} section-wrapper--locked{% endif %}">
+            <h2 class="section-title">Staff Members
+              {% if not can_manage_assignments %}
+                <span class="assignment-lock-badge"><i class="bi bi-lock-fill"></i></span>
+              {% endif %}
+            </h2>
+            {% if not can_manage_assignments %}
+              <p class="assignment-locked-notice">
+                {% if ticket.status == 'closed' %}Ticket is closed — staff changes are disabled.{% else %}You have left this ticket — staff changes are disabled.{% endif %}
+              </p>
+            {% endif %}
+            <div class="staff-grid">
+              {% include 'partials/staff_list_card.html' with header="Assigned" staff_list=staff view_type="ticket" current_user=user ticket=ticket can_manage=can_manage_assignments %}
+              {% if can_manage_assignments %}
+                {% include 'partials/staff_user_search_card.html' with header="Forward ticket to staff" staff=available_staff %}
+              {% else %}
+                <div class="staff-card staff-card--locked">
+                  <h3 class="staff-card-header">Add staff</h3>
+                  <p class="assignment-locked-placeholder">Unavailable</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="section-wrapper{% if not can_manage_assignments %} section-wrapper--locked{% endif %}">
+            <h2 class="section-title">Departments
+              {% if not can_manage_assignments %}
+                <span class="assignment-lock-badge"><i class="bi bi-lock-fill"></i></span>
+              {% endif %}
+            </h2>
+            {% if not can_manage_assignments %}
+              <p class="assignment-locked-notice">
+                {% if ticket.status == 'closed' %}Ticket is closed — department changes are disabled.{% else %}You have left this ticket — department changes are disabled.{% endif %}
+              </p>
+            {% endif %}
+            <div class="staff-grid">
+              <div class="staff-card{% if not can_manage_assignments %} staff-card--locked{% endif %}">
+                <h3 class="staff-card-header">Assigned</h3>
+                <div class="staff-list">
+                  {% for department in ticket_departments %}
+                    <div class="pill staff-row department-row">
+                      <a class="content-link-flex staff-info" href="{% url 'department' department.slug %}">
+                        <div class="department-avatar">
+                          {{ department.name|first }}
+                        </div>
+                        <span class="staff-name department-name">{{ department.name }}</span>
+                      </a>
+                      {% if can_manage_assignments %}
+                        <form method="post" class="remove-department-form">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="remove">
+                          <input type="hidden" name="target_type" value="department">
+                          <input type="hidden" name="target_id" value="{{ department.id }}">
+                          <button type="submit" class="btn-icon-remove" title="Remove department">
+                            <i class="bi bi-trash3"></i>
+                          </button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  {% empty %}<div class="empty empty-state">No departments assigned.</div>{% endfor %}
+                </div>
+              </div>
+              <div class="staff-card{% if not can_manage_assignments %} staff-card--locked{% endif %}">
+                <h3 class="staff-card-header">Add department</h3>
+                <div class="staff-list">
+                  {% if can_manage_assignments %}
+                    {% for department in available_departments %}
+                      <form method="post" class="add-department-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="target_type" value="department">
+                        <input type="hidden" name="target_id" value="{{ department.id }}">
+                        <div class="pill department-pill">
+                          <a class="content-link department-pill-link" href="{% url 'department' department.slug %}">
+                            <span class="department-pill-name">{{ department.name }}</span>
+                          </a>
+                          <button type="submit" class="department-add-btn" title="Add department" aria-label="Add {{ department.name }}">
+                            +
+                          </button>
+                        </div>
+                      </form>
+                    {% empty %}<div class="empty empty-state">All departments added.</div>{% endfor %}
+                  {% else %}
+                    <p class="assignment-locked-placeholder">Unavailable</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       {% endif %}
-    </div>
-  </div>
+    </aside>
+    <div class="staff-thread-main">
   <div class="thread-section">
     <div class="thread-section-head">
       <div>
@@ -215,65 +312,6 @@
       {% if ticket.reopened_at %}
         <div class="ticket-closed-notice">This ticket was reopened.</div>
       {% endif %}
-      {% if user.is_staff %}
-        <div class="section-wrapper">
-        <h2 class="section-title">Staff Members</h2>
-          <div class="staff-grid">
-            {% include 'partials/staff_list_card.html' with header="Assigned" staff_list=staff view_type="ticket" current_user=user ticket=ticket %}
-            {% include 'partials/staff_user_search_card.html' with header="Forward ticket to staff" staff=available_staff %}
-          </div>
-        </div>
-        <div class="section-wrapper">
-          <h2 class="section-title">Departments</h2>
-          <div class="staff-grid">
-            <div class="staff-card">
-              <h3 class="staff-card-header">Assigned</h3>
-              <div class="staff-list">
-                {% for department in ticket_departments %}
-                  <div class="pill staff-row department-row">
-                    <a class="content-link-flex staff-info" href="{% url 'department' department.slug %}">
-                      <div class="department-avatar">
-                        {{ department.name|first }}
-                      </div>
-                      <span class="staff-name department-name">{{ department.name }}</span>
-                    </a>
-                    <form method="post" class="remove-department-form">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="remove">
-                      <input type="hidden" name="target_type" value="department">
-                      <input type="hidden" name="target_id" value="{{ department.id }}">
-                      <button type="submit" class="btn-icon-remove" title="Remove department">
-                        <i class="bi bi-trash3"></i>
-                      </button>
-                    </form>
-                  </div>
-                {% empty %}<div class="empty empty-state">No departments assigned.</div>{% endfor %}
-              </div>
-            </div>
-            <div class="staff-card">
-              <h3 class="staff-card-header">Add department</h3>
-              <div class="staff-list">
-                {% for department in available_departments %}
-                  <form method="post" class="add-department-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="add">
-                    <input type="hidden" name="target_type" value="department">
-                    <input type="hidden" name="target_id" value="{{ department.id }}">
-                    <div class="pill department-pill">
-                      <a class="content-link department-pill-link" href="{% url 'department' department.slug %}">
-                        <span class="department-pill-name">{{ department.name }}</span>
-                      </a>
-                      <button type="submit" class="department-add-btn" title="Add department" aria-label="Add {{ department.name }}">
-                        +
-                      </button>
-                    </div>
-                  </form>
-                {% empty %}<div class="empty empty-state">All departments added.</div>{% endfor %}
-              </div>
-            </div>
-          </div>
-        </div>
-      {% endif %}
       <div class="ticket-close-panel">
         <form method="post" onsubmit="return confirm('Are you sure you want to close this ticket?');">
           {% csrf_token %}
@@ -293,9 +331,15 @@
       <div class="ticket-closed-notice">You do not have permission to make changes to this ticket.</div>
     {% endif %}
   {% endif %}
+    </div>
+  </div>
 </div>
 
 <script>
+(function () {
+  document.body.classList.add('ticket-thread-staff-page');
+})();
+
 (function () {
   const fileInput = document.getElementById('id_attachments');
   const fileList = document.getElementById('fileList');

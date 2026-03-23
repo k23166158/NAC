@@ -1,0 +1,170 @@
+/* Reply form container */
+
+.reply-container {
+    background:
+        radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 30%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+    border-radius: 24px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 22px 55px rgba(15, 23, 42, 0.06);
+    padding: 20px 22px 18px;
+}
+
+.reply-container .col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.col-title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 750;
+}
+
+.reply-subtitle {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+/* Textarea */
+
+.reply-textarea {
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    padding: 14px 16px;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 140px;
+    box-sizing: border-box;
+    font-family: inherit;
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.reply-textarea:focus {
+    border-color: rgba(9, 105, 218, 0.45);
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.12);
+    outline: none;
+}
+
+/* Reply/Action buttons */
+
+.reply-actions {
+    margin-top: 14px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.btn-submit,
+.btn-cancel,
+.btn-close-ticket {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.06s ease, box-shadow 0.12s ease;
+}
+
+.btn-submit {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+}
+
+.btn-submit:hover {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-cancel {
+    background: #fff;
+    border-color: var(--border);
+    color: var(--muted);
+}
+
+.btn-cancel:hover {
+    background: #f9fafb;
+    border-color: rgba(17, 24, 39, 0.18);
+    color: var(--text);
+}
+
+/* Ticket actions section */
+
+.ticket-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.ticket-close-panel {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.resolution-summary-textarea {
+    min-height: 180px;
+}
+
+.btn-close-ticket {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+}
+
+.btn-close-ticket:hover {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Responsive adjustments */
+
+@media (max-width: 800px) {
+    .ticket-header-card .col-head,
+    .reply-container .col-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .tickets-wrap-staff {
+        height: auto;
+        padding: 12px 0 28px;
+    }
+
+    .staff-thread-shell {
+        grid-template-columns: minmax(0, 1fr);
+        height: auto;
+    }
+
+    .staff-thread-sidebar,
+    .staff-thread-main {
+        overflow: visible;
+        height: auto;
+        padding-right: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    .tickets-wrap {
+        gap: 12px;
+    }
+
+    .ticket-header-card,
+    .reply-container,
+    .thread-section {
+        padding-inline: 14px;
+    }
+}
