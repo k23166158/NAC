@@ -208,19 +208,25 @@ class HomeViewTests(TestCase):
 
     def test_home_staff_options_follow_selected_department(self):
         """Assigned-staff options should narrow to members of the selected department."""
+        s3 = User.objects.create_user(
+            username="s3", email="s3@e.com", password="p", is_staff=True
+        )
         support = Department.objects.create(name="Support", created_by=self.s1)
         registry = Department.objects.create(name="Registry", created_by=self.s1)
         UserDepartments.objects.create(user=self.s1, department=support)
+        UserDepartments.objects.create(user=s3, department=support)
         UserDepartments.objects.create(user=self.s2, department=registry)
         ticket = Ticket.objects.create(title="Scoped", created_by=self.u, status=Ticket.Status.OPEN)
         TicketAssigned.objects.create(ticket=ticket, department=support)
         TicketParticipant.objects.create(ticket=ticket, user=self.s1)
+        TicketParticipant.objects.create(ticket=ticket, user=s3)
         TicketParticipant.objects.create(ticket=ticket, user=self.s2)
 
         self.c.force_login(self.s1)
         response = self.c.get(self.url, {"scope": "department", "department": str(support.id)})
 
-        self.assertIn(self.s1, list(response.context["staff_users"]))
+        self.assertNotIn(self.s1, list(response.context["staff_users"]))
+        self.assertIn(s3, list(response.context["staff_users"]))
         self.assertNotIn(self.s2, list(response.context["staff_users"]))
 
     def test_home_department_options_follow_selected_staff(self):
