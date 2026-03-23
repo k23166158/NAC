@@ -24,11 +24,11 @@
         <div class="col-head">
           <h1 class="tickets-title">{{ ticket.title }}</h1>
           {% if ticket.status == 'closed' %}
-            <span class="pill status status-completed">CLOSED</span>
-          {% elif ticket.status == 'pending' %}
-            <span class="pill status status-overdue">PENDING</span>
+            <span class="pill status status-completed">Closed</span>
+          {% elif ticket.is_overdue %}
+            <span class="pill status status-overdue">Overdue</span>
           {% else %}
-            <span class="pill status status-active">OPEN</span>
+            <span class="pill status status-active">Open</span>
           {% endif %}
         </div>
         <div class="col-body">
@@ -70,6 +70,22 @@
                 {% endif %}
               {% endwith %}
             </div>
+          {% endif %}
+          {% if ticket.is_overdue %}
+            {% if ticket.created_by.username == user.username or user.is_superuser %}
+              <div class="reminder-section">
+                <form method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="remind_staff">
+                  <button type="submit" class="btn-submit btn-reminder {% if not can_send_reminder %}btn-disabled{% endif %}" {% if not can_send_reminder %}disabled{% endif %}>
+                    Remind Staff
+                  </button>
+                  {% if not can_send_reminder %}
+                    <p class="reminder-help-text">Reminder sent within the last 24 hours.</p>
+                  {% endif %}
+                </form>
+            </div>
+            {% endif %}
           {% endif %}
         </div>
       </div>
@@ -334,12 +350,10 @@
     </div>
   </div>
 </div>
-
 <script>
 (function () {
   document.body.classList.add('ticket-thread-staff-page');
 })();
-
 (function () {
   const fileInput = document.getElementById('id_attachments');
   const fileList = document.getElementById('fileList');
@@ -370,13 +384,11 @@
   wrapper.addEventListener('dragleave', () => wrapper.classList.remove('dragover'));
   wrapper.addEventListener('drop', (e) => { e.preventDefault(); wrapper.classList.remove('dragover'); addFiles(e.dataTransfer.files); });
 })();
-
 function toggleEditForm(button, event) {
   event.preventDefault();
   const card = button.closest('.ticket-card');
   const editForm = card.querySelector('.message-edit-form');
   const messageContent = card.querySelector('.message-content');
-
   editForm.classList.toggle('hidden');
   messageContent.classList.toggle('hidden');
   if (!editForm.classList.contains('hidden')) {
@@ -384,5 +396,4 @@ function toggleEditForm(button, event) {
   }
 }
 </script>
-
 {% endblock %}

@@ -20,6 +20,7 @@ class Notification(models.Model):
         DEPT_MEMBER_REMOVED = 'DEPT_MEMBER_REMOVED', 'Removed From Department'
         DEPT_INVITE_ACCEPTED = 'DEPT_INVITE_ACCEPTED', 'Department Invite Accepted'
         DEPT_INVITE_DECLINED = 'DEPT_INVITE_DECLINED', 'Department Invite Declined'
+        TICKET_OVERDUE = 'TICKET_OVERDUE', 'Ticket Overdue'
     
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

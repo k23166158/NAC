@@ -3,8 +3,9 @@ from datetime import timedelta
 from unittest.mock import patch
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
-from tickets.models import Department, Ticket, TicketAssigned, TicketMessage, TicketParticipant, UserDepartments
+from tickets.models import Department, Ticket, TicketAssigned, TicketMessage, TicketParticipant, UserDepartments, Notification
 
 User = get_user_model()
 
@@ -29,7 +30,6 @@ class TicketModelTests(TestCase):
     def test_status_choices(self):
         """Test status choices are correctly defined."""
         self.assertEqual(Ticket.Status.OPEN, 'open')
-        self.assertEqual(Ticket.Status.PENDING, 'pending')
         self.assertEqual(Ticket.Status.CLOSED, 'closed')
         t2 = Ticket.objects.create(title="T2", created_by=self.user, status=Ticket.Status.CLOSED)
         self.assertEqual(t2.status, 'closed')
@@ -139,28 +139,23 @@ class TicketHomeDashboardModelTests(TestCase):
 
     def test_status_counts_and_scopes(self):
         """Test status counts and base scopes."""
-        Ticket.objects.create(title="T3", created_by=self.staff, status='pending')
         counts = Ticket.status_counts()
-        self.assertEqual(counts["open"], 1)
-        self.assertEqual(counts["closed"], 1)
-        self.assertEqual(counts["pending"], 1)
+        self.assertEqual(counts["open"], Ticket.objects.filter(status=Ticket.Status.OPEN).count())
+        self.assertEqual(counts["closed"], Ticket.objects.filter(status=Ticket.Status.CLOSED).count())
         p_ids = list(Ticket.base_for_scope(self.staff, "personal").values_list("id", flat=True))
         self.assertIn(self.t1.id, p_ids)
         self.assertIsNone(Ticket.base_for_scope(self.staff, "invalid"))
         d_ids = list(Ticket.base_for_scope(self.staff, "department").values_list("id", flat=True))
         self.assertNotIn(self.t1.id, d_ids)
-        self.assertEqual(Ticket.admin_ticket_stats()["total"], 3)
+        self.assertEqual(Ticket.admin_ticket_stats()["total"], Ticket.objects.count())
 
     def test_admin_ticket_stats(self):
         """admin_ticket_stats should include total and grouped status counts."""
-        Ticket.objects.create(title="T3", created_by=self.staff, status='pending')
-
         stats = Ticket.admin_ticket_stats()
 
-        self.assertEqual(stats["total"], 3)
-        self.assertEqual(stats["open"], 1)
-        self.assertEqual(stats["pending"], 1)
-        self.assertEqual(stats["closed"], 1)
+        self.assertEqual(stats["total"], Ticket.objects.count())
+        self.assertEqual(stats["open"], Ticket.objects.filter(status=Ticket.Status.OPEN).count())
+        self.assertEqual(stats["closed"], Ticket.objects.filter(status=Ticket.Status.CLOSED).count())
 
     def test_annotated_and_filters(self):
         """Test annotations and time-based filters."""
@@ -176,8 +171,11 @@ class TicketHomeDashboardModelTests(TestCase):
         qs = Ticket.annotated_for_home(self.staff, scope="personal")
         self.assertEqual(qs.get(id=self.t1.id).unread_count, 1)
         self.assertIn(self.t2.id, list(Ticket.completed_from(qs).values_list("id", flat=True)))
-        self.assertIn(t3.id, list(Ticket.overdue_from(qs).values_list("id", flat=True)))
-        self.assertIn(self.t1.id, list(Ticket.active_from(qs, Ticket.overdue_from(qs)).values_list("id", flat=True)))
+        
+        active_tickets = list(Ticket.active_from(qs).values_list("id", flat=True))
+        self.assertIn(self.t1.id, active_tickets)
+        self.assertIn(t3.id, active_tickets)
+        self.assertEqual(active_tickets[0], t3.id)
         self.assertIsNone(Ticket.annotated_for_home(self.staff, "bad"))
 
     def test_search_page_queryset_returns_none_queryset_fallback(self):
@@ -238,3 +236,91 @@ class TicketHomeDashboardModelTests(TestCase):
         with patch.object(Ticket, "base_for_scope", return_value=None):
             self.assertEqual(Ticket.search_page_queryset(self.staff, filters).count(), 0)
         self.assertFalse(self.t1.reopen())
+
+class TicketOverdueAndManagementTests(TestCase):
+    """Test suite for ticket overdue logic and assignment management."""
+    
+    def setUp(self):
+        """Set up a test user for ticket tests."""
+        self.user = User.objects.create_user(username="testuser", email="test@example.com", password="password")
+
+    def test_active_from_overdue_sorting(self):
+        """Verify that overdue tickets sort to the top of active queries."""
+        t_overdue = Ticket.objects.create(title="Overdue", created_by=self.user)
+        Ticket.objects.filter(id=t_overdue.id).update(created_at=timezone.now() - timedelta(days=8))
+        
+        t_recent = Ticket.objects.create(title="Recent", created_by=self.user)
+        Ticket.objects.filter(id=t_recent.id).update(created_at=timezone.now() - timedelta(days=1))
+        
+        qs = Ticket.objects.all()
+        qs = Ticket._annotate_last_message_for_user(qs, self.user)
+        
+        qs = Ticket.active_from(qs)
+        self.assertEqual(qs.first(), t_overdue)
+
+    def test_is_overdue(self):
+        """Test if a week old ticket is overdue"""
+        t = Ticket(status=Ticket.Status.CLOSED)
+        self.assertFalse(t.is_overdue)
+
+        t.status = Ticket.Status.OPEN
+        t.created_at = timezone.now() - timedelta(days=8)
+        self.assertTrue(t.is_overdue)
+
+        t.created_at = timezone.now() - timedelta(days=2)
+        self.assertFalse(t.is_overdue)
+
+    def test_can_send_reminder(self):
+        """Test that reminders can only be sent if no recent reminder exists."""
+        t = Ticket.objects.create(title="Test", created_by=self.user)
+        Ticket.objects.filter(id=t.id).update(created_at=timezone.now() - timedelta(days=8))
+        t.refresh_from_db()
+
+        self.assertTrue(t.can_send_reminder())
+
+        Notification.objects.create(
+            user=self.user, actor=self.user, target_object=t,
+            notification_type='TICKET_OVERDUE', short_message="Overdue!"
+        )
+        self.assertFalse(t.can_send_reminder())
+
+    @patch('tickets.helpers.notifications.notify_overdue_ticket')
+    def test_send_reminder(self, mock_notify):
+        """Test that sending a reminder dispatches the correct notification."""
+        t = Ticket(status=Ticket.Status.CLOSED)
+        self.assertFalse(t.send_reminder(self.user))
+        mock_notify.assert_not_called()
+
+        with patch.object(Ticket, 'can_send_reminder', return_value=True):
+            self.assertTrue(t.send_reminder(self.user))
+            mock_notify.assert_called_once_with(t, actor=self.user)
+
+    def test_user_has_removed_themselves(self):
+        """Test whether a user is correctly identified as having opted out of a thread."""
+        t = Ticket.objects.create(title="Test", created_by=self.user)
+        
+        self.assertFalse(t.user_has_removed_themselves(None))
+        self.assertFalse(t.user_has_removed_themselves(AnonymousUser()))
+        self.assertFalse(t.user_has_removed_themselves(self.user))
+
+        TicketParticipant.objects.create(ticket=t, user=self.user, removed_self=True)
+        self.assertTrue(t.user_has_removed_themselves(self.user))
+
+    def test_can_manage_assignments(self):
+        """Test if the user has permission to manage ticket staff/departments."""
+        t = Ticket(status=Ticket.Status.CLOSED)
+        self.assertFalse(t.can_manage_assignments(self.user))
+
+        t.status = Ticket.Status.OPEN
+        with patch.object(Ticket, 'user_has_removed_themselves', return_value=True):
+            self.assertFalse(t.can_manage_assignments(self.user))
+
+        with patch.object(Ticket, 'user_has_removed_themselves', return_value=False):
+            self.assertTrue(t.can_manage_assignments(self.user))
+            
+    def test_parse_optional_int_edge_cases(self):
+        """Test parsing logic for optional integer inputs handles blanks and invalid strings."""
+        self.assertIsNone(Ticket._parse_optional_int(""))
+        self.assertIsNone(Ticket._parse_optional_int(None))
+        self.assertIsNone(Ticket._parse_optional_int("invalid_string"))
+        self.assertEqual(Ticket._parse_optional_int("123"), 123)

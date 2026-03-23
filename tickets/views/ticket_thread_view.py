@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render
@@ -19,11 +20,12 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
 
     def get(self, request, uuid):
         """Render the ticket thread page."""
-        self.ticket = get_object_or_404(Ticket, uuid=uuid)
+        qs = Ticket._annotate_last_message_for_user(Ticket.objects.all(), request.user)
+        self.ticket = get_object_or_404(qs, uuid=uuid)
         self.object = self.ticket
         self.ticket.mark_read_for(request.user)
         context = self.get_context_data()
-        context["permission"] = self.has_edit_permissions(self.ticket, request.user)
+        context["permission"] = self.ticket.can_edit(request.user)
         context["scope"] = request.GET.get("scope", "personal")
         context["back_to_url"] = self._back_to_url(request)
         context["back_to_label"] = self._back_to_label(context["back_to_url"])
@@ -31,53 +33,68 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
 
     def post(self, request, uuid):
         """Handle POST actions for the ticket thread."""
-        self.ticket = get_object_or_404(Ticket, uuid=uuid)
+        qs = Ticket._annotate_last_message_for_user(Ticket.objects.all(), request.user)
+        self.ticket = get_object_or_404(qs, uuid=uuid)
         self.object = self.ticket
         self.request = request
-        if not self.has_edit_permissions(self.object, request.user):
-            return HttpResponseForbidden("You don't have permission to do this.")
+        if not self.ticket.can_edit(request.user):
+            return HttpResponseForbidden("You don't have permission to do this.")   
+         
         action = request.POST.get("action")
-        if action in {"add", "remove"} and not self._can_manage_assignments(request.user):
+        target_type = request.POST.get("target_type")
+        user_id = request.POST.get("user_id")
+        return self._handle_post_action(action, request, uuid, target_type, user_id)
+        
+    def _handle_post_action(self, action, request, uuid, target_type, user_id):
+        """Route POST actions to appropriate handlers."""
+        if action == "remind_staff":
+            self._handle_remind_staff(request)
+            return self.get(request, uuid)
+
+        is_assignment_action = target_type or user_id or action in {"add", "remove"}
+        
+        if is_assignment_action and not self.ticket.can_manage_assignments(request.user):
             return HttpResponseForbidden("Assignment changes are not allowed for this ticket.")
-        if action in {"add", "remove"}:
-            return self._handle_add_remove(request, request.POST.get("target_type"))
+
+        if is_assignment_action:
+            return self._handle_add_remove(request, target_type)
+        
         self.dispatch_post_action(action, request)
         return self.get(request, uuid)
+
+    def _handle_remind_staff(self, request):
+        """Handle sending a reminder to staff for an overdue ticket."""
+        if not self.ticket.is_overdue:
+            messages.error(request, "This ticket is not currently overdue.")
+            return
+        
+        if self.ticket.send_reminder(actor=request.user):
+            messages.success(request, "A reminder has been sent to the assigned staff.")
+        else:
+            messages.error(request, "A reminder was already sent within the last 24 hours.")
 
     def _handle_add_remove(self, request, target_type):
         """Route add/remove actions to the correct assignment handler."""
         if target_type:
             self.handle_assignment_change(request)
-            return self.get(request, self.object.uuid)
-        self.handle_staff_change(request)
+        else:
+            self.handle_staff_change(request)
         return self.get(request, self.object.uuid)
-
-    def has_edit_permissions(self, ticket, user):
-        """Return whether a user can edit a ticket."""
-        return ticket.can_edit(user)
-
-    def _can_manage_assignments(self, user):
-        """Return True if the user may add/remove staff or departments.
-
-        Returns False when the ticket is closed, or when the requesting
-        user has removed themselves from the ticket.
-        """
-        if self.ticket.status == "closed":
-            return False
-        return not self.user_has_removed_themselves(user)
 
     def get_context_data(self):
         """Build context for rendering the ticket thread template."""
         messages = self.get_messages_queryset()
         staff = self.get_ticket_staff()
         departments = self.get_ticket_departments()
-        removed = self.user_has_removed_themselves(self.request.user)
+
         return {
             "ticket": self.object, "staff": staff, "available_staff": self.get_available_staff(staff),
             "ticket_departments": departments, "available_departments": self.get_available_departments(departments),
             "first_message": self.get_first_message(messages), "messages": self.get_reply_messages(messages),
-            "last_user_message_id": self.get_last_user_message_id(messages), "user_has_removed": removed,
-            "can_manage_assignments": self.object.status != "closed" and not removed,
+            "last_user_message_id": self.get_last_user_message_id(messages), 
+            "user_has_removed": self.ticket.user_has_removed_themselves(self.request.user),
+            "can_manage_assignments": self.ticket.can_manage_assignments(self.request.user),
+            "can_send_reminder": self.ticket.can_send_reminder(),
         }
 
     def _back_to_url(self, request):

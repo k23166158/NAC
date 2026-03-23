@@ -4,6 +4,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import Http404
+from django.contrib.messages import get_messages
+from unittest.mock import patch, PropertyMock
 
 from tickets.models import Ticket, TicketMessage, Department, TicketMessageAttachment
 from tickets.models import TicketParticipant, UserDepartments, TicketAssigned
@@ -403,3 +405,46 @@ class StaffRemovedNotificationTests(TestCase):
             notification_type=Notification.NotificationType.STAFF_REMOVED,
         )
         self.assertIsNotNone(notification.short_message)
+
+class TicketThreadViewRemindStaffTests(TestCase):
+    """Test suite for the remind staff POST action in the ticket thread view."""
+    
+    def setUp(self):
+        """Set up a test user, ticket, and thread URL."""
+        self.user = User.objects.create_user(username="teststaff", email="staff@test.com", password="pwd", is_staff=True)
+        self.ticket = Ticket.objects.create(title="Test Ticket", created_by=self.user)
+        self.url = reverse('ticket_thread', kwargs={'uuid': self.ticket.uuid})
+        self.client.login(username="teststaff", password="pwd")
+
+    @patch('tickets.models.Ticket.is_overdue', new_callable=PropertyMock)
+    def test_remind_staff_not_overdue(self, mock_is_overdue):
+        """Test an error message is shown if a reminder is sent for a non-overdue ticket."""
+        mock_is_overdue.return_value = False
+        response = self.client.post(self.url, {'action': 'remind_staff'})
+        
+        messages = list(get_messages(response.wsgi_request))
+        self.assertTrue(any("not currently overdue" in str(m) for m in messages))
+
+    @patch('tickets.models.Ticket.is_overdue', new_callable=PropertyMock)
+    @patch('tickets.models.Ticket.send_reminder')
+    def test_remind_staff_success(self, mock_send_reminder, mock_is_overdue):
+        """Test a success message is shown when a reminder is successfully dispatched."""
+        mock_is_overdue.return_value = True
+        mock_send_reminder.return_value = True
+        
+        response = self.client.post(self.url, {'action': 'remind_staff'})
+        
+        messages = list(get_messages(response.wsgi_request))
+        self.assertTrue(any("A reminder has been sent" in str(m) for m in messages))
+
+    @patch('tickets.models.Ticket.is_overdue', new_callable=PropertyMock)
+    @patch('tickets.models.Ticket.send_reminder')
+    def test_remind_staff_already_sent_cooldown(self, mock_send_reminder, mock_is_overdue):
+        """Test an error message is shown if a reminder is sent during the 24-hour cooldown."""
+        mock_is_overdue.return_value = True
+        mock_send_reminder.return_value = False
+        
+        response = self.client.post(self.url, {'action': 'remind_staff'})
+        
+        messages = list(get_messages(response.wsgi_request))
+        self.assertTrue(any("already sent within the last 24 hours" in str(m) for m in messages))

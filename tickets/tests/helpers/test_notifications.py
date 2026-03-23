@@ -7,6 +7,7 @@ from tickets.helpers.notifications import (
     create_notification,
     get_ticket_participants,
     notify_ticket_participants,
+    notify_overdue_ticket,
 )
 from tickets.models import Ticket, Notification
 from tickets.models.ticket_participant import TicketParticipant
@@ -195,3 +196,29 @@ class CreateNotificationTests(TestCase):
             target_object=ticket,
         )
         mock_send.assert_called_once()
+
+class NotifyOverdueTicketTests(TestCase):
+    """Test suite for overdue ticket notification helpers."""
+
+    @patch('tickets.helpers.notifications.create_notification')
+    def test_notify_overdue_ticket(self, mock_create_notification):
+        """Test that overdue notifications are sent to the correct staff combinations, excluding the creator."""
+        mock_ticket = MagicMock()
+        mock_ticket.uuid = "1234-5678"
+        
+        creator = MagicMock()
+        staff_user1 = MagicMock()
+        staff_user2 = MagicMock()
+        
+        mock_ticket.created_by = creator
+        mock_ticket.get_ticket_staff.return_value = [staff_user1, creator]
+        mock_ticket.get_department_staff.return_value = [staff_user2]
+        mock_actor = MagicMock()
+        
+        notify_overdue_ticket(mock_ticket, actor=mock_actor)        
+        self.assertEqual(mock_create_notification.call_count, 2)
+        
+        notified_users = [call.kwargs['user'] for call in mock_create_notification.call_args_list]
+        self.assertIn(staff_user1, notified_users)
+        self.assertIn(staff_user2, notified_users)
+        self.assertNotIn(creator, notified_users)
