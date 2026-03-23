@@ -78,11 +78,11 @@ class User(AbstractUser):
         self._apply_profile_picture(files or {})
         return self._apply_profile_password(data)
 
+    @transaction.atomic
     def save_profile_changes(self):
         """Persist profile changes atomically and return success state."""
         try:
-            with transaction.atomic():
-                self.save()
+            self.save()
         except IntegrityError:
             return False
         return True
