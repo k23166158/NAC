@@ -406,16 +406,31 @@ class Ticket(models.Model):
 
     def forward_to_staff(self, staff_user, *, actor):
         """Forward the ticket to a staff user with all side effects."""
-        from tickets.helpers.notifications import create_notification
-        from .ticket_message import TicketMessage
+        self._add_forwarded_staff_participant(staff_user, actor)
+        self._log_forward_message(staff_user)
+        self.touch()
+        self._notify_forwarded_staff(staff_user, actor)
+        return self
+
+    def _add_forwarded_staff_participant(self, staff_user, actor):
+        """Ensure the forwarded-to staff member is a participant."""
         from .ticket_participant import TicketParticipant
 
         TicketParticipant.add_participant(self, staff_user, actor=actor)
+
+    def _log_forward_message(self, staff_user):
+        """Persist the system message for a forward action."""
+        from .ticket_message import TicketMessage
+
         TicketMessage.create_system_message(
             self,
             f"Ticket forwarded to {staff_user.full_name()}",
         )
-        self.touch()
+
+    def _notify_forwarded_staff(self, staff_user, actor):
+        """Notify the forwarded-to staff member."""
+        from tickets.helpers.notifications import create_notification
+
         create_notification(
             user=staff_user,
             actor=actor,
@@ -423,7 +438,6 @@ class Ticket(models.Model):
             link=f"/tickets/{self.uuid}/",
             target_object=self,
         )
-        return self
 
     def get_ticket_staff(self):
         """Return users explicitly assigned as participants on this ticket."""

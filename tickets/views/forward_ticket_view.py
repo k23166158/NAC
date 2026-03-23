@@ -31,14 +31,20 @@ class ForwardTicketView(LoginRequiredMixin, View):
         """Return a 403 response for unauthorized forwards."""
         return HttpResponseForbidden("You don't have permission to forward tickets.")
 
+    def _ticket_and_form(self, request, ticket_id):
+        """Return the ticket, return tab, and validated form input."""
+        return (
+            get_object_or_404(Ticket, uuid=ticket_id),
+            request.POST.get("return_tab", "active"),
+            ForwardTicketForm(request.POST),
+        )
+
     def post(self, request, ticket_id):
         """Handle POST to forward a ticket to a staff user."""
         if not request.user.is_authenticated or not request.user.is_staff:
             return self._forbidden()
 
-        ticket = get_object_or_404(Ticket, uuid=ticket_id)
-        rt = request.POST.get("return_tab", "active")
-        form = ForwardTicketForm(request.POST)
+        ticket, rt, form = self._ticket_and_form(request, ticket_id)
         if not form.is_valid():
             return self._redirect_error(ticket, rt, _err(form))
 
