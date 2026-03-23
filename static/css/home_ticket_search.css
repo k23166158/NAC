@@ -8,7 +8,12 @@
 }
 
 .search-collapse-row {
-    padding-bottom: 14px;
+    padding-top: 8px;
+    padding-bottom: 16px;
+}
+
+.home-search-query {
+    margin-bottom: 24px;
 }
 
 .search-collapse-toggle {

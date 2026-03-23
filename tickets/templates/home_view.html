@@ -109,6 +109,10 @@
       <input type="hidden" name="applied_assigned_staff" id="homeAppliedAssignedStaffInput" value="{{ applied_filters.assigned_staff }}">
       <input type="hidden" name="applied_created_from" id="homeAppliedCreatedFromInput" value="{{ applied_filters.created_from }}">
       <input type="hidden" name="applied_created_to" id="homeAppliedCreatedToInput" value="{{ applied_filters.created_to }}">
+      <label class="search-field home-search-query">
+        <span class="search-label">Search</span>
+        <input type="text" name="q" value="{{ filters.q }}" class="search-input" placeholder="Search title, message body, creator, or email">
+      </label>
       <div class="search-collapse-row">
         <button type="button" class="search-collapse-toggle" id="searchCollapseToggle" aria-expanded="false" aria-controls="homeSearchFields" aria-label="Toggle search filters">
           <span class="search-collapse-text">Filters</span>
@@ -117,10 +121,6 @@
       </div>
       <div id="homeSearchFields">
       <div class="search-grid">
-        <label class="search-field search-field-wide">
-          <span class="search-label">Search</span>
-          <input type="text" name="q" value="{{ filters.q }}" class="search-input" placeholder="Search title, message body, creator, or email">
-        </label>
         <label class="search-field">
           <span class="search-label">Status</span>
           <div class="search-select-shell">
