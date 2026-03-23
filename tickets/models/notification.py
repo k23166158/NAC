@@ -1,10 +1,15 @@
+from datetime import timedelta
+
 from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.utils import timezone
 
 class Notification(models.Model):
     """Represents a generic notification for various system events."""
+
+    RETENTION_DAYS = 30
 
     class NotificationType(models.TextChoices):
         """Defines the types of notifications that can be created."""
@@ -54,6 +59,27 @@ class Notification(models.Model):
     class Meta:
         """Meta information for the Notification model."""
         ordering = ['-created_at']
+
+    @classmethod
+    def recent_for_user(cls, user):
+        """Return notifications within the retention window for a user."""
+        return cls.objects.filter(
+            user=user,
+            created_at__gte=timezone.now() - timedelta(days=cls.RETENTION_DAYS),
+        ).select_related("actor", "user").order_by("is_read", "-created_at")
+
+    @classmethod
+    def purge_expired_for(cls, user):
+        """Delete notifications older than the retention window for a user."""
+        return cls.objects.filter(
+            user=user,
+            created_at__lt=timezone.now() - timedelta(days=cls.RETENTION_DAYS),
+        ).delete()
+
+    @classmethod
+    def mark_all_read_for(cls, user):
+        """Mark unread notifications as read for the given user."""
+        return cls.objects.filter(user=user, is_read=False).update(is_read=True)
 
     def __str__(self):
         """String representation of the Notification instance."""
