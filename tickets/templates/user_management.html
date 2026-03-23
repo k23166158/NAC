@@ -25,20 +25,8 @@
             </div>
         </div>
 
-        <div class="management-highlights">
-            <div class="highlight-card">
-                <div class="highlight-label">Total users</div>
-                <div class="highlight-value">{{ page_obj.paginator.count }}</div>
-            </div>
-            <div class="highlight-card">
-                <div class="highlight-label">Visible on page</div>
-                <div class="highlight-value">{{ users|length }}</div>
-            </div>
-            <div class="highlight-card highlight-card-accent">
-                <div class="highlight-label">Focus</div>
-                <div class="highlight-copy">{% if search_query %}Filtered by "{{ search_query }}"{% else %}Browse and manage active accounts{% endif %}</div>
-            </div>
-        </div>
+        <div class="highlight-label">Total users</div>
+        <div class="highlight-value">{{ page_obj.paginator.count }}</div>
     </div>
 
     <div class="users-list">
