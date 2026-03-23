@@ -142,7 +142,7 @@ class Department(models.Model):
         qs = Department.annotate_tickets(qs)
         cutoff = timezone.now() - timedelta(days=7)
         return qs.annotate(
-            effective_date=Coalesce("last_message_at", "created_at")
+            effective_date=Coalesce("updated_at", "created_at")
         ).annotate(
             overdue_sort=models.Case(
                 models.When(models.Q(status="open") & models.Q(effective_date__lt=cutoff), then=models.Value(0)),

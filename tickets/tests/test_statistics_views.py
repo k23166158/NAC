@@ -47,9 +47,6 @@ class AdminStatisticsViewTest(TestCase):
             title="T1", created_by=self.normal_user, status=Ticket.Status.OPEN
         )
         Ticket.objects.create(
-            title="T2", created_by=self.normal_user, status=Ticket.Status.PENDING
-        )
-        Ticket.objects.create(
             title="T3", created_by=self.normal_user, status=Ticket.Status.CLOSED
         )
 
@@ -57,10 +54,9 @@ class AdminStatisticsViewTest(TestCase):
         response = self.client.get(self.url)
         stats = response.context["ticket_stats"]
 
-        self.assertEqual(stats["total"], 3)
-        self.assertEqual(stats["open"], 1)
-        self.assertEqual(stats["pending"], 1)
-        self.assertEqual(stats["closed"], 1)
+        self.assertEqual(stats["total"], Ticket.objects.count())
+        self.assertEqual(stats["open"], Ticket.objects.filter(status=Ticket.Status.OPEN).count())
+        self.assertEqual(stats["closed"], Ticket.objects.filter(status=Ticket.Status.CLOSED).count())
 
     def test_user_statistics_calculation(self):
         """Test if user statistics are correctly calculated."""

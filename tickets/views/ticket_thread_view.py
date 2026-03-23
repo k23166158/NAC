@@ -38,14 +38,29 @@ class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, Lo
         self.object = self.ticket
         self.request = request
         if not self.ticket.can_edit(request.user):
-            return HttpResponseForbidden("You don't have permission to do this.")
+            return HttpResponseForbidden("You don't have permission to do this.")   
+         
         action = request.POST.get("action")
+        target_type = request.POST.get("target_type")
+        user_id = request.POST.get("user_id")
+        return self._handle_post_action(action, request, uuid, target_type, user_id)
+        
+    def _handle_post_action(self, action, request, uuid, target_type, user_id):
+        """Route POST actions to appropriate handlers."""
         if action == "remind_staff":
             self._handle_remind_staff(request)
             return self.get(request, uuid)
-        if action in {"add", "remove"} and not self.ticket.can_manage_assignments(request.user):
+
+        is_assignment_action = target_type or user_id or action in {"add", "remove"}
+        
+        if is_assignment_action and not self.ticket.can_manage_assignments(request.user):
             return HttpResponseForbidden("Assignment changes are not allowed for this ticket.")
-        return self._handle_add_remove(request, request.POST.get("target_type"))
+
+        if is_assignment_action:
+            return self._handle_add_remove(request, target_type)
+        
+        self.dispatch_post_action(action, request)
+        return self.get(request, uuid)
 
     def _handle_remind_staff(self, request):
         """Handle sending a reminder to staff for an overdue ticket."""

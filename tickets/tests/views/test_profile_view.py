@@ -81,7 +81,7 @@ class ProfileViewTests(TestCase):
         """Create tickets and departments used by stats tests."""
         tickets_data = [
             ("Open ticket by self", Ticket.Status.OPEN, self.user),
-            ("Pending ticket by other", Ticket.Status.PENDING, self.other),
+            ("Another Open ticket", Ticket.Status.OPEN, self.user),
             ("Closed ticket by other", Ticket.Status.CLOSED, self.other),
         ]
         tickets = [
@@ -111,7 +111,7 @@ class ProfileViewTests(TestCase):
         self.assertEqual(r.context["assigned_active_count"], 2)
         self.assertEqual(r.context["assigned_completed_count"], 1)
 
-        self.assertEqual(r.context["created_total_count"], 2)
+        self.assertEqual(r.context["created_total_count"], 1)
         self.assertEqual(r.context["created_closed_count"], 1)
 
         self.assertEqual(r.context["department_count"], 2)

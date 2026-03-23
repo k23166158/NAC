@@ -74,12 +74,14 @@ class HomeViewTests(TestCase):
 
         self.c.force_login(self.u)
         res = self.c.get(self.url)
-        self.assertIn(t1, res.context["overdue_tickets"])
-        self.assertEqual(res.context["overdue_tickets"][0].last_message_body, "Ping")
+        active_tickets = list(res.context["active_tickets"])
+        self.assertIn(t1, active_tickets)
+        self.assertTrue(active_tickets[0].is_overdue)
+        self.assertEqual(active_tickets[0].last_message_body, "Ping")
 
         TicketMessage.objects.create(ticket=t1, sender=self.s1, body="Staff reply")
         res2 = self.c.get(self.url)
-        self.assertNotIn(t1, res2.context["overdue_tickets"])
+        self.assertFalse(list(res2.context["active_tickets"])[0].is_overdue)
 
     def test_home_internal_helpers(self):
         """Direct coverage for internal view methods to hit implicit branches."""
