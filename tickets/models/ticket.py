@@ -142,11 +142,11 @@ class Ticket(models.Model):
         queryset = queryset.select_related("created_by")
         queryset = cls._annotate_last_message_for_user(queryset, user)
         queryset = cls._annotate_unread_count_for_user(queryset, user)
-        queryset = cls._apply_search_filters(queryset, filters)
+        queryset = cls.apply_search_filters(queryset, filters)
         return queryset.order_by("-updated_at").distinct()
 
     @classmethod
-    def _apply_search_filters(cls, queryset, filters):
+    def apply_search_filters(cls, queryset, filters):
         """Apply all ticket search filters to a queryset."""
         queryset = cls._filter_search_text(queryset, filters.get("q"))
         queryset = cls._filter_status(queryset, filters.get("status"))
@@ -403,6 +403,41 @@ class Ticket(models.Model):
     def touch(self):
         """Bump updated_at to now."""
         type(self).objects.filter(id=self.id).update(updated_at=timezone.now())
+
+    def forward_to_staff(self, staff_user, *, actor):
+        """Forward the ticket to a staff user with all side effects."""
+        self._add_forwarded_staff_participant(staff_user, actor)
+        self._log_forward_message(staff_user)
+        self.touch()
+        self._notify_forwarded_staff(staff_user, actor)
+        return self
+
+    def _add_forwarded_staff_participant(self, staff_user, actor):
+        """Ensure the forwarded-to staff member is a participant."""
+        from .ticket_participant import TicketParticipant
+
+        TicketParticipant.add_participant(self, staff_user, actor=actor)
+
+    def _log_forward_message(self, staff_user):
+        """Persist the system message for a forward action."""
+        from .ticket_message import TicketMessage
+
+        TicketMessage.create_system_message(
+            self,
+            f"Ticket forwarded to {staff_user.full_name()}",
+        )
+
+    def _notify_forwarded_staff(self, staff_user, actor):
+        """Notify the forwarded-to staff member."""
+        from tickets.helpers.notifications import create_notification
+
+        create_notification(
+            user=staff_user,
+            actor=actor,
+            notification_type=Notification.NotificationType.TICKET_FORWARDED,
+            link=f"/tickets/{self.uuid}/",
+            target_object=self,
+        )
 
     def get_ticket_staff(self):
         """Return users explicitly assigned as participants on this ticket."""

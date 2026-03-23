@@ -1,5 +1,3 @@
-# tickets/tests/views/test_forward_ticket.py
-from unittest.mock import patch
 from urllib.parse import unquote
 
 from django.test import TestCase, Client
@@ -9,7 +7,7 @@ from django.contrib.auth import get_user_model
 from tickets.models import Ticket
 from tickets.models.notification import Notification
 from tickets.models.ticket_participant import TicketParticipant
-from tickets.views.forward_ticket_view import ForwardTicketView, _err, _ticket_redirect
+from tickets.views.forward_ticket_view import _err, _ticket_redirect
 
 from types import SimpleNamespace
 
@@ -154,25 +152,6 @@ class ForwardTicketViewTests(TestCase):
         """_err should fall back to default message if no email error exists."""
         form = SimpleNamespace(errors={})
         self.assertEqual(_err(form), "Email failed to forward.")
-
-    @patch("tickets.views.forward_ticket_view.TicketParticipant.objects.create")
-    @patch("tickets.views.forward_ticket_view._has_field", return_value=False)
-    def test_defaults_empty_when_no_added_by_field(self, _has_field_mock, create_mock):
-        """If TicketParticipant has no added_by field, create kwarg added_by should be absent."""
-        self.client.force_login(self.staff1)
-        self.client.post(self.url, data={"email": self.staff2.email, "return_tab": "active"})
-
-        self.assertTrue(create_mock.called)
-        kwargs = create_mock.call_args.kwargs
-        self.assertNotIn("added_by", kwargs)
-
-    def test_touch_ticket_updates_updated_at(self):
-        """touch_ticket should delegate timestamp update to ticket.touch()."""
-        view = ForwardTicketView()
-        before = self.ticket.updated_at
-        view.touch_ticket(self.ticket)
-        self.ticket.refresh_from_db()
-        self.assertGreater(self.ticket.updated_at, before)
 
     def test_forward_creates_ticket_forwarded_notification(self):
         """Successful forward should create a TICKET_FORWARDED notification for the target user."""

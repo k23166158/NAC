@@ -1,6 +1,5 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from io import BytesIO
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from tickets.forms.ticket_create import CreateTicketForm

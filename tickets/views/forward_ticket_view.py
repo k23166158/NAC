@@ -7,10 +7,7 @@ from django.views import View
 
 from tickets.forms import ForwardTicketForm
 from tickets.models import Ticket
-from tickets.models.notification import Notification
 from tickets.models.ticket_participant import TicketParticipant
-from tickets.models.ticket_message import TicketMessage
-from tickets.helpers.notifications import create_notification
 
 def _q(value):
     """URL-encode a value as a string."""
@@ -23,10 +20,6 @@ def _ticket_redirect(return_tab, ticket_uuid, **params):
     extra = "&".join(f"{k}={_q(v)}" for k, v in params_with_tab.items())
     return redirect(f"{base}?{extra}")
 
-def _has_field(model, field_name):
-    """Return True if model has a field with the given name."""
-    return any(f.name == field_name for f in model._meta.fields)
-
 def _err(form):
     """Return best-effort email error message from a form."""
     return form.errors.get("email", ["Email failed to forward."])[0]
@@ -38,50 +31,12 @@ class ForwardTicketView(LoginRequiredMixin, View):
         """Return a 403 response for unauthorized forwards."""
         return HttpResponseForbidden("You don't have permission to forward tickets.")
 
-    def _ticket(self, ticket_uuid):
-        """Fetch a ticket by UUID or 404."""
-        return get_object_or_404(Ticket, uuid=ticket_uuid)
-
-    def _defaults(self, request):
-        """Build defaults dict for TicketParticipant creation."""
-        return TicketParticipant.defaults_for_actor(request.user) if _has_field(TicketParticipant, "added_by") else {}
-    
-    def touch_ticket(self, ticket):
-        """Update the ticket's updated_at timestamp."""
-        ticket.touch()
-
-    def _add_forwarded_participant(self, ticket, staff_user):
-        """Add the forwarded-to staff user as a participant."""
-        defaults = self._defaults(self.request)
-        # When there is no added_by field (as simulated in tests), we should not
-        # attempt to pass added_by through to participant creation. In that case
-        # use the manager's create() directly so tests can assert on kwargs.
-        if "added_by" not in defaults:
-            TicketParticipant.objects.create(ticket=ticket, user=staff_user, **defaults)
-            return
-
-        TicketParticipant.add_participant(
-            ticket,
-            staff_user,
-            actor=self.request.user,
-            defaults=defaults,
-        )
-
-    def _log_forward_message(self, ticket, staff_user):
-        """Create a system message for the forward action."""
-        TicketMessage.create_system_message(
-            ticket,
-            f"Ticket forwarded to {staff_user.full_name()}",
-        )
-
-    def _notify_forwarded_user(self, ticket, staff_user):
-        """Notify the forwarded-to staff user."""
-        create_notification(
-            user=staff_user,
-            actor=self.request.user,
-            notification_type=Notification.NotificationType.TICKET_FORWARDED,
-            link=f"/tickets/{ticket.uuid}/",
-            target_object=ticket,
+    def _ticket_and_form(self, request, ticket_id):
+        """Return the ticket, return tab, and validated form input."""
+        return (
+            get_object_or_404(Ticket, uuid=ticket_id),
+            request.POST.get("return_tab", "active"),
+            ForwardTicketForm(request.POST),
         )
 
     def post(self, request, ticket_id):
@@ -89,7 +44,7 @@ class ForwardTicketView(LoginRequiredMixin, View):
         if not request.user.is_authenticated or not request.user.is_staff:
             return self._forbidden()
 
-        ticket, rt, form = self._ticket(ticket_id), request.POST.get("return_tab", "active"), ForwardTicketForm(request.POST)
+        ticket, rt, form = self._ticket_and_form(request, ticket_id)
         if not form.is_valid():
             return self._redirect_error(ticket, rt, _err(form))
 
@@ -97,7 +52,7 @@ class ForwardTicketView(LoginRequiredMixin, View):
         if self._invalid_forward(request.user, ticket, staff_user):
             return self._redirect_error(ticket, rt, self._forward_error_msg(request.user, ticket, staff_user))
 
-        self._forward_ticket(ticket, staff_user)
+        ticket.forward_to_staff(staff_user, actor=request.user)
         return _ticket_redirect(rt, ticket.uuid, fwd="ok", tid=ticket.uuid, email=staff_user.email)
 
     def _redirect_error(self, ticket, rt, msg):
@@ -113,10 +68,3 @@ class ForwardTicketView(LoginRequiredMixin, View):
         if staff_user.id == user.id:
             return "You cannot forward a ticket to yourself."
         return "That staff member already has access to this ticket."
-
-    def _forward_ticket(self, ticket, staff_user):
-        """Forward the ticket to the given staff user."""
-        self._add_forwarded_participant(ticket, staff_user)
-        self._log_forward_message(ticket, staff_user)
-        self.touch_ticket(ticket)
-        self._notify_forwarded_user(ticket, staff_user)
