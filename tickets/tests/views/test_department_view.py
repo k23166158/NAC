@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
+from unittest.mock import patch
 
 from tickets.models import Department, UserDepartments, DepartmentInvitation, Ticket, TicketAssigned, Notification, DepartmentFAQ
 from tickets.views.department_view import DepartmentView
@@ -168,6 +169,33 @@ class DepartmentViewTests(TestCase):
         response = self.client.post(self.url, {"action": "add_faq"})
         self.assertEqual(response.status_code, 403)
 
+    def test_staff_outsider_get_is_forbidden(self):
+        """Staff users outside the department should still be blocked."""
+        outsider_staff = User.objects.create_user(
+            username="staff_out",
+            email="staff_out@e.com",
+            password="p",
+            is_staff=True,
+        )
+        self.client.force_login(outsider_staff)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_staff_outsider_faq_action_is_forbidden(self):
+        """Staff outsiders should not reach FAQ handlers."""
+        outsider_staff = User.objects.create_user(
+            username="faq_out",
+            email="faq_out@e.com",
+            password="p",
+            is_staff=True,
+        )
+        self.client.force_login(outsider_staff)
+        response = self.client.post(
+            self.url,
+            {"action": "add_faq", "question": "Q", "answer": "A"},
+        )
+        self.assertEqual(response.status_code, 403)
+
     def test_update_staff_assignment_unknown_action_noop(self):
         """update_staff_assignment should be a no-op when action key is unknown."""
         rf = RequestFactory()
@@ -202,3 +230,42 @@ class DepartmentViewTests(TestCase):
 
         # Valid action should create an invitation
         self.assertTrue(DepartmentInvitation.objects.filter(recipient=staff_user).exists())
+
+    @patch("tickets.views.department_view.messages.success")
+    def test_update_staff_assignment_reports_message_outcome(self, mock_success):
+        """update_staff_assignment should publish a message when a result is returned."""
+        request = RequestFactory().post(self.url, data={"user_id": self.out.id, "action": "add"})
+        request.user = self.owner
+        middleware = SessionMiddleware(lambda x: None)
+        middleware.process_request(request)
+        request.session.save()
+        setattr(request, "_messages", FallbackStorage(request))
+
+        department = Department.objects.get(pk=self.dept.pk)
+        with patch.object(department, "process_staff_change", return_value=("success", "Invited")):
+            DepartmentView().update_staff_assignment(
+                request,
+                user_id=self.out.id,
+                department=department,
+                action="add",
+            )
+
+        mock_success.assert_called_once_with(request, "Invited")
+
+    def test_update_staff_assignment_returns_quietly_without_outcome(self):
+        """update_staff_assignment should no-op when no message outcome is returned."""
+        request = RequestFactory().post(self.url, data={"user_id": self.out.id, "action": "add"})
+        request.user = self.owner
+        middleware = SessionMiddleware(lambda x: None)
+        middleware.process_request(request)
+        request.session.save()
+        setattr(request, "_messages", FallbackStorage(request))
+
+        department = Department.objects.get(pk=self.dept.pk)
+        with patch.object(department, "process_staff_change", return_value=None):
+            DepartmentView().update_staff_assignment(
+                request,
+                user_id=self.out.id,
+                department=department,
+                action="add",
+            )
