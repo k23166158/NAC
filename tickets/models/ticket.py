@@ -225,7 +225,7 @@ class Ticket(models.Model):
             return {"departments": [], "staff_users": []}
         return {
             "departments": cls._department_filter_options(queryset, staff_id),
-            "staff_users": cls._staff_filter_options(queryset, department_id),
+            "staff_users": cls._staff_filter_options(queryset, department_id, user.id),
         }
 
     @staticmethod
@@ -245,13 +245,15 @@ class Ticket(models.Model):
         return options.distinct().order_by("name")
 
     @staticmethod
-    def _staff_filter_options(queryset, department_id=""):
+    def _staff_filter_options(queryset, department_id="", current_user_id=None):
         """Return assigned staff options for tickets in queryset."""
         user_model = get_user_model()
         options = user_model.objects.filter(
             ticket_participations__ticket__in=queryset,
             ticket_participations__removed_self=False,
         )
+        if current_user_id is not None:
+            options = options.exclude(id=current_user_id)
         parsed_department_id = Ticket._parse_optional_int(department_id)
         if department_id and parsed_department_id is None:
             return options.none()
