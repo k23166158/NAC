@@ -32,3 +32,23 @@ class SignUpFormTests(TestCase):
         })
         self.assertFalse(f.is_valid())
         self.assertIn("email", f.errors)
+
+    def test_create_active_user_applies_standard_flags(self):
+        """create_active_user should create a normal active user."""
+        form = SignUpForm(data={
+            "username": "newactive",
+            "first_name": "F",
+            "last_name": "L",
+            "email": "  ACTIVE@E.COM ",
+            "bio": "B",
+            "password1": "Pass123!",
+            "password2": "Pass123!",
+        })
+
+        self.assertTrue(form.is_valid())
+        user = form.create_active_user()
+
+        self.assertTrue(user.is_active)
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+        self.assertEqual(user.email, "active@e.com")

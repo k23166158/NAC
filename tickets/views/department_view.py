@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseForbidden
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.views import View
 
 from tickets.forms import DepartmentFAQForm
@@ -43,10 +43,7 @@ class DepartmentView(LoginRequiredMixin, View):
         """Handle FAQ creation POST."""
         form = DepartmentFAQForm(request.POST)
         if form.is_valid():
-            faq = form.save(commit=False)
-            faq.department = department
-            faq.created_by = request.user
-            faq.save()
+            DepartmentFAQ.create_from_form(form, department=department, actor=request.user)
             messages.success(request, "FAQ added successfully.")
         else:
             messages.error(request, "Please fill in both the question and answer fields.")
@@ -54,10 +51,13 @@ class DepartmentView(LoginRequiredMixin, View):
 
     def _handle_edit_faq(self, request, department):
         """Handle FAQ edit POST."""
-        faq = get_object_or_404(DepartmentFAQ, id=request.POST.get("faq_id"), department=department)
+        faq = DepartmentFAQ.get_for_department_or_404(
+            faq_id=request.POST.get("faq_id"),
+            department=department,
+        )
         form = DepartmentFAQForm(request.POST, instance=faq)
         if form.is_valid():
-            form.save()
+            DepartmentFAQ.update_from_form(form)
             messages.success(request, "FAQ updated.")
         else:
             messages.error(request, "Please fill in both the question and answer fields.")
@@ -65,8 +65,11 @@ class DepartmentView(LoginRequiredMixin, View):
 
     def _handle_delete_faq(self, request, department):
         """Handle FAQ deletion POST."""
-        faq = get_object_or_404(DepartmentFAQ, id=request.POST.get("faq_id"), department=department)
-        faq.delete()
+        faq = DepartmentFAQ.get_for_department_or_404(
+            faq_id=request.POST.get("faq_id"),
+            department=department,
+        )
+        faq.delete_for_department(department)
         messages.success(request, "FAQ deleted.")
         return redirect("department", department_slug=department.slug)
 

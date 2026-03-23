@@ -227,9 +227,7 @@ class TicketThreadAssignmentMixin:
 
     def _mark_participant_removed_self(self, user):
         """Mark that the participant removed themselves."""
-        participant = TicketParticipant.objects.get(ticket=self.object, user=user)
-        participant.removed_self = True
-        participant.save()
+        TicketParticipant.mark_removed_self(self.object, user)
 
     def _remove_other_participant(self, user, removed_by):
         """Remove a participant and notify them of removal."""

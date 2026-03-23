@@ -148,3 +148,17 @@ class TicketParticipantModelTests(TestCase):
                 sender=None,
             ).exists()
         )
+
+    def test_mark_removed_self_sets_flag(self):
+        """mark_removed_self should update and return the participant."""
+        participant = TicketParticipant.objects.create(
+            ticket=self.ticket,
+            user=self.staff1,
+            added_by=self.staff2,
+        )
+
+        returned = TicketParticipant.mark_removed_self(self.ticket, self.staff1)
+        participant.refresh_from_db()
+
+        self.assertEqual(returned.pk, participant.pk)
+        self.assertTrue(participant.removed_self)

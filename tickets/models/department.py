@@ -119,6 +119,13 @@ class Department(models.Model):
         self.delete()
         return True
 
+    def assign_member(self, user):
+        """Ensure the given user is assigned to this department."""
+        from .user_departments import UserDepartments
+
+        UserDepartments.objects.get_or_create(user=user, department=self)
+        return self
+
     def get_current_staff(self):
         """Return users currently assigned to this department."""
         return [assignment.user for assignment in self.assigned_users.select_related("user").all()]

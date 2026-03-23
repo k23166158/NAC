@@ -12,12 +12,7 @@ def handle_signup_post(request):
     """Handle POST logic for sign up, returns (user, form) tuple."""
     form = SignUpForm(request.POST, request.FILES)
     if form.is_valid():
-        user = form.save(commit=False)
-        user.is_superuser = False
-        user.is_staff = False
-        user.is_active = True
-        user.email = user.email.lower().strip()
-        user.save()
+        user = form.create_active_user()
         login(request, user)
         return user, form
     return None, form

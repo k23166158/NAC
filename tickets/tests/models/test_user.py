@@ -149,3 +149,60 @@ class UserModelTests(TestCase):
         self.assertEqual(u1.profile_slug, "john-doe")
         self.assertNotEqual(u2.profile_slug, "john-doe")
         self.assertTrue(u2.profile_slug.startswith("john-doe-"))
+
+    def test_apply_profile_changes_updates_fields_without_password(self):
+        """apply_profile_changes should normalize fields and skip blank passwords."""
+        changed = self.user.apply_profile_changes(
+            {
+                "first_name": " Jane ",
+                "last_name": " Smith ",
+                "username": " jane ",
+                "email": " JANE@EXAMPLE.COM ",
+                "password": "   ",
+            }
+        )
+
+        self.assertFalse(changed)
+        self.assertEqual(self.user.first_name, "Jane")
+        self.assertEqual(self.user.last_name, "Smith")
+        self.assertEqual(self.user.username, "jane")
+        self.assertEqual(self.user.email, "jane@example.com")
+
+    def test_apply_profile_changes_sets_password_when_present(self):
+        """apply_profile_changes should return True when a password is provided."""
+        changed = self.user.apply_profile_changes(
+            {
+                "first_name": "John",
+                "last_name": "Doe",
+                "username": "testuser",
+                "email": "test@example.com",
+                "password": "NewPass123!",
+            }
+        )
+
+        self.assertTrue(changed)
+        self.assertTrue(self.user.check_password("NewPass123!"))
+
+    def test_save_profile_changes_returns_true_on_success(self):
+        """save_profile_changes should persist valid edits."""
+        self.user.username = "updated"
+        self.user.email = "updated@example.com"
+
+        saved = self.user.save_profile_changes()
+        self.user.refresh_from_db()
+
+        self.assertTrue(saved)
+        self.assertEqual(self.user.username, "updated")
+
+    def test_save_profile_changes_returns_false_on_integrity_error(self):
+        """save_profile_changes should return False for duplicate usernames."""
+        User.objects.create_user(
+            username="taken",
+            email="taken@example.com",
+            first_name="Taken",
+            last_name="User",
+            password="password123",
+        )
+        self.user.username = "taken"
+
+        self.assertFalse(self.user.save_profile_changes())

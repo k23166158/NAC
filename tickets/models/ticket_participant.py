@@ -51,6 +51,14 @@ class TicketParticipant(models.Model):
         cls.objects.filter(ticket=ticket, user=user).update(removed_self=True)
 
     @classmethod
+    def mark_removed_self(cls, ticket, user):
+        """Mark an existing participant as having removed themselves."""
+        participant = cls.objects.get(ticket=ticket, user=user)
+        participant.removed_self = True
+        participant.save(update_fields=["removed_self"])
+        return participant
+
+    @classmethod
     def assign_staff(cls, ticket, staff_user, *, added_by=None):
         """Assign a staff user with standard ticket side effects."""
         from tickets.helpers.ticket_assignment import assign_staff_to_ticket
