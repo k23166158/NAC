@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ department.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/ticket_layout.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_layout_extra.css' %}">
+<link rel="stylesheet" href="{% static 'css/department_view.css' %}">
+<link rel="stylesheet" href="{% static 'css/pagination.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tickets-wrap tickets-centered dept-page">
+    <div class="back-link-container">
+        <a href="{% url 'department_manage' %}" class="ticket-link">← Back to Departments</a>
+    </div>
+
+    <div class="ticket-header-card dept-header-card">
+        <div class="dept-header-inner">
+            <div class="dept-header-copy">
+                <span class="dept-kicker">Department overview</span>
+                <h1 class="tickets-title dept-title">{{ department.name }}</h1>
+                <p class="tickets-subtitle dept-subtitle">
+                    {{ department.description|default:"No description available." }}
+                </p>
+            </div>
+        </div>
+        <div class="dept-meta">
+            <span class="pill dept-meta-pill">Active members {{ staff_total }}</span>
+        </div>
+    </div>
+
+    <div class="thread-section">
+        <div class="thread-section-head">
+            <div>
+                <h2 class="thread-section-title">Active Members</h2>
+                <p class="thread-section-copy">People currently active in this department.</p>
+            </div>
+        </div>
+
+        <div class="staff-grid">
+            {% include 'partials/staff_list_card.html' with header="Department team" staff_list=staff_page view_type="department" current_user=user pagination=staff_page department=department %}
+        </div>
+    </div>
+</div>
+{% endblock %}
