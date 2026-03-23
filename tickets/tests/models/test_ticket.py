@@ -21,11 +21,14 @@ class TicketModelTests(TestCase):
         """Test creation, defaults, string representation, and relationships."""
         self.assertEqual(self.ticket.status, Ticket.Status.OPEN)
         self.assertIsInstance(self.ticket.uuid, uuid_module.UUID)
+        self.assertEqual(len(self.ticket.display_reference), 10)
+        self.assertEqual(self.ticket.display_reference, self.ticket.display_reference.upper())
         self.assertEqual(str(self.ticket), f"#{self.ticket.id} - {self.ticket.title}")
         self.assertIsNotNone(self.ticket.created_at)
         self.assertEqual(self.user.tickets_created.count(), 1)
         t2 = Ticket.objects.create(title="T2", created_by=self.user)
         self.assertNotEqual(self.ticket.uuid, t2.uuid)
+        self.assertNotEqual(self.ticket.display_reference, t2.display_reference)
 
     def test_status_choices(self):
         """Test status choices are correctly defined."""

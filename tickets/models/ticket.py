@@ -1,4 +1,5 @@
 import uuid
+from hashlib import sha256
 from datetime import datetime, timedelta
 
 from django.db import transaction
@@ -92,6 +93,12 @@ class Ticket(models.Model):
     def admin_ticket_stats(cls):
         """Return admin ticket statistics payload."""
         return {"total": cls.objects.count(), **cls.status_counts()}
+
+    @property
+    def display_reference(self):
+        """Return a short stable hashed reference for display purposes."""
+        digest = sha256(str(self.uuid).encode("utf-8")).hexdigest()
+        return digest[:10].upper()
 
     @classmethod
     def allowed_scopes_for(cls, user):
