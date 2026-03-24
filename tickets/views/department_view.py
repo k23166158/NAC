@@ -14,7 +14,7 @@ class DepartmentView(LoginRequiredMixin, View):
     def get(self, request, department_slug):
         """Handle GET requests for the department view."""
         department = Department.get_by_slug_or_404(department_slug)
-        if self._should_render_public_view(request.user):
+        if self._should_render_public_view(request.user, department):
             return render(request, "department_public.html", department.build_public_view_context(request))
         if not department.can_view(request.user):
             return HttpResponseForbidden("You are not allowed to access this.")
@@ -22,9 +22,9 @@ class DepartmentView(LoginRequiredMixin, View):
 
     def post(self, request, department_slug):
         """Handle POST requests for staff and FAQ actions."""
-        if self._should_render_public_view(request.user):
-            return HttpResponseForbidden("You are not allowed to access this.")
         department = Department.get_by_slug_or_404(department_slug)
+        if self._should_render_public_view(request.user, department):
+            return HttpResponseForbidden("You are not allowed to access this.")
         action = request.POST.get("action")
         if action in ("add_faq", "edit_faq", "delete_faq"):
             return self._dispatch_faq_action(request, department, action)
@@ -90,9 +90,13 @@ class DepartmentView(LoginRequiredMixin, View):
         getattr(messages, level)(request, text)
 
     @staticmethod
-    def _should_render_public_view(user):
+    def _should_render_public_view(user, department):
         """Return True when the user should see the read-only department view."""
-        return user.is_authenticated and not (user.is_staff or user.is_superuser)
+        if not user.is_authenticated or user.is_superuser:
+            return False
+        if not user.is_staff:
+            return True
+        return not department.can_view(user)
 
     def update_staff_assignment(self, request, user_id, department, action):
         """Update staff assignment for a user in a department.

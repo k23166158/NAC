@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from tickets.models import Department, UserDepartments
+from tickets.models import Department, UserDepartments, Ticket, TicketAssigned
 
 
 class DepartmentModelTests(TestCase):
@@ -96,3 +96,91 @@ class DepartmentModelTests(TestCase):
         active_staff = department.get_active_staff()
 
         self.assertEqual(active_staff, [active_user])
+
+    def test_assign_member_creates_membership_and_returns_self(self):
+        """assign_member should create a department membership and return the department."""
+        staff_user = get_user_model().objects.create_user(
+            username="staff_user",
+            email="staff@example.com",
+            password="pass",
+            is_staff=True,
+        )
+        department = Department.objects.create(name="Admissions", created_by=self.user)
+
+        result = department.assign_member(staff_user)
+
+        self.assertEqual(result, department)
+        self.assertTrue(
+            UserDepartments.objects.filter(user=staff_user, department=department).exists()
+        )
+
+    def test_assigned_to_user_with_ticket_counts_filters_and_annotates(self):
+        """assigned_to_user_with_ticket_counts should return only assigned departments with ticket counts."""
+        staff_user, gamma = self._build_assigned_department_queryset_fixture()
+
+        departments = list(
+            Department.assigned_to_user_with_ticket_counts(staff_user, search_query="Match")
+        )
+
+        self._assert_assigned_department_queryset(departments, gamma)
+
+    def _build_assigned_department_queryset_fixture(self):
+        """Create departments, memberships, and tickets for assigned department queryset tests."""
+        staff_user = get_user_model().objects.create_user(
+            username="assigned_staff",
+            email="assigned_staff@example.com",
+            password="pass",
+            is_staff=True,
+        )
+        other_staff = get_user_model().objects.create_user(
+            username="other_staff",
+            email="other_staff@example.com",
+            password="pass",
+            is_staff=True,
+        )
+        alpha, beta, gamma = self._create_department_queryset_departments()
+        UserDepartments.objects.create(user=staff_user, department=alpha)
+        UserDepartments.objects.create(user=staff_user, department=gamma)
+        UserDepartments.objects.create(user=other_staff, department=beta)
+        self._create_department_queryset_tickets(gamma)
+        return staff_user, gamma
+
+    def _create_department_queryset_departments(self):
+        """Create departments for assigned department queryset tests."""
+        alpha = Department.objects.create(
+            name="Alpha Team",
+            description="Primary support",
+            created_by=self.user,
+        )
+        beta = Department.objects.create(
+            name="Beta Team",
+            description="Secondary support",
+            created_by=self.user,
+        )
+        gamma = Department.objects.create(
+            name="Gamma Team",
+            description="Match this",
+            created_by=self.user,
+        )
+        return alpha, beta, gamma
+
+    def _create_department_queryset_tickets(self, department):
+        """Create open and closed tickets for the provided department."""
+        open_ticket = Ticket.objects.create(
+            title="Open",
+            created_by=self.user,
+            status=Ticket.Status.OPEN,
+        )
+        closed_ticket = Ticket.objects.create(
+            title="Closed",
+            created_by=self.user,
+            status=Ticket.Status.CLOSED,
+        )
+        TicketAssigned.objects.create(ticket=open_ticket, department=department)
+        TicketAssigned.objects.create(ticket=closed_ticket, department=department)
+
+    def _assert_assigned_department_queryset(self, departments, expected_department):
+        """Assert assigned department queryset filtering and ticket count annotations."""
+        self.assertEqual([department.name for department in departments], [expected_department.name])
+        self.assertEqual(departments[0].active_ticket_count, 1)
+        self.assertEqual(departments[0].completed_ticket_count, 1)

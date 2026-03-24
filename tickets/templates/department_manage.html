@@ -98,7 +98,7 @@
                 <div class="department-item-role-row">
                   {% if department.created_by_id == user.id %}
                     <span class="department-role role-owner">Owner</span>
-                  {% else %}
+                  {% elif department.is_current_user_member %}
                     <span class="department-role role-member">Member</span>
                   {% endif %}
                 </div>
@@ -125,6 +125,7 @@
                     </div>
                   {% endwith %}
                   {% else %}
+                  {% if department.is_current_user_member or department.created_by_id == user.id %}
                   {% with staff_list=department.assigned_users.all %}
                     <div class="department-facepile" aria-label="Department staff">
                       {% for assignment in staff_list|slice:":3" %}
@@ -139,14 +140,34 @@
                       {% endif %}
                     </div>
                   {% endwith %}
+                  {% else %}
+                  {% with staff_list=department.active_assignments %}
+                    <div class="department-facepile" aria-label="Department staff">
+                      {% for assignment in staff_list|slice:":3" %}
+                        <a class="facepile-avatar content-link-flex"
+                             href="{% url 'profile' assignment.user.profile_slug %}"
+                             title="{{ assignment.user.get_full_name|default:assignment.user.username }}">
+                          {% include "partials/user_avatar.html" with avatar_user=assignment.user %}
+                        </a>
+                      {% endfor %}
+                      {% if staff_list|length > 3 %}
+                        <span class="facepile-more">+{{ staff_list|length|add:"-3" }}</span>
+                      {% endif %}
+                    </div>
+                  {% endwith %}
+                  {% endif %}
                   {% endif %}
                 </div>
-                {% if not browse_only %}
+                {% if not browse_only and department.is_current_user_member %}
                 <div class="department-item-tickets">
                   <span class="pill badge-count badge-blue"><span class="ticket-dot dot-active"
                                                                   aria-hidden="true"></span>Active {{ department.active_ticket_count }}</span>
                   <span class="pill badge-count badge-gray"><span class="ticket-dot dot-completed"
                                                                   aria-hidden="true"></span>Closed {{ department.completed_ticket_count }}</span>
+                </div>
+                {% elif not browse_only %}
+                <div class="department-item-tickets">
+                  <span class="pill badge-count badge-gray">Active members {{ department.active_member_count }}</span>
                 </div>
                 {% endif %}
                 <div class="department-item-footer">

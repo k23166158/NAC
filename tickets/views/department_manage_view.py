@@ -18,7 +18,7 @@ class DepartmentManageView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         """Return filtered, annotated departments for the current user."""
         if self._can_manage_departments():
-            return Department.assigned_to_user_with_ticket_counts(
+            return Department.all_with_ticket_counts(
                 self.request.user,
                 self.request.GET.get("q", ""),
             )

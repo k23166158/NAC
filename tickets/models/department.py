@@ -52,6 +52,17 @@ class Department(models.Model):
         return queryset.prefetch_related("assigned_users__user").order_by("name")
 
     @classmethod
+    def all_with_ticket_counts(cls, user, search_query=""):
+        """Return all departments with membership and ticket annotations."""
+        queryset = cls.objects.select_related("created_by")
+        queryset = cls._filter_manage_search(queryset, search_query)
+        queryset = queryset.annotate(**cls._manage_department_annotations(user))
+        return queryset.prefetch_related(
+            "assigned_users__user",
+            cls._active_member_prefetch(),
+        ).order_by("-is_current_user_owner", "-is_current_user_member", "name")
+
+    @classmethod
     def browsable_with_active_member_counts(cls, search_query=""):
         """Return all departments for non-staff browsing."""
         queryset = cls.objects.select_related("created_by")
@@ -76,6 +87,24 @@ class Department(models.Model):
             "completed_ticket_count": models.Count(
                 "assigned_tickets",
                 filter=models.Q(assigned_tickets__ticket__status="closed"),
+                distinct=True,
+            ),
+        }
+
+    @classmethod
+    def _manage_department_annotations(cls, user):
+        """Return annotations for the staff department browser."""
+        return {
+            **cls._ticket_count_annotations(),
+            "active_member_count": cls._active_member_count(),
+            "is_current_user_owner": models.Case(
+                models.When(created_by=user, then=models.Value(1)),
+                default=models.Value(0),
+                output_field=models.IntegerField(),
+            ),
+            "is_current_user_member": models.Count(
+                "assigned_users",
+                filter=models.Q(assigned_users__user=user),
                 distinct=True,
             ),
         }
@@ -231,7 +260,7 @@ class Department(models.Model):
         active_staff = self.get_active_staff()
         return {
             "department": self,
-            "staff_page": self._paginate_queryset(request, active_staff, "staff_page", per_page=10),
+            "staff_page": self._paginate_queryset(request, active_staff, "staff_page", per_page=5),
             "staff_total": len(active_staff),
             "faqs": self.faqs.select_related("created_by").all(),
             "is_public_department_view": True,
