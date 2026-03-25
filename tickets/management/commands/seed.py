@@ -140,7 +140,7 @@ class Command(BaseCommand):
         svg = (
             "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'>"
             f"<rect width='128' height='128' rx='24' fill='{color}'/>"
-            f"<text x='50%' y='55%' text-anchor='middle' fill='white' "
+            f"<text x='50%' y='50%' text-anchor='middle' dominant-baseline='middle' fill='white' "
             "font-family='Arial, sans-serif' font-size='44' font-weight='700'>"
             f"{initials}</text></svg>"
         )
