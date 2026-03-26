@@ -14,24 +14,25 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.auth.views import LogoutView
 from django.urls import path
 from django.views.generic import RedirectView
+
 from tickets.views import (
     HomeView, CustomLoginView,
     TicketThreadView, ForwardTicketView, CreateTicketView,
     DepartmentView, CreateDepartmentView, DepartmentManageView, EditDepartmentView, DeleteDepartmentView,
     DepartmentActiveTicketsView, DepartmentClosedTicketsView,
     DepartmentStaffView,
-    UserManagementView, ToggleUserStatusView, BulkUserImportView, BulkUserExportView
+    UserManagementView, ToggleUserStatusView, BulkUserImportView, BulkUserExportView, AdminStatisticsView
 )
-from django.contrib.auth.views import LogoutView
 from tickets.views.auth import SignUpView
-from tickets.views.profile_view import ProfileView
-from tickets.views.profile_edit_view import ProfileEditView
-from django.conf import settings
-from django.conf.urls.static import static
 from tickets.views.notifications_view import NotificationView
+from tickets.views.profile_edit_view import ProfileEditView
+from tickets.views.profile_view import ProfileView
 from tickets.views.search_assignables_view import search_assignables
 from tickets.views.search_faqs_view import search_faqs
 
