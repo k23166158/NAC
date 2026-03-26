@@ -1,11 +1,7 @@
-from datetime import timedelta
-
-from django.db.models import OuterRef, Subquery, Q
 from django.shortcuts import render
-from django.utils import timezone
 from django.views import View
 
-from ..models import Ticket, TicketMessage, Department
+from tickets.models import Ticket, User
 
 
 class HomeView(View):
@@ -13,70 +9,132 @@ class HomeView(View):
 
     def get(self, request):
         """Handle GET request for home page."""
-        if not request.user.is_authenticated: return render(request, "landing.html")
-        scope = request.GET.get("scope", "personal")
-        if scope not in {"personal", "department"}: scope = "personal"
-        # Staff-only: non-staff users can never view department scope
-        if scope == "department" and not request.user.is_staff: scope = "personal"
-        qs = self._annotated_tickets(request.user, scope=scope)
-        overdue = self._overdue_tickets(qs)
-        context = {
-            "scope": scope,
-            "completed_tickets": self._completed_tickets(qs),
-            "overdue_tickets": overdue,
-            "active_tickets": self._active_tickets(qs, overdue),
-        }
-        return render(request, "home_view.html", context)
+        if not request.user.is_authenticated:
+            return render(request, "unauthenticated_home.html")
 
-    def _base_tickets(self, user, scope="personal"):
-        """Tickets visible to this user."""
-        if scope == "department" and user.is_staff: # Department scope = everyone’s tickets (staff-only)
-            return Ticket.objects.all()
-        if not user.is_staff: # Personal scope (existing logic)
-            return Ticket.objects.filter(created_by=user)
-        dept_ids = Department.objects.filter(
-            assigned_users__user=user
-        ).values_list("id", flat=True)
-        return Ticket.objects.filter(
-            Q(created_by=user)
-            | Q(messages__sender=user)
-            | Q(participants__user=user)
-            | Q(assignments__department_id__in=dept_ids)
-        ).distinct()
+        qs, scope = self.filtered_ticket_state(request)
+        ctx = self.get_context(request, qs, scope)
+        ctx.update(self.get_search_context(request.user, scope))
+        if self.is_admin(request.user):
+            ctx.update(self.get_admin_stats())
 
-    def _annotated_tickets(self, user, scope="personal"):
-        """Tickets with last message info annotated."""
-        last_msg = TicketMessage.objects.filter(ticket_id=OuterRef("pk")).order_by("-edited_at")
-        return (
-            self._base_tickets(user, scope=scope)
-            .annotate(
-                last_message_at=Subquery(last_msg.values("edited_at")[:1]),
-                last_message_body=Subquery(last_msg.values("body")[:1]),
-                last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
-                last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
-                last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
-                last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
-            )
+        return render(request, "home_view.html", ctx)
+
+    def _get_page(self, request, queryset, param_name, per_page=10):
+        """Helper method to return a paginated page."""
+        from django.core.paginator import Paginator
+        return Paginator(queryset, per_page).get_page(request.GET.get(param_name, 1))
+
+    def get_context(self, request, qs, scope):
+        """Build the base context dictionary for the view, with pagination for the lists."""
+        active_qs = self.active_tickets(qs)
+        completed_qs = self.completed_tickets(qs)
+        context = self.base_context(active_qs, completed_qs, scope)
+        context["display_visible_ticket_count"] = self.display_visible_ticket_count(
+            request,
+            context["visible_ticket_count"],
         )
+        context["active_tickets_page"] = self._get_page(request, active_qs, 'active_page')
+        context["completed_tickets_page"] = self._get_page(request, completed_qs, 'completed_page')
+        context["active_pagination_query"] = self._pagination_query(request, "active_page")
+        context["completed_pagination_query"] = self._pagination_query(request, "completed_page")
+        return context
 
-    def _completed_tickets(self, qs):
+    def filtered_ticket_state(self, request):
+        """Return the filtered home-query ticket state for the current request."""
+        self.filters = Ticket.search_filters_from(request.GET)
+        self.applied_filters = self.applied_filters_for(request, self.filters)
+        scope = self.filters["scope"]
+        qs, scope = self.handle_scope(request.user, scope)
+        self.filters["scope"] = scope
+        self.applied_filters["scope"] = scope
+        qs = self.apply_filters(qs, self.applied_filters)
+        return qs, scope
+
+    @staticmethod
+    def base_context(active_qs, completed_qs, scope):
+        """Return the non-paginated home context values."""
+        return {
+            "scope": scope,
+            "completed_tickets": completed_qs,
+            "active_tickets": active_qs,
+            "visible_ticket_count": active_qs.count() + completed_qs.count(),
+        }
+
+    def _pagination_query(self, request, page_param):
+        """Return a querystring suffix preserving all filters except one page param."""
+        data = request.GET.copy()
+        data.pop(page_param, None)
+        query = data.urlencode()
+        return f"&{query}" if query else ""
+
+    def get_search_context(self, user, scope):
+        """Return context required for the integrated ticket search form."""
+        department_id = self.filters.get("department", "")
+        staff_id = self.filters.get("assigned_staff", "")
+        return {
+            "filters": self.filters,
+            "applied_filters": self.applied_filters,
+            "scope_options": Ticket.allowed_scopes_for(user),
+            **Ticket.search_filter_options(user, scope, department_id, staff_id),
+        }
+
+    @staticmethod
+    def display_visible_ticket_count(request, actual_count):
+        """Return the count label value to show after dependent auto-refreshes."""
+        if request.GET.get("auto_refresh") != "dependent":
+            return actual_count
+        display_count = request.GET.get("display_count", "")
+        return int(display_count) if display_count.isdigit() else actual_count
+
+    @staticmethod
+    def applied_filters_for(request, current_filters):
+        """Return the filters currently applied to the queue results."""
+        if request.GET.get("auto_refresh") != "dependent":
+            return current_filters.copy()
+        return {
+            key: request.GET.get(f"applied_{key}", current_filters[key])
+            for key in current_filters
+        }
+
+    def get_admin_stats(self):
+        """Returns extra admin statistics for the dashboard."""
+        return {
+            "total_tickets": Ticket.objects.count(),
+            "tickets_by_status": self.tickets_by_status(),
+            "total_users": User.objects.count(),
+        }
+
+    def is_admin(self, user):
+        """Check if a user has admin privileges."""
+        return user.is_superuser or user.is_staff
+
+    def tickets_by_status(self):
+        """Returns a count of tickets by status."""
+        return Ticket.status_counts()
+
+    def handle_scope(self, user, scope):
+        """Handles the tickets to display depending on the scope selected by the user"""
+        if not user.is_staff:
+            return self.annotated_tickets(user, scope="personal"), "personal"
+
+        if scope not in ("personal", "department", "assigned"):
+            scope = "personal"
+
+        return self.annotated_tickets(user, scope=scope), scope
+
+    def annotated_tickets(self, user, scope="personal"):
+        """Annotate the base ticket queryset with message metadata."""
+        return Ticket.annotated_for_home(user, scope=scope)
+
+    def apply_filters(self, qs, filters):
+        """Apply ticket search filters to the annotated home queryset."""
+        return Ticket.apply_search_filters(qs, filters).distinct()
+
+    def completed_tickets(self, qs):
         """Tickets that are completed/closed."""
-        return qs.filter(status=Ticket.Status.CLOSED).order_by("-updated_at")
+        return Ticket.completed_from(qs)
 
-    def _overdue_tickets(self, qs):
-        """Tickets that are overdue for a response."""
-        cutoff = timezone.now() - timedelta(days=7)
-        return qs.filter(
-            status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING],
-            last_message_at__isnull=False,
-            last_message_at__lt=cutoff,
-            last_sender_is_staff=False,
-        ).order_by("-last_message_at")
-
-    def _active_tickets(self, qs, overdue):
-        """Tickets that are active and not overdue."""
-        return qs.filter(
-            status__in=[Ticket.Status.OPEN, Ticket.Status.PENDING],
-        ).exclude(
-            id__in=overdue.values_list("id", flat=True)
-        ).order_by("-updated_at")
+    def active_tickets(self, qs):
+        """Tickets that are active."""
+        return Ticket.active_from(qs)

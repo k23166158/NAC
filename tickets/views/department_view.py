@@ -1,12 +1,11 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.views import View
-from django.db.models import OuterRef, Subquery
-from django.contrib.auth import get_user_model
-from ..models import Department, Ticket, TicketMessage, UserDepartments
-from django.http import HttpResponseForbidden
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseForbidden
+from django.shortcuts import redirect, render
+from django.views import View
 
-User = get_user_model()
+from tickets.forms import DepartmentFAQForm
+from tickets.models import Department, DepartmentFAQ
 
 
 class DepartmentView(LoginRequiredMixin, View):
@@ -14,92 +13,102 @@ class DepartmentView(LoginRequiredMixin, View):
 
     def get(self, request, department_slug):
         """Handle GET requests for the department view."""
-        department = get_object_or_404(Department, slug=department_slug)
-
-        if not self.is_member(request.user, department):
+        department = Department.get_by_slug_or_404(department_slug)
+        if self._should_render_public_view(request.user, department):
+            return render(request, "department_public.html", department.build_public_view_context(request))
+        if not department.can_view(request.user):
             return HttpResponseForbidden("You are not allowed to access this.")
-
-        context = self.build_context(department)
-        return render(request, "department.html", context)
+        return render(request, "department.html", department.build_view_context(request))
 
     def post(self, request, department_slug):
-        """Handle POST requests to add or remove staff."""
-        department = get_object_or_404(Department, slug=department_slug)
-
-        if not self.can_manage_staff(request.user, department):
+        """Handle POST requests for staff and FAQ actions."""
+        department = Department.get_by_slug_or_404(department_slug)
+        if self._should_render_public_view(request.user, department):
             return HttpResponseForbidden("You are not allowed to access this.")
+        action = request.POST.get("action")
+        if action in ("add_faq", "edit_faq", "delete_faq"):
+            return self._dispatch_faq_action(request, department, action)
+        if not department.can_manage_staff(request.user):
+            return HttpResponseForbidden("You are not allowed to access this.")
+        self._process_staff_action(request, department)
+        return redirect("department", department_slug=department_slug)
 
-        self.process_staff_change(request, department)
-        return redirect('department', department_slug=department_slug)
+    def _dispatch_faq_action(self, request, department, action):
+        """Check FAQ permissions and route to the correct FAQ handler."""
+        if not department.can_manage_faqs(request.user):
+            return HttpResponseForbidden("You are not allowed to access this.")
+        if action == "add_faq":
+            return self._handle_add_faq(request, department)
+        if action == "edit_faq":
+            return self._handle_edit_faq(request, department)
+        return self._handle_delete_faq(request, department)
 
-    def is_member(self, user, department):
-        """Check if the user is a member of the department."""
-        return UserDepartments.objects.filter(user=user, department=department).exists()
+    def _handle_add_faq(self, request, department):
+        """Handle FAQ creation POST."""
+        form = DepartmentFAQForm(request.POST)
+        if form.is_valid():
+            DepartmentFAQ.create_from_form(form, department=department, actor=request.user)
+            messages.success(request, "FAQ added successfully.")
+        else:
+            messages.error(request, "Please fill in both the question and answer fields.")
+        return redirect("department", department_slug=department.slug)
 
-    def can_manage_staff(self, user, department):
-        """Check if the user can manage staff for the department."""
-        return user.is_staff and department.created_by == user
-
-    def build_context(self, department):
-        """Build the context for rendering the department view."""
-        current_staff = self.get_current_staff(department)
-        return {
-            "department": department,
-            "staff": current_staff,
-            "available_staff": self.get_available_staff(current_staff),
-            "active_tickets": self.get_tickets(department, ['open', 'pending']),
-            "closed_tickets": self.get_tickets(department, ['closed']),
-        }
-
-    def get_current_staff(self, department):
-        """Get the current staff assigned to the department."""
-        return [
-            assignment.user
-            for assignment in department.assigned_users.select_related('user').all()
-        ]
-
-    def get_available_staff(self, current_staff):
-        """Get staff users not currently assigned to the department."""
-        current_ids = [u.id for u in current_staff]
-        return User.objects.filter(is_staff=True).exclude(id__in=current_ids)
-
-    def get_tickets(self, department, status_list):
-        """Get tickets for the department with specified statuses."""
-        qs = Ticket.objects.filter(
-            assignments__department=department, status__in=status_list
+    def _handle_edit_faq(self, request, department):
+        """Handle FAQ edit POST."""
+        faq = DepartmentFAQ.get_for_department_or_404(
+            faq_id=request.POST.get("faq_id"),
+            department=department,
         )
-        return self.annotate_tickets(qs).order_by("-updated_at")
+        form = DepartmentFAQForm(request.POST, instance=faq)
+        if form.is_valid():
+            DepartmentFAQ.update_from_form(form)
+            messages.success(request, "FAQ updated.")
+        else:
+            messages.error(request, "Please fill in both the question and answer fields.")
+        return redirect("department", department_slug=department.slug)
 
-    def annotate_tickets(self, queryset):
-        """Annotate tickets with their latest message details."""
-        last_msg = TicketMessage.objects.filter(
-            ticket_id=OuterRef("pk")
-        ).order_by("-edited_at")
-        
-        return queryset.annotate(
-            last_message_at=Subquery(last_msg.values("edited_at")[:1]),
-            last_message_body=Subquery(last_msg.values("body")[:1]),
-            last_message_sender_id=Subquery(last_msg.values("sender_id")[:1]),
-            last_sender_is_staff=Subquery(last_msg.values("sender__is_staff")[:1]),
-            last_sender_first=Subquery(last_msg.values("sender__first_name")[:1]),
-            last_sender_last=Subquery(last_msg.values("sender__last_name")[:1]),
+    def _handle_delete_faq(self, request, department):
+        """Handle FAQ deletion POST."""
+        faq = DepartmentFAQ.get_for_department_or_404(
+            faq_id=request.POST.get("faq_id"),
+            department=department,
         )
+        faq.delete_for_department(department)
+        messages.success(request, "FAQ deleted.")
+        return redirect("department", department_slug=department.slug)
 
-    def process_staff_change(self, request, department):
-        """Process adding or removing staff based on POST data."""
-        user_id = request.POST.get('user_id')
-        action = request.POST.get('action')
-
-        if user_id:
-            self.update_staff_assignment(user_id, department, action)
-
-    def update_staff_assignment(self, user_id, department, action):
-        """Add or remove a staff member from the department."""
-        user = get_object_or_404(User, id=user_id)
-        
-        if action == 'add':
-            UserDepartments.objects.get_or_create(user=user, department=department)
+    def _process_staff_action(self, request, department):
+        """Run department staff action and publish any response message."""
+        outcome = department.process_staff_change(
+            actor=request.user,
+            user_id=request.POST.get("user_id"),
+            action=request.POST.get("action"),
+        )
+        if not outcome:
             return
+        level, text = outcome
+        getattr(messages, level)(request, text)
+
+    @staticmethod
+    def _should_render_public_view(user, department):
+        """Return True when the user should see the read-only department view."""
+        if not user.is_authenticated or user.is_superuser:
+            return False
+        if not user.is_staff:
+            return True
+        return not department.can_view(user)
+
+    def update_staff_assignment(self, request, user_id, department, action):
+        """Update staff assignment for a user in a department.
         
-        if action == 'remove':
-            UserDepartments.objects.filter(user=user, department=department).delete()
+        This is a no-op for unknown actions.
+        """
+        outcome = department.process_staff_change(
+            actor=request.user,
+            user_id=user_id,
+            action=action,
+        )
+        if not outcome:
+            return
+        level, text = outcome
+        getattr(messages, level)(request, text)

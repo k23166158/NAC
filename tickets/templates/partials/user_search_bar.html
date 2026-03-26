@@ -13,11 +13,16 @@
                 {% csrf_token %}
                 <input type="hidden" name="action" value="add">
                 <input type="hidden" name="user_id" value="{{ user.id }}">
-                <button type="submit" class="dropdown-item">
-                    <div class="avatar-small">+</div>
-                    <span class="dropdown-name">{{ user.full_name }}</span>
-                    <i><span class="dropdown-username">{{ user.username }}</span></i>
-                </button>
+                <div class="dropdown-item">
+                    <a class="content-link-flex dropdown-user-link" href="{% url 'profile' user.profile_slug %}">
+                        {% include "partials/user_avatar.html" with avatar_user=user avatar_class="avatar-small" avatar_placeholder_class="avatar-small avatar-small-placeholder" %}
+                        <span class="dropdown-name">{{ user.full_name }}</span>
+                        <i><span class="dropdown-username">{{ user.username }}</span></i>
+                    </a>
+                    <button type="submit" class="dropdown-add-btn" aria-label="Add {{ user.full_name }}" title="Add staff">
+                        +
+                    </button>
+                </div>
             </form>
         {% empty %}
             <div class="empty empty-state-small empty-state-block">No more staff available.</div>
@@ -44,7 +49,7 @@
 
         items.forEach(item => {
             const name = item.getAttribute('data-name');
-            if (name.includes(query)) {
+            if (name.startsWith(query)) {
                 item.style.display = 'block';
                 hasVisibleItems = true;
             } else {

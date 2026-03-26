@@ -7,4 +7,3 @@ class CreateDepartmentView(DepartmentFormView):
     def render_form(self, request, form):
         """Helper method to render the form template."""
         return render(request, 'department_form.html', {'form': form, 'type': 'create'})
-

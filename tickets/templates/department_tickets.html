@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} – {{ department.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/ticket_layout.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_layout_extra.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_list.css' %}">
+<link rel="stylesheet" href="{% static 'css/department_view.css' %}">
+<link rel="stylesheet" href="{% static 'css/pagination.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tickets-wrap tickets-centered dept-page">
+    <div class="back-link-container">
+        <a href="{% url 'department' department.slug %}" class="ticket-link">← Back to {{ department.name }}</a>
+    </div>
+
+    <div class="thread-section">
+        <h2 class="section-title">
+            {{ title }}
+            <span class="pill badge-count badge-blue">{{ page.paginator.count }}</span>
+        </h2>
+
+        <div class="ticket-scroll-container">
+            {% if page.object_list %}
+                {% include "partials/ticket_list.html" with tickets=page %}
+                {% include "partials/pagination.html" with page=page page_param="page" %}
+            {% else %}
+                <div class="empty empty-state">{{ empty_message }}</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

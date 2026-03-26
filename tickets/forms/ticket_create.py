@@ -1,5 +1,28 @@
 from django import forms
+from django.forms import ClearableFileInput
 from tickets.models import Department
+
+
+class MultipleFileInput(ClearableFileInput):
+    """Custom widget that allows multiple file uploads."""
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    """Form field that validates each uploaded file from a multi-file widget."""
+
+    def clean(self, data, initial=None):
+        """Return a list of cleaned uploaded files."""
+        single_file_clean = super().clean
+
+        if not data:
+            return []
+
+        if isinstance(data, (list, tuple)):
+            return [single_file_clean(file, initial) for file in data if file]
+
+        cleaned_file = single_file_clean(data, initial)
+        return [cleaned_file] if cleaned_file else []
 
 
 class CreateTicketForm(forms.Form):
@@ -29,12 +52,34 @@ class CreateTicketForm(forms.Form):
         }),
     )
 
+    attachments = MultipleFileField(
+        label="Attachments",
+        required=False,
+        widget=MultipleFileInput(attrs={
+            "class": "file-input",
+            "accept": ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.jpg,.jpeg,.png,.gif,.txt",
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        """Initialize form to handle multiple file input."""
+        super().__init__(*args, **kwargs)
+
     def clean_title(self):
         """Normalise and validate ticket title."""
         title = self.cleaned_data.get("title", "").strip()
         if not title:
             raise forms.ValidationError("Title cannot be empty.")
         return title
+
+    def clean_departments(self):
+        """Ensure no more than 3 departments are selected."""
+        departments = self.cleaned_data.get("departments")
+        if departments and departments.count() > 3:
+            raise forms.ValidationError(
+                "You can select at most 3 departments."
+            )
+        return departments
 
     def clean_body(self):
         """Normalise and validate initial message body."""

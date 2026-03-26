@@ -1,0 +1,271 @@
+/* Ticket Layout & Structure */
+
+.tickets-wrap {
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 12px 0 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.tickets-wrap-staff {
+    max-width: none;
+    height: 100%;
+    padding: 0;
+}
+
+.staff-thread-shell {
+    display: grid;
+    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+    gap: 24px;
+    height: 100%;
+    min-height: 0;
+}
+
+.staff-thread-sidebar,
+.staff-thread-main {
+    min-height: 0;
+}
+
+.staff-thread-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.8) transparent;
+}
+
+.staff-thread-main {
+    overflow-y: auto;
+    padding-right: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.8) transparent;
+}
+
+.staff-thread-sidebar-solo {
+    overflow-y: auto;
+}
+
+.staff-thread-sidebar-solo .ticket-header-card {
+    flex: 0 0 auto;
+    height: auto;
+}
+
+.staff-thread-sidebar-solo .ticket-header-card .col-body {
+    flex: 0 0 auto;
+}
+
+.staff-thread-sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.staff-thread-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.staff-thread-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.8);
+    border-radius: 999px;
+}
+
+.staff-thread-sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.9);
+}
+
+.staff-thread-sidebar-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-height: 0;
+}
+
+.staff-thread-main::-webkit-scrollbar {
+    width: 8px;
+}
+
+.staff-thread-main::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.staff-thread-main::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.8);
+    border-radius: 999px;
+}
+
+.staff-thread-main::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.9);
+}
+
+.back-link-container {
+    display: flex;
+    align-items: center;
+}
+
+.ticket-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(203, 213, 225, 0.75);
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.06s ease, box-shadow 0.12s ease;
+}
+
+.ticket-link:hover {
+    background: rgba(37, 99, 235, 0.06);
+    border-color: rgba(37, 99, 235, 0.18);
+    color: var(--blue);
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+/* Header Card */
+
+.ticket-header-card {
+    background:
+        radial-gradient(circle at top right, rgba(37, 99, 235, 0.14), transparent 30%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
+    border-radius: 28px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 22px 55px rgba(15, 23, 42, 0.08);
+    padding: 24px 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ticket-header-card .col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.tickets-title {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.05em;
+}
+
+.ticket-header-card .ticket-meta {
+    margin-top: 2px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ticket-description {
+    margin-top: 14px;
+    padding: 16px 18px 18px;
+    border-radius: 20px;
+    border: 1px solid rgba(203, 213, 225, 0.75);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.92));
+}
+
+.ticket-header-card .message-body {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+/* Attachments inside messages */
+
+.msg-attachments {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.msg-attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #f8fafc;
+    font-size: 12px;
+    text-decoration: none;
+    color: var(--text);
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.06s ease;
+}
+
+.msg-attachment:hover {
+    background: #eff6ff;
+    border-color: rgba(37, 99, 235, 0.4);
+    transform: translateY(1px);
+}
+
+.msg-attachment-name {
+    font-weight: 600;
+}
+
+.msg-attachment-meta {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+/* Dividers & notices */
+
+.line-break {
+    width: 100%;
+    height: 1px;
+    margin: 4px 0 4px;
+    background: rgba(226, 232, 240, 0.9);
+}
+
+.ticket-closed-notice {
+    margin: 8px 0 4px;
+    padding: 14px 16px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--muted);
+    border-radius: 18px;
+    border: 1px dashed var(--border);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.thread-section {
+    border-radius: 24px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 22px 55px rgba(15, 23, 42, 0.06);
+    padding: 20px;
+}
+
+.thread-section-head {
+    margin-bottom: 16px;
+}
+
+.thread-section-title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--text);
+}
+
+.thread-section-copy {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 0.96rem;
+    line-height: 1.55;
+}
+

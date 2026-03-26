@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Welcome - Ticket Management Software{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/unauthenticated_home.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="unauthenticated-home">
+  <section class="hero">
+    <div class="hero-content">
+      <h1 class="hero-title">Make Your Life Easy</h1>
+      <p class="hero-subtitle">
+        Organise, track, and manage your support tickets.
+      </p>
+      <div class="hero-buttons">
+        <a href="{% url 'login' %}" class="btn btn-primary">
+          <i class="bi bi-box-arrow-in-right"></i> Login
+        </a>
+        <a href="{% url 'signup' %}" class="btn btn-secondary">
+          <i class="bi bi-person-plus"></i> Sign Up
+        </a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-icon">
+        <i class="bi bi-ticket"></i>
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <h2 class="section-title">Key Features:</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="bi bi-collection"></i>
+        </div>
+        <h3 class="feature-title">Track Tickets</h3>
+        <p class="feature-description">
+          Create and track support tickets from start to finish. Monitor progress and stay organised.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="bi bi-chat-dots"></i>
+        </div>
+        <h3 class="feature-title">Communicate</h3>
+        <p class="feature-description">
+          Collaborate with team members through integrated messaging and real-time updates.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="bi bi-diagram-3"></i>
+        </div>
+        <h3 class="feature-title">Organise</h3>
+        <p class="feature-description">
+          Use departments and custom workflows to organise tickets and improve efficiency.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="bi bi-graph-up"></i>
+        </div>
+        <h3 class="feature-title">Analytics</h3>
+        <p class="feature-description">
+          Get insights into your ticket performance and team metrics at a glance.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="bi bi-shield-check"></i>
+        </div>
+        <h3 class="feature-title">Secure</h3>
+        <p class="feature-description">
+          Enterprise-grade security to keep your support data safe and protected.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <i class="bi bi-lightning"></i>
+        </div>
+        <h3 class="feature-title">Fast</h3>
+        <p class="feature-description">
+          Lightning-quick response times and instant notifications for your team.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="how-it-works">
+    <h2 class="section-title">How It Works</h2>
+    <div class="steps-container">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3 class="step-title">Create Account</h3>
+        <p class="step-description">Sign up for a free account to get started</p>
+      </div>
+      <div class="step-arrow">
+        <i class="bi bi-arrow-right"></i>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3 class="step-title">Create Tickets</h3>
+        <p class="step-description">Submit issues or requests that need attention</p>
+      </div>
+      <div class="step-arrow">
+        <i class="bi bi-arrow-right"></i>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3 class="step-title">Track & Resolve</h3>
+        <p class="step-description">Monitor progress and collaborate until resolved</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <h2 class="cta-title">Ready to Get Started?</h2>
+    <p class="cta-subtitle">
+      Join other teams managing their support tickets efficiently
+    </p>
+    <div class="cta-buttons">
+      <a href="{% url 'signup' %}" class="btn btn-primary btn-large">
+        Create Free Account
+      </a>
+      <a href="{% url 'login' %}" class="btn btn-secondary btn-large">
+        Already have an account? Login
+      </a>
+    </div>
+  </section>
+</div>
+{% endblock %}

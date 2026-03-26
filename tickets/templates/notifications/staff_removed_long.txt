@@ -1,0 +1,3 @@
+Hello {{ user.first_name }},
+
+{{ actor.get_full_name }} has removed you from the ticket: "{{ target.title }}".

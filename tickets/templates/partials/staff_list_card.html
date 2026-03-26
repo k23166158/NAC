@@ -1,0 +1,95 @@
+<div class="staff-card">
+  <h3 class="staff-card-header">{{ header }}</h3>
+  
+  <div class="staff-list">
+    {% for staff_user in staff_list %}
+      {% if view_type == "ticket" %}
+        {% if staff_user != current_user or ticket.created_by != current_user %}
+          <div class="pill staff-row">
+            <a class="content-link-flex staff-info" href="{% url 'profile' staff_user.profile_slug %}">
+              {% include "partials/user_avatar.html" with avatar_user=staff_user %}
+              <span class="staff-name">{% if staff_user == current_user %}{{ staff_user.full_name }} [You]{% else %}{{ staff_user.full_name }}{% endif %}</span>
+            </a>
+            {% if staff_list|length > 1 and can_manage %}
+              <form method="post" class="remove-staff-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="remove">
+                <input type="hidden" name="target_type" value="staff">
+                <input type="hidden" name="target_id" value="{{ staff_user.id }}">
+                <button type="submit" class="btn-icon-remove" title="Remove staff">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="staff-row {% if invited_users and staff_user in invited_users %}staff-row-invited{% endif %}">
+          <a class="content-link-flex staff-info" href="{% url 'profile' staff_user.profile_slug %}">
+            {% include "partials/user_avatar.html" with avatar_user=staff_user %}
+            <div class="staff-copy">
+              <span class="staff-name">{{ staff_user.full_name }}</span>
+              {% if invited_users and staff_user in invited_users %}
+                <span class="staff-role staff-role-invited">Invited</span>
+              {% else %}
+                <span class="staff-role">Active member</span>
+              {% endif %}
+            </div>
+          </a>
+
+          {% if department.created_by == current_user or user.is_superuser %}
+            {% if invited_users and staff_user in invited_users %}
+              <form method="POST" class="remove-staff-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="remove_invite">
+                <input type="hidden" name="user_id" value="{{ staff_user.id }}">
+                <button type="submit" class="btn-icon-remove" title="Revoke invite">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </form>
+            {% else %}
+              {% if department.created_by != staff_user %}
+                <form method="POST" class="remove-staff-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="remove">
+                  <input type="hidden" name="user_id" value="{{ staff_user.id }}">
+                  <button type="submit" class="btn-icon-remove" title="Remove staff">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </form>
+              {% else %}
+                <div class="remove-btn-spacer"></div>
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        </div>
+      {% endif %}
+    {% empty %}
+      <div class="empty empty-state">
+        {% if view_type == "department" %}
+          No staff assigned or invited yet.
+        {% else %}
+          No staff assigned yet.
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if view_type == "department" and pagination and pagination.has_other_pages %}
+  <div class="pagination pagination-sm">
+    <span class="step-links">
+      {% if pagination.has_previous %}
+        <a href="?staff_page={{ pagination.previous_page_number }}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}{% if request.GET.closed_page %}&closed_page={{ request.GET.closed_page }}{% endif %}" class="pagination-link">&laquo;</a>
+      {% endif %}
+      
+      <span class="current">
+        {{ pagination.number }} / {{ pagination.paginator.num_pages }}
+      </span>
+      
+      {% if pagination.has_next %}
+        <a href="?staff_page={{ pagination.next_page_number }}{% if request.GET.active_page %}&active_page={{ request.GET.active_page }}{% endif %}{% if request.GET.closed_page %}&closed_page={{ request.GET.closed_page }}{% endif %}" class="pagination-link">&raquo;</a>
+      {% endif %}
+    </span>
+  </div>
+  {% endif %}
+</div>

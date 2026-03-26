@@ -1,0 +1,340 @@
+/* Staff & Department Section */
+
+body.ticket-thread-staff-page {
+    height: 100vh;
+    overflow: hidden;
+}
+
+body.ticket-thread-staff-page main {
+    max-width: none;
+    height: 100%;
+    padding: 18px 18px 20px;
+    overflow: hidden;
+}
+
+body.ticket-thread-staff-page footer {
+    display: none;
+}
+
+.section-wrapper {
+    margin-top: 18px;
+    padding: 16px 18px 18px;
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Locked state — ticket closed or user removed themselves */
+
+.section-wrapper--locked {
+    opacity: 0.72;
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    box-shadow: none;
+}
+
+.staff-card--locked {
+    background: #f0f1f3;
+}
+
+.assignment-lock-badge {
+    font-size: 11px;
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+}
+
+.assignment-locked-notice {
+    margin: 2px 0 8px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+}
+
+.assignment-locked-placeholder {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    margin: 4px 0 0;
+}
+
+.ticket-thread-staff-page .staff-thread-sidebar .section-wrapper {
+    margin-top: 0;
+}
+
+.section-title {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 780;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Staff Grid */
+
+.staff-grid {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px;
+}
+
+.ticket-thread-staff-page .staff-thread-sidebar .staff-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+}
+
+.staff-card {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 14px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.staff-card-header {
+    margin: 0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+}
+
+/* Staff list container */
+
+.staff-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.ticket-thread-staff-page .staff-thread-sidebar .staff-list {
+    max-height: 200px;
+}
+
+/* Individual staff row */
+
+.staff-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+}
+
+.staff-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.staff-name {
+    font-weight: 700;
+    font-size: 13px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+/* Avatar styling */
+
+.avatar,
+.avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+}
+
+.avatar {
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #4b5563;
+    font-weight: 700;
+}
+
+/* Remove button */
+
+.btn-icon-remove {
+    background: transparent;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 4px 8px;
+    cursor: pointer;
+    color: #b91c1c;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.06s ease;
+}
+
+.btn-icon-remove:hover {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #7f1d1d;
+    transform: translateY(1px);
+}
+
+/* Add department form */
+
+.add-department-form {
+    display: block;
+}
+
+.department-row {
+    background: #f9fafb;
+}
+
+.department-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 750;
+    color: #4b5563;
+    text-transform: uppercase;
+}
+
+.department-name {
+    font-weight: 700;
+}
+
+.department-pill {
+    padding: 8px 12px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+    font-size: 13px;
+    font-weight: 600;
+    gap: 10px;
+}
+
+.department-pill-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.department-pill-link {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+}
+
+.department-pill-link:hover .department-pill-name,
+.department-pill-link:focus .department-pill-name,
+.department-pill-link:active .department-pill-name {
+    text-decoration: underline;
+}
+
+.department-add-btn {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #1f2937;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 20px;
+    line-height: 20px;
+    font-weight: 300;
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: color 0.12s ease, transform 0.06s ease;
+    transform: translateY(-1px);
+}
+
+.department-add-btn:hover {
+    color: #111827;
+    transform: translateY(0);
+}
+
+.department-pill-meta {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+}
+
+/* Search input */
+
+.search-wrapper {
+    position: relative;
+    margin-top: 6px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 13px;
+    background: #fff;
+}
+
+.search-input:focus {
+    border-color: rgba(9, 105, 218, 0.45);
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.12);
+    outline: none;
+}
+
+/* Responsive adjustments */
+
+@media (max-width: 800px) {
+    body.ticket-thread-staff-page {
+        height: auto;
+        overflow: auto;
+    }
+
+    body.ticket-thread-staff-page main {
+        height: auto;
+        padding: 22px 18px 40px;
+        overflow: visible;
+    }
+
+    body.ticket-thread-staff-page footer {
+        display: block;
+    }
+
+    .staff-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ticket-thread-staff-page .staff-thread-sidebar .staff-list {
+        max-height: 260px;
+    }
+}
+
+@media (max-width: 640px) {
+    .section-wrapper {
+        padding-inline: 14px;
+    }
+}

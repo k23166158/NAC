@@ -1,108 +1,220 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Manage Departments{% endblock %}
+{% block title %}{{ page_title }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/department_view.css' %}">
-<link rel="stylesheet" href="{% static 'css/department_manage.css' %}">
+  <link rel="stylesheet" href="{% static 'css/department_view.css' %}">
+  <link rel="stylesheet" href="{% static 'css/department_manage.css' %}">
+  <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="tickets-wrap tickets-centered">
-  <div class="tickets-header tickets-header-centered dept-header">
-    <div class="dept-header-inner">
-      <div>
-        <h1 class="tickets-title dept-title dept-title-large">Manage Departments</h1>
+  <div class="tickets-wrap tickets-centered">
+    <div class="tickets-header tickets-header-centered dept-header">
+      <div class="dept-header-inner">
+        <div>
+          <h1 class="tickets-title dept-title dept-title-large">{{ page_title }}</h1>
+        </div>
+        {% if not browse_only %}
+        <div class="dept-actions">
+          <a href="{% url 'create_department' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i>
+            Create Department
+          </a>
+        </div>
+        {% endif %}
       </div>
-      <div class="dept-actions">
-        <a href="{% url 'create_department' %}" class="btn btn-primary">
-          <i class="bi bi-plus-circle"></i>
-          Create Department
-        </a>
-      </div>
+    </div>
+
+    {% if not browse_only %}
+    <div class="section-wrapper invitation-section">
+      <h2 class="section-title">Pending invites</h2>
+      {% if invitations %}
+        <ul class="invitation-list">
+          {% for invitation in invitations %}
+            <li class="invitation-item">
+              <div class="invitation-info">
+                <a class="content-link invitation-department" href="{% url 'department' invitation.department.slug %}">{{ invitation.department.name }}</a>
+                <span
+                    class="invitation-sender">Invited by <a class="content-link" href="{% url 'profile' invitation.sender.profile_slug %}">{{ invitation.sender.get_full_name|default:invitation.sender.username }}</a></span>
+                <span class="invitation-timestamp">{{ invitation.created_at|date:"M j, Y, g:i A" }}</span>
+              </div>
+              <div class="invitation-actions">
+                <form method="post" action="{% url 'department_manage' %}"
+                      class="invitation-form invitation-form-accept">
+                  {% csrf_token %}
+                  <input type="hidden" name="invite_id" value="{{ invitation.id }}">
+                  <input type="hidden" name="action" value="accept">
+                  <button type="submit" class="btn-invitation btn-accept" title="Accept">Accept</button>
+                </form>
+                <form method="post" action="{% url 'department_manage' %}"
+                      class="invitation-form invitation-form-decline">
+                  {% csrf_token %}
+                  <input type="hidden" name="invite_id" value="{{ invitation.id }}">
+                  <input type="hidden" name="action" value="decline">
+                  <button type="submit" class="btn-invitation btn-decline" title="Decline">Decline</button>
+                </form>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="invitation-empty">
+          <p class="invitation-empty-title">No pending invites.</p>
+          <p class="invitation-empty-hint">When someone invites you to a department, it will appear here.</p>
+        </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="section-wrapper">
+      <h2 class="section-title">{{ page_departments_label }}</h2>
+      {% if departments %}
+        <div class="department-search-wrapper">
+          <form method="GET" action="{% url 'department_manage' %}" class="department-search-form" role="search">
+            <i class="bi bi-search department-search-leading-icon" aria-hidden="true"></i>
+            <input type="text" name="q" value="{{ request.GET.q|default_if_none:"" }}" id="departmentSearchInput"
+                   class="department-search-input" autocomplete="off" placeholder="Search departments...">
+            <button type="submit" class="department-search-submit">Search</button>
+          </form>
+        </div>
+        <div class="department-list" id="departmentList">
+          {% for department in departments %}
+            <div class="department-item"
+               data-name="{{ department.name|lower }}" data-description="{{ department.description|lower|default:'' }}">
+              <div class="department-item-content">
+                <div class="department-item-header">
+                  <a href="{% url 'department' department_slug=department.slug %}" class="department-item-icon content-link">
+                    <i class="bi bi-building"></i>
+                  </a>
+                </div>
+                <h3 class="department-item-name"><a class="content-link" href="{% url 'department' department_slug=department.slug %}">{{ department.name }}</a></h3>
+                {% if browse_only %}
+                <div class="department-item-role-row">
+                  <span class="department-role role-member">Active members {{ department.active_member_count }}</span>
+                </div>
+                {% else %}
+                <div class="department-item-role-row">
+                  {% if department.created_by_id == user.id %}
+                    <span class="department-role role-owner">Owner</span>
+                  {% elif department.is_current_user_member %}
+                    <span class="department-role role-member">Member</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% if department.description %}
+                  <p class="department-item-description">{{ department.description }}</p>
+                {% else %}
+                  <p class="department-item-description department-item-description-empty">No description available</p>
+                {% endif %}
+                <div class="department-item-staff">
+                  {% if browse_only %}
+                  {% with staff_list=department.active_assignments %}
+                    <div class="department-facepile" aria-label="Department staff">
+                      {% for assignment in staff_list|slice:":3" %}
+                        <a class="facepile-avatar content-link-flex"
+                             href="{% url 'profile' assignment.user.profile_slug %}"
+                             title="{{ assignment.user.get_full_name|default:assignment.user.username }}">
+                          {% include "partials/user_avatar.html" with avatar_user=assignment.user %}
+                        </a>
+                      {% endfor %}
+                      {% if staff_list|length > 3 %}
+                        <span class="facepile-more">+{{ staff_list|length|add:"-3" }}</span>
+                      {% endif %}
+                    </div>
+                  {% endwith %}
+                  {% else %}
+                  {% if department.is_current_user_member or department.created_by_id == user.id %}
+                  {% with staff_list=department.assigned_users.all %}
+                    <div class="department-facepile" aria-label="Department staff">
+                      {% for assignment in staff_list|slice:":3" %}
+                        <a class="facepile-avatar content-link-flex"
+                             href="{% url 'profile' assignment.user.profile_slug %}"
+                             title="{{ assignment.user.get_full_name|default:assignment.user.username }}">
+                          {% include "partials/user_avatar.html" with avatar_user=assignment.user %}
+                        </a>
+                      {% endfor %}
+                      {% if staff_list|length > 3 %}
+                        <span class="facepile-more">+{{ staff_list|length|add:"-3" }}</span>
+                      {% endif %}
+                    </div>
+                  {% endwith %}
+                  {% else %}
+                  {% with staff_list=department.active_assignments %}
+                    <div class="department-facepile" aria-label="Department staff">
+                      {% for assignment in staff_list|slice:":3" %}
+                        <a class="facepile-avatar content-link-flex"
+                             href="{% url 'profile' assignment.user.profile_slug %}"
+                             title="{{ assignment.user.get_full_name|default:assignment.user.username }}">
+                          {% include "partials/user_avatar.html" with avatar_user=assignment.user %}
+                        </a>
+                      {% endfor %}
+                      {% if staff_list|length > 3 %}
+                        <span class="facepile-more">+{{ staff_list|length|add:"-3" }}</span>
+                      {% endif %}
+                    </div>
+                  {% endwith %}
+                  {% endif %}
+                  {% endif %}
+                </div>
+                {% if not browse_only and department.is_current_user_member %}
+                <div class="department-item-tickets">
+                  <span class="pill badge-count badge-blue"><span class="ticket-dot dot-active"
+                                                                  aria-hidden="true"></span>Active {{ department.active_ticket_count }}</span>
+                  <span class="pill badge-count badge-gray"><span class="ticket-dot dot-completed"
+                                                                  aria-hidden="true"></span>Closed {{ department.completed_ticket_count }}</span>
+                </div>
+                {% elif not browse_only %}
+                <div class="department-item-tickets">
+                  <span class="pill badge-count badge-gray">Active members {{ department.active_member_count }}</span>
+                </div>
+                {% endif %}
+                <div class="department-item-footer">
+                  <a class="content-link" href="{% url 'department' department_slug=department.slug %}">
+                    <span class="department-item-footer-text">View details</span>
+                    <i class="bi bi-arrow-right department-item-arrow"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <div id="noDepartmentsMsg" class="empty empty-state empty-state-hidden">
+          <i class="bi bi-folder2-open empty-state-icon" aria-hidden="true"></i>
+          <span>No departments match your search.</span>
+        </div>
+
+        {% if is_paginated %}
+          <div class="pagination">
+        <span class="step-links">
+          {% if page_obj.has_previous %}
+            <a href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="pagination-link">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+               class="pagination-link">previous</a>
+          {% endif %}
+
+          <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+          </span>
+
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+               class="pagination-link">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+               class="pagination-link">last &raquo;</a>
+          {% endif %}
+        </span>
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="empty empty-state">
+          <i class="bi bi-folder2-open empty-state-icon" aria-hidden="true"></i>
+          <span>No departments found.</span>
+        </div>
+      {% endif %}
     </div>
   </div>
 
-  <div class="section-wrapper">
-    <h2 class="section-title">Your Departments</h2>
-    {% if departments %}
-      <div class="department-search-wrapper">
-        <input type="text" id="departmentSearchInput" class="department-search-input" autocomplete="off" placeholder="Search departments...">
-        <i class="bi bi-search department-search-icon"></i>
-      </div>
-      <div class="department-list" id="departmentList">
-        {% for department in departments %}
-          <a href="{% url 'department' department_slug=department.slug %}" class="department-item" data-name="{{ department.name|lower }}" data-description="{{ department.description|lower|default:'' }}">
-            <div class="department-item-content">
-              <div class="department-item-header">
-                <div class="department-item-icon">
-                  <i class="bi bi-building"></i>
-                </div>
-              </div>
-              <h3 class="department-item-name">{{ department.name }}</h3>
-              {% if department.description %}
-                <p class="department-item-description">{{ department.description }}</p>
-              {% else %}
-                <p class="department-item-description department-item-description-empty">No description available</p>
-              {% endif %}
-              <div class="department-item-footer">
-                <span class="department-item-footer-text">View details</span>
-                <i class="bi bi-arrow-right department-item-arrow"></i>
-              </div>
-            </div>
-          </a>
-        {% endfor %}
-      </div>
-      <div id="noDepartmentsMsg" class="empty empty-state empty-state-hidden">No departments match your search.</div>
-    {% else %}
-      <div class="empty empty-state">No departments found.</div>
-    {% endif %}
-  </div>
 
-  <!-- Future section for invites will go here -->
-</div>
-
-<script>
-  const searchInput = document.getElementById('departmentSearchInput');
-  const departmentList = document.getElementById('departmentList');
-  const departmentItems = document.querySelectorAll('.department-item');
-  const noDepartmentsMsg = document.getElementById('noDepartmentsMsg');
-
-  if (searchInput) {
-    searchInput.addEventListener('input', function() {
-      const query = this.value.toLowerCase().trim();
-      let hasVisibleItems = false;
-
-      departmentItems.forEach(item => {
-        const name = item.getAttribute('data-name') || '';
-        const description = item.getAttribute('data-description') || '';
-        
-        if (query.length === 0 || name.includes(query) || description.includes(query)) {
-          item.classList.remove('department-item-hidden');
-          hasVisibleItems = true;
-        } else {
-          item.classList.add('department-item-hidden');
-        }
-      });
-
-      if (departmentList) {
-        if (hasVisibleItems) {
-          departmentList.classList.remove('department-list-hidden');
-        } else {
-          departmentList.classList.add('department-list-hidden');
-        }
-      }
-      
-      if (noDepartmentsMsg) {
-        if (query.length > 0 && !hasVisibleItems) {
-          noDepartmentsMsg.classList.remove('empty-state-hidden');
-        } else {
-          noDepartmentsMsg.classList.add('empty-state-hidden');
-        }
-      }
-    });
-  }
-</script>
 {% endblock %}
-

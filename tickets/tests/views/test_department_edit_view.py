@@ -40,8 +40,23 @@ class EditDepartmentViewTests(TestCase):
         self.assertEqual(self.department.name, 'Updated Name')
         self.assertEqual(response.status_code, 302)
 
+    def test_edit_permission_denied(self):
+        """Test that non-creators/non-superusers are denied access."""
+        other_user = User.objects.create_user(username="other", password="pw", is_staff=True)
+        self.client.force_login(other_user)
+        
+        # Test GET
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+        
+        # Test POST
+        response = self.client.post(self.url, {'name': 'Hack'})
+        self.assertEqual(response.status_code, 403)
+
     def test_base_form_view_not_implemented(self):
         """Test that the base DepartmentFormView raises NotImplementedError."""
         view = DepartmentFormView()
         with self.assertRaises(NotImplementedError):
             view.render_form(None, None)
+
+            

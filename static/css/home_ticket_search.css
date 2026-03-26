@@ -1,0 +1,227 @@
+.home-search-card {
+    margin: 0 0 22px;
+    border-radius: 24px;
+    border: none;
+    box-shadow: none;
+    background: linear-gradient(180deg, #fcfdff, #f8fbff);
+    padding: 18px;
+}
+
+.search-collapse-row {
+    padding-top: 8px;
+    padding-bottom: 16px;
+}
+
+.home-search-query {
+    margin-bottom: 24px;
+}
+
+.search-collapse-toggle {
+    width: 100%;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2px 12px;
+    border: none;
+    border-bottom: 1px solid rgba(17, 24, 39, 0.18);
+    background: transparent;
+    cursor: pointer;
+}
+
+.search-collapse-text {
+    color: #64748b;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.search-collapse-icon {
+    position: relative;
+    width: 1.05rem;
+    height: 1.05rem;
+    color: #111827;
+}
+
+.search-collapse-icon::before,
+.search-collapse-icon::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.search-collapse-icon::after {
+    width: 2px;
+    height: 100%;
+}
+
+.home-search-card.is-collapsed .search-collapse-icon::after {
+    opacity: 1;
+}
+
+.home-search-card:not(.is-collapsed) .search-collapse-icon::after {
+    opacity: 0;
+}
+
+.search-collapse-toggle:hover {
+    border-color: rgba(148, 163, 184, 0.95);
+}
+
+.home-search-actions {
+    margin-top: 1.25rem;
+}
+
+.search-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.search-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.search-field-wide {
+    grid-column: span 3;
+}
+
+.search-label {
+    color: #64748b;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.search-input,
+.search-select {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 16px;
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    background: #fff;
+    padding: 0.85rem 1rem;
+    font-size: 0.95rem;
+    color: #111827;
+    box-sizing: border-box;
+}
+
+.search-select-shell,
+.search-date-shell {
+    position: relative;
+}
+
+.search-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 2.8rem;
+    cursor: pointer;
+}
+
+.search-date-input {
+    padding-right: 2.8rem;
+}
+
+.search-input:focus,
+.search-select:focus {
+    outline: none;
+    border-color: rgba(37, 99, 235, 0.55);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.search-select-shell::after,
+.search-date-shell::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    width: 0.7rem;
+    height: 0.7rem;
+    pointer-events: none;
+    opacity: 0.75;
+}
+
+.search-select-shell::after {
+    border-left: 2px solid #64748b;
+    border-bottom: 2px solid #64748b;
+    transform: translateY(-65%) rotate(-45deg);
+}
+
+.search-date-shell::after {
+    border: 2px solid #64748b;
+    border-radius: 3px;
+    box-sizing: border-box;
+    transform: translateY(-50%);
+}
+
+.search-date-shell::before {
+    content: "";
+    position: absolute;
+    top: calc(50% - 8px);
+    right: 1.22rem;
+    width: 0.7rem;
+    height: 2px;
+    background: #64748b;
+    pointer-events: none;
+    box-shadow: 0 5px 0 #64748b;
+    z-index: 1;
+}
+
+.search-date-input::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.search-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.search-submit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid #111827;
+    background: linear-gradient(135deg, #111827, #1f2937);
+    color: #fff;
+    font-size: 0.92rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.search-submit-btn:hover {
+    filter: brightness(0.97);
+}
+
+.search-reset-link {
+    color: #111827;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.search-results-count {
+    margin-left: auto;
+    color: #64748b;
+    font-weight: 700;
+}

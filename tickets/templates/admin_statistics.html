@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Statistics{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/statistics.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tickets-wrap tickets-centered">
+    <div class="tickets-header tickets-header-centered">
+        <div>
+            <h1 class="tickets-title">Admin Statistics</h1>
+            <p class="tickets-subtitle">Overview of system tickets and users.</p>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stats-col">
+            <h4>Ticket Overview</h4>
+            <ul class="stats-list">
+                <li class="stats-list-item">
+                    <span>Total Tickets</span>
+                    <span class="stats-badge">{{ ticket_stats.total }}</span>
+                </li>
+                <li class="stats-list-item">
+                    <span>Open</span>
+                    <span class="stats-badge">{{ ticket_stats.open }}</span>
+                </li>
+                <li class="stats-list-item">
+                    <span>Closed</span>
+                    <span class="stats-badge success">{{ ticket_stats.closed }}</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="stats-col">
+            <h4>Top Creators</h4>
+            <ul class="stats-list">
+                {% for c in user_stats.top_creators %}
+                <li class="stats-list-item">
+                    <span><a class="content-link" href="{% url 'profile' c.profile_slug %}">{{ c.username }}</a></span>
+                    <span class="stats-badge">{{ c.ticket_count }} created</span>
+                </li>
+                {% empty %}
+                <li class="stats-list-item">No creators yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="stats-col">
+            <h4>Top Responders (Staff)</h4>
+            <ul class="stats-list">
+                {% for r in user_stats.top_responders %}
+                <li class="stats-list-item">
+                    <span><a class="content-link" href="{% url 'profile' r.profile_slug %}">{{ r.username }}</a></span>
+                    <span class="stats-badge">{{ r.msgs }} msgs</span>
+                </li>
+                {% empty %}
+                <li class="stats-list-item">No responses yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

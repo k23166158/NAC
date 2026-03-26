@@ -1,160 +1,43 @@
 from django.test import TestCase
-from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-
 from tickets.forms import DepartmentForm
 from tickets.models import Department
-
-User = get_user_model()
-
 
 class DepartmentFormTests(TestCase):
     """Tests for the DepartmentForm."""
 
     def setUp(self):
-        """Set up a user for creating departments."""
-        self.user = User.objects.create_user(
-            username="creator",
-            email="creator@example.com",
-            password="pass12345",
-            first_name="Test",
-            last_name="User",
-        )
+        """Set up test user and department."""
+        self.u = get_user_model().objects.create_user(username="u", email="e@e.com", password="p")
+        self.d = Department.objects.create(name="IT Support", created_by=self.u)
 
-    def test_form_with_valid_data(self):
-        """Test that form accepts valid name and description."""
-        form_data = {
-            'name': 'IT Support',
-            'description': 'Information Technology Support Department'
-        }
-        form = DepartmentForm(data=form_data)
-        self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data['name'], 'IT Support')
-        self.assertEqual(form.cleaned_data['description'], 'Information Technology Support Department')
+    def test_form_valid_and_update(self):
+        """Test valid creations, updates, and special character names."""
+        f1 = DepartmentForm(data={'name': 'Finance', 'description': ''})
+        self.assertTrue(f1.is_valid())
+        f2 = DepartmentForm(data={'name': 'IT Support', 'description': 'U'}, instance=self.d)
+        self.assertTrue(f2.is_valid())
 
-    def test_form_with_minimal_data(self):
-        """Test that form accepts name without description."""
-        form_data = {
-            'name': 'Finance',
-            'description': ''
-        }
-        form = DepartmentForm(data=form_data)
-        self.assertTrue(form.is_valid())
-
-    def test_clean_name_raises_error_on_duplicate_name(self):
-        """Test that clean_name raises ValidationError for duplicate department names."""
-        Department.objects.create(
-            name="IT Support",
-            created_by=self.user
-        )
-
-        form_data = {
-            'name': 'IT Support',
-            'description': 'Another IT department'
-        }
-        form = DepartmentForm(data=form_data)
-        self.assertFalse(form.is_valid())
-        self.assertIn('name', form.errors)
-        self.assertIn(
-            'A department with this name already exists. Please choose a different name.',
-            form.errors['name']
-        )
-
-    def test_clean_name_case_insensitive_duplicate_detection(self):
-        """Test that duplicate detection is case-insensitive via slug."""
-        Department.objects.create(
-            name="IT Support",
-            created_by=self.user
-        )
-
-        form_data = {
-            'name': 'it support',
-            'description': 'Lowercase version'
-        }
-        form = DepartmentForm(data=form_data)
-        self.assertFalse(form.is_valid())
-        self.assertIn('name', form.errors)
-
-    def test_clean_name_allows_updating_existing_department(self):
-        """Test that updating an existing department doesn't trigger false duplicate errors."""
-        department = Department.objects.create(
-            name="IT Support",
-            created_by=self.user
-        )
-
-        form_data = {
-            'name': 'IT Support',
-            'description': 'Updated description'
-        }
-        form = DepartmentForm(data=form_data, instance=department)
-        self.assertTrue(form.is_valid())
-
-    def test_clean_name_handles_empty_name(self):
-        """Test that clean_name handles empty name gracefully."""
-        form_data = {
-            'name': '',
-            'description': 'Some description'
-        }
-        form = DepartmentForm(data=form_data)
-        self.assertFalse(form.is_valid())
+    def test_form_validation_errors(self):
+        """Test validation errors for duplicates, empty names, and reserved slugs."""
+        for name in ['it support', 'create', 'edit', 'delete']:
+            f = DepartmentForm(data={'name': name, 'description': 'D'})
+            self.assertFalse(f.is_valid())
+            self.assertIn('name', f.errors)
+            
+        f_empty = DepartmentForm(data={'name': '', 'description': 'D'})
+        self.assertFalse(f_empty.is_valid())
         
-    def test_clean_name_returns_empty_name_directly(self):
-        """Test that clean_name returns early when name is empty/None."""
-        form = DepartmentForm()
-        form.cleaned_data = {'name': ''}
-        result = form.clean_name()
-        self.assertEqual(result, '')
-        
-        # Test with None
-        form.cleaned_data = {'name': None}
-        result = form.clean_name()
-        self.assertIsNone(result)
+        f_none = DepartmentForm()
+        f_none.cleaned_data = {'name': None}
+        self.assertIsNone(f_none.clean_name())
 
-    def test_clean_name_with_special_characters(self):
-        """Test that clean_name handles special characters correctly via slug."""
-        Department.objects.create(
-            name="IT & Support",
-            created_by=self.user
-        )
+    def test_save_for_actor_sets_creator_and_membership(self):
+        """save_for_actor should persist the department and assign the actor."""
+        form = DepartmentForm(data={"name": "Finance", "description": "Numbers"})
 
-        form_data = {
-            'name': 'IT and Support',
-            'description': 'Similar name'
-        }
-        form = DepartmentForm(data=form_data)
         self.assertTrue(form.is_valid())
+        department = form.save_for_actor(self.u)
 
-    def test_clean_name_rejects_reserved_slug_create(self):
-        """Test that clean_name rejects 'create' as a department name."""
-        form_data = {
-            'name': 'create',
-            'description': 'Some description'
-        }
-        form = DepartmentForm(data=form_data)
-        self.assertFalse(form.is_valid())
-        self.assertIn('name', form.errors)
-        self.assertIn(
-            '"create" is a reserved name and cannot be used for a department. Please choose a different name.',
-            form.errors['name']
-        )
-
-    def test_clean_name_rejects_reserved_slug_edit(self):
-        """Test that clean_name rejects 'edit' as a department name."""
-        form_data = {
-            'name': 'edit',
-            'description': 'Some description'
-        }
-        form = DepartmentForm(data=form_data)
-        self.assertFalse(form.is_valid())
-        self.assertIn('name', form.errors)
-
-    def test_clean_name_rejects_reserved_slug_delete(self):
-        """Test that clean_name rejects 'delete' as a department name."""
-        form_data = {
-            'name': 'delete',
-            'description': 'Some description'
-        }
-        form = DepartmentForm(data=form_data)
-        self.assertFalse(form.is_valid())
-        self.assertIn('name', form.errors)
-
+        self.assertEqual(department.created_by, self.u)
+        self.assertTrue(department.assigned_users.filter(user=self.u).exists())

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="signup-wrapper profile-edit-simple">
+  <div class="signup-card profile-edit-simple-card">
+
+    <h1 class="signup-title profile-edit-simple-title">Edit Profile</h1>
+    <p class="signup-subtitle profile-edit-simple-subtitle">Update your personal details</p>
+
+    {% if error %}
+      <p class="login-error-msg profile-edit-simple-error">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="profile-edit-simple-form">
+      {% csrf_token %}
+
+      <div class="profile-upload profile-edit-simple-upload">
+        <div class="avatar profile-edit-simple-avatar">
+          <div
+            id="avatarInitials"
+            class="profile-initials {% if user.profile_picture %}hidden{% endif %}"
+          >
+            {{ user.first_name|default:user.username|first }}{{ user.last_name|default:""|first }}
+          </div>
+
+          <img
+            id="avatarImg"
+            class="{% if not user.profile_picture %}hidden{% endif %}"
+            {% if user.profile_picture %}
+              src="{{ user.profile_picture.url }}"
+            {% endif %}
+            alt="{{ user.username }}"
+          >
+        </div>
+
+        <div class="profile-upload-right profile-edit-simple-upload-right">
+          <p class="profile-upload-title">Profile picture</p>
+          <p class="profile-upload-hint">Choose an image to use as your avatar.</p>
+          <input id="profilePicInput" type="file" name="profile_picture" accept="image/*" class="profile-edit-file-control">
+          <p id="profilePicStatus" class="profile-edit-file-name">No file chosen</p>
+        </div>
+      </div>
+
+      <p>
+        <label for="first_name">First name</label>
+        <input class="profile-edit-input" type="text" name="first_name" id="first_name" value="{{ user.first_name }}" required>
+      </p>
+
+      <p>
+        <label for="last_name">Last name</label>
+        <input class="profile-edit-input" type="text" name="last_name" id="last_name" value="{{ user.last_name }}" required>
+      </p>
+
+      <p>
+        <label for="username">Username</label>
+        <input class="profile-edit-input" type="text" name="username" id="username" value="{{ user.username }}" required>
+      </p>
+
+      <p>
+        <label for="email">Email</label>
+        <input class="profile-edit-input" type="email" name="email" id="email" value="{{ user.email }}" required>
+      </p>
+
+      <p>
+        <label for="password">New password (optional)</label>
+        <input class="profile-edit-input" type="password" name="password" id="password" placeholder="Leave blank to keep current password">
+      </p>
+
+      <button type="submit" class="profile-edit-submit profile-edit-submit-full">Save changes</button>
+
+      <div class="small-link profile-edit-simple-cancel">
+        <a href="{% url 'profile' request.user.profile_slug %}" class="profile-edit-cancel-link">Cancel</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const input = document.getElementById("profilePicInput");
+  const img = document.getElementById("avatarImg");
+  const initials = document.getElementById("avatarInitials");
+  const fileStatus = document.getElementById("profilePicStatus");
+
+  if (!input || !img || !initials) return;
+
+  input.addEventListener("change", function () {
+    const file = input.files && input.files[0];
+    if (fileStatus) {
+      fileStatus.textContent = file ? file.name : "No file chosen";
+    }
+    if (!file || !file.type.startsWith("image/")) return;
+
+    img.src = URL.createObjectURL(file);
+    img.classList.remove("hidden");
+    initials.classList.add("hidden");
+  });
+});
+</script>
+{% endblock %}

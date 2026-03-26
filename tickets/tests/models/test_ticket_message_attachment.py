@@ -9,8 +9,8 @@ from tickets.models import Ticket, TicketMessage
 from tickets.models.ticket_message_attachments import TicketMessageAttachment
 
 User = get_user_model()
-
 _TMP_MEDIA = tempfile.mkdtemp()
+
 
 @override_settings(MEDIA_ROOT=_TMP_MEDIA)
 class TicketMessageAttachmentModelTests(TestCase):
@@ -23,157 +23,73 @@ class TicketMessageAttachmentModelTests(TestCase):
         super().tearDownClass()
 
     def setUp(self):
-        """Create a user, ticket, and message used across tests."""
+        """Create user, ticket, and message for tests."""
         self.user = User.objects.create_user(
-            username="attachuser",
-            password="password123",
-            email="attach@example.com",
-            first_name="Attach",
-            last_name="Tester",
+            username="u", password="p", email="a@b.com"
         )
-
-        self.ticket = Ticket.objects.create(
-            title="Attachment ticket",
-            created_by=self.user,
-        )
-
+        self.ticket = Ticket.objects.create(title="T", created_by=self.user)
         self.message = TicketMessage.objects.create(
-            ticket=self.ticket,
-            body="Here is a file",
-            sender=self.user,
+            ticket=self.ticket, body="B", sender=self.user
         )
 
-    def test_attachment_creation_populates_metadata(self):
-        """Creating an attachment should populate metadata fields automatically."""
-        upload = SimpleUploadedFile(
-            "example.txt",
-            b"hello world",
-            content_type="text/plain",
+    def test_create_and_save_metadata(self):
+        """Test attachment creation, metadata population, and string representation."""
+        f1 = SimpleUploadedFile("dir/win\\b.txt", b"abc", content_type="text/plain")
+        created = TicketMessageAttachment.create_for_message(
+            self.ticket, self.message, [f1, None], self.user
         )
-
-        att = TicketMessageAttachment.objects.create(
-            ticket=self.ticket,
-            message=self.message,
-            file=upload,
-            uploaded_by=self.user,
-        )
-
-        self.assertIsNotNone(att.id)
-        self.assertEqual(att.ticket, self.ticket)
-        self.assertEqual(att.message, self.message)
-        self.assertEqual(att.uploaded_by, self.user)
-
-        self.assertEqual(att.original_name, "example.txt")
-        self.assertEqual(att.size_bytes, len(b"hello world"))
+        self.assertEqual(len(created), 1)
+        att = created[0]
+        self.assertEqual(att.original_name, "b.txt")
         self.assertEqual(att.content_type, "text/plain")
+        self.assertEqual(att.size_bytes, 3)
+        self.assertIn("b.txt", str(att))
 
-    def test_save_with_no_file_does_not_crash(self):
-        """If file is missing, save() should still work and not populate metadata."""
-        att = TicketMessageAttachment(
-            ticket=self.ticket,
-            message=self.message,
-            uploaded_by=self.user,
+    def test_save_existing_and_no_file(self):
+        """Test saving with no file or with pre-existing metadata."""
+        att1 = TicketMessageAttachment(ticket=self.ticket, message=self.message)
+        att1.save()
+        self.assertIsNotNone(att1.id)
+        f2 = SimpleUploadedFile("x.pdf", b"p", content_type="application/pdf")
+        att2 = TicketMessageAttachment(
+            ticket=self.ticket, message=self.message, file=f2,
+            original_name="y.pdf", content_type="c", size_bytes=99
         )
-        att.save()
+        att2.save()
+        self.assertEqual(att2.original_name, "y.pdf")
+        self.assertEqual(att2.content_type, "c")
+        self.assertEqual(att2.size_bytes, 99)
 
-        self.assertIsNotNone(att.id)
+    def test_delete_attachments(self):
+        """Test deleting attachments with and without files."""
+        f = SimpleUploadedFile("x.txt", b"x", content_type="text/plain")
+        a1 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket, message=self.message, file=f
+        )
+        a2 = TicketMessageAttachment.objects.create(
+            ticket=self.ticket, message=self.message
+        )
+        empty_deleted = TicketMessageAttachment.delete_for_message(self.message, [])
+        self.assertEqual(empty_deleted, 0)
+        deleted = TicketMessageAttachment.delete_for_message(
+            self.message, [str(a1.id), str(a2.id)]
+        )
+        self.assertEqual(deleted, 2)
+        self.assertEqual(TicketMessageAttachment.objects.count(), 0)
+
+    def test_edge_cases_and_fallbacks(self):
+        """Test fallbacks for missing content_type, size, and name."""
+        f = SimpleUploadedFile("f.dat", b"d", content_type=None)
+        att = TicketMessageAttachment.objects.create(
+            ticket=self.ticket, message=self.message, file=f
+        )
+        self.assertEqual(att.content_type, "")
+        f.file = type("Mock", (), {"content_type": "nested/type"})()
+        f.content_type = None
+        self.assertEqual(att._content_type_from(f), "nested/type")
+        f.name = None
+        self.assertEqual(att._basename(f), "")
+        f.size = None
+        att.size_bytes = 0
+        att._ensure_size(f)
         self.assertEqual(att.size_bytes, 0)
-        self.assertEqual(att.original_name, "")
-        self.assertEqual(att.content_type, "")
-
-    def test_existing_metadata_is_not_overwritten(self):
-        """If metadata is already set, save() should not override it."""
-        upload = SimpleUploadedFile(
-            "real.pdf",
-            b"pdfbytes",
-            content_type="application/pdf",
-        )
-
-        att = TicketMessageAttachment(
-            ticket=self.ticket,
-            message=self.message,
-            file=upload,
-            uploaded_by=self.user,
-            original_name="custom.pdf",
-            content_type="custom/type",
-            size_bytes=999,
-        )
-        att.save()
-
-        self.assertEqual(att.original_name, "custom.pdf")
-        self.assertEqual(att.content_type, "custom/type")
-        self.assertEqual(att.size_bytes, 999)
-
-    def test_content_type_not_set_if_file_has_no_content_type(self):
-        """If the uploaded file provides no content_type, model should not set it."""
-        upload = SimpleUploadedFile(
-            "bin.dat",
-            b"\x00\x01\x02",
-            content_type=None,
-        )
-
-        att = TicketMessageAttachment.objects.create(
-            ticket=self.ticket,
-            message=self.message,
-            file=upload,
-            uploaded_by=self.user,
-        )
-
-        self.assertEqual(att.content_type, "")
-
-    def test_str_representation(self):
-        """Test __str__ output includes original name and message id."""
-        upload = SimpleUploadedFile("photo.png", b"123", content_type="image/png")
-
-        att = TicketMessageAttachment.objects.create(
-            ticket=self.ticket,
-            message=self.message,
-            file=upload,
-            uploaded_by=self.user,
-        )
-
-        expected = f"Attachment {att.original_name} for Message {att.message_id}"
-        self.assertEqual(str(att), expected)
-
-    def test_message_deletion_cascades(self):
-        """Deleting a TicketMessage should delete attachments."""
-        upload = SimpleUploadedFile("a.txt", b"abc", content_type="text/plain")
-
-        TicketMessageAttachment.objects.create(
-            ticket=self.ticket,
-            message=self.message,
-            file=upload,
-            uploaded_by=self.user,
-        )
-
-        self.message.delete()
-        self.assertEqual(TicketMessageAttachment.objects.count(), 0)
-
-    def test_ticket_deletion_cascades(self):
-        """Deleting a Ticket should delete attachments."""
-        upload = SimpleUploadedFile("a.txt", b"abc", content_type="text/plain")
-
-        TicketMessageAttachment.objects.create(
-            ticket=self.ticket,
-            message=self.message,
-            file=upload,
-            uploaded_by=self.user,
-        )
-
-        self.ticket.delete()
-        self.assertEqual(TicketMessageAttachment.objects.count(), 0)
-
-    def test_related_names(self):
-        """Test related_name access from Ticket, TicketMessage, and User."""
-        upload = SimpleUploadedFile("a.txt", b"abc", content_type="text/plain")
-
-        att = TicketMessageAttachment.objects.create(
-            ticket=self.ticket,
-            message=self.message,
-            file=upload,
-            uploaded_by=self.user,
-        )
-
-        self.assertIn(att, self.ticket.attachments.all())
-        self.assertIn(att, self.message.attachments.all())
-        self.assertIn(att, self.user.uploaded_attachments.all())

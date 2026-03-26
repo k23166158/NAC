@@ -1,6 +1,11 @@
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.http import Http404
 from tickets.models import Ticket, TicketMessage
+from tickets.models.notification import Notification
+from tickets.models.ticket_participant import TicketParticipant
 
 User = get_user_model()
 
@@ -66,3 +71,80 @@ class TicketMessageModelTests(TestCase):
         self.assertTrue(message.edited)
         self.assertEqual(message.body, "Updated")
         self.assertGreaterEqual(message.edited_at, original_edited_at)
+
+    def test_create_system_message(self):
+        """create_system_message should write sender-less system messages."""
+        msg = TicketMessage.create_system_message(self.ticket, "System note")
+        self.assertEqual(msg.ticket, self.ticket)
+        self.assertIsNone(msg.sender)
+        self.assertEqual(msg.body, "System note")
+
+    def test_add_user_message_success_and_blank(self):
+        """add_user_message should create for non-blank body and skip blank."""
+        created = TicketMessage.add_user_message(self.ticket, self.user, "  hello ")
+        self.assertIsNotNone(created)
+        self.assertEqual(created.body, "hello")
+        self.assertIsNone(TicketMessage.add_user_message(self.ticket, self.user, "   "))
+
+    def test_update_user_message_success_and_empty_body(self):
+        """update_user_message should update body/edited and no-op on empty body."""
+        msg = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="old")
+        updated = TicketMessage.update_user_message(self.ticket, msg.id, self.user, "new")
+        updated.refresh_from_db()
+        self.assertEqual(updated.body, "new")
+        self.assertTrue(updated.edited)
+
+        no_change = TicketMessage.update_user_message(self.ticket, msg.id, self.user, "")
+        self.assertIsNone(no_change)
+
+    def test_hide_user_message_and_non_owner_raises(self):
+        """hide_user_message should hide own message and reject non-owner."""
+        msg = TicketMessage.objects.create(ticket=self.ticket, sender=self.user, body="hide me")
+        hidden = TicketMessage.hide_user_message(self.ticket, msg.id, self.user)
+        hidden.refresh_from_db()
+        self.assertTrue(hidden.hidden)
+
+        other = User.objects.create_user(
+            username="othermsg",
+            password="password123",
+            email="othermsg@example.com",
+            first_name="Other",
+            last_name="User",
+        )
+        with self.assertRaises(Http404):
+            TicketMessage.hide_user_message(self.ticket, msg.id, other)
+
+    @patch("tickets.helpers.notifications.notify_ticket_participants")
+    def test_add_user_message_calls_notify_ticket_participants(self, mock_notify):
+        """add_user_message should call notify_ticket_participants with NEW_MESSAGE type."""
+        TicketMessage.add_user_message(self.ticket, self.user, "Hello there")
+        mock_notify.assert_called_once_with(
+            self.ticket,
+            actor=self.user,
+            notification_type=Notification.NotificationType.NEW_MESSAGE,
+        )
+
+    @patch("tickets.helpers.notifications.notify_ticket_participants")
+    def test_add_user_message_blank_does_not_notify(self, mock_notify):
+        """add_user_message should not notify when body is blank."""
+        result = TicketMessage.add_user_message(self.ticket, self.user, "   ")
+        self.assertIsNone(result)
+        mock_notify.assert_not_called()
+
+    @patch("tickets.helpers.notifications.send_email")
+    def test_add_user_message_creates_new_message_notification(self, mock_send):
+        """add_user_message should create a NEW_MESSAGE notification for participants."""
+        other_user = User.objects.create_user(
+            username="participant",
+            password="password123",
+            email="participant@example.com",
+            first_name="Part",
+            last_name="Icipant",
+            is_staff=True,
+        )
+        TicketParticipant.objects.create(ticket=self.ticket, user=other_user)
+        TicketMessage.add_user_message(self.ticket, self.user, "New msg")
+        notifications = Notification.objects.filter(
+            notification_type=Notification.NotificationType.NEW_MESSAGE,
+        )
+        self.assertTrue(notifications.exists())

@@ -1,0 +1,98 @@
+.invitation-section { 
+  margin-top: 32px;
+  margin-bottom: 10px;
+}
+
+.invitation-list { list-style: none; margin: 0; padding: 0; margin-top: 16px; }
+
+.invitation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.invitation-item:last-child { margin-bottom: 0; }
+
+.invitation-empty {
+  margin: 0;
+  margin-top: 16px;
+  padding: 20px;
+  text-align: center;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.invitation-empty-title { margin: 0 0 6px 0; color: #6b7280; }
+
+.invitation-empty-hint { margin: 0; font-size: 0.875rem; color: #9ca3af; }
+
+.invitation-info { display: flex; flex-direction: column; gap: 2px; }
+
+.invitation-department { font-weight: 600; color: #111827; }
+
+.invitation-sender { font-size: 0.875rem; color: #6b7280; }
+
+.invitation-timestamp { font-size: 0.8125rem; color: #9ca3af; margin-top: 2px; }
+
+.invitation-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.invitation-form { margin: 0; }
+
+.btn-invitation {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-accept { background: #0969da; color: #fff; }
+
+.btn-accept:hover { background: #0860ca; }
+
+.btn-decline { background: transparent; color: #6b7280; border: 1px solid #e5e7eb; }
+
+.btn-decline:hover {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.invitation-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  margin-bottom: 8px;
+  padding: 12px 16px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+}
+
+.invitation-summary-text { font-size: 0.9375rem; color: #0c4a6e; }
+
+.invitation-summary-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #0969da;
+  text-decoration: none;
+}
+
+.invitation-summary-link:hover { text-decoration: underline; }
+
+
+@media (max-width: 768px) {
+  .invitation-item { flex-wrap: wrap; }
+  .invitation-actions { width: 100%; justify-content: flex-end; }
+}

@@ -1,0 +1,62 @@
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from tickets.models.notification import Notification
+
+def create_notification(user, actor, notification_type, link=None, target_object=None):
+    """Factory function to create, render, and save a notification."""
+
+    context = {'user': user, 'actor': actor, 'target': target_object, 'link': link}
+    type_slug = notification_type.lower()
+    short_template = f"notifications/{type_slug}_short.txt"
+    long_template = f"notifications/{type_slug}_long.txt"
+
+    short_message = render_to_string(short_template, context).strip()
+    long_message = render_to_string(long_template, context).strip()
+
+    send_email(user, short_message, long_message)
+    return Notification.objects.create(
+        user=user, actor=actor, target_object=target_object,
+        notification_type=notification_type, short_message=short_message
+    )
+
+def send_email(user, short_message, long_message):
+    """Sends an email using Django's built-in mail utility."""
+    send_mail(
+        subject=short_message,
+        message=long_message,
+        from_email="noreply@example.com",
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+def get_ticket_participants(ticket, exclude_user=None):
+    """Return a deduplicated set of users involved in a ticket."""
+    participants = {ticket.created_by}
+    participants.update(ticket.get_ticket_staff())
+    participants.update(ticket.get_department_staff())
+    if exclude_user:
+        participants.discard(exclude_user)
+    return participants
+
+def notify_ticket_participants(ticket, actor, notification_type):
+    """Send notifications to all ticket participants except the actor."""
+    link = f"/tickets/{ticket.uuid}/"
+    for user in get_ticket_participants(ticket, exclude_user=actor):
+        create_notification(user, actor, notification_type, link=link, target_object=ticket)
+
+def notify_overdue_ticket(ticket, actor):
+    """Notify staff participants that a ticket is overdue."""
+    link = f"/tickets/{ticket.uuid}/"
+    
+    staff_to_notify = set(ticket.get_ticket_staff())
+    staff_to_notify.update(ticket.get_department_staff())
+    staff_to_notify.discard(ticket.created_by)
+    
+    for user in staff_to_notify:
+        create_notification(
+            user=user, 
+            actor=actor, 
+            notification_type='TICKET_OVERDUE',
+            link=link, 
+            target_object=ticket
+        )

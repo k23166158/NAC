@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Profile{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+  <div class="profile-card">
+    <div class="profile-top">
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar">
+          {% if profile_user.profile_picture %}
+            <img src="{{ profile_user.profile_picture.url }}" alt="{{ profile_user.username }}">
+          {% else %}
+            <div class="profile-initials">
+              {{ profile_user.first_name|default:profile_user.username|first }}{{ profile_user.last_name|default:""|first }}
+            </div>
+          {% endif %}
+        </div>
+        <div class="profile-avatar-ring"></div>
+      </div>
+
+      <div class="profile-headings">
+        <div class="profile-kicker">
+          <span class="profile-pill">{% if profile_user.is_staff %}Staff member{% else %}Team member{% endif %}</span>
+          {% if is_own_profile %}
+            <span class="profile-pill profile-pill-soft">Your profile</span>
+          {% endif %}
+        </div>
+        <h1 class="profile-name">{{ profile_user.first_name }} {{ profile_user.last_name }}</h1>
+        <div class="profile-username">@{{ profile_user.username }}</div>
+        {% if profile_user.bio %}
+          <p class="profile-bio-preview">{{ profile_user.bio }}</p>
+        {% endif %}
+
+        <div class="profile-actions">
+          {% if is_own_profile %}
+            <a href="{% url 'profile_edit' %}" class="profile-edit-btn">Edit Profile</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="profile-highlight">
+        <div class="profile-highlight-label">Departments</div>
+        <div class="profile-highlight-value">{{ department_count }}</div>
+        <div class="profile-highlight-copy">Connected across teams and workflows.</div>
+      </div>
+    </div>
+
+    <div class="profile-details">
+      <div class="profile-field">
+        <div class="profile-label">First name</div>
+        <div class="profile-value">{{ profile_user.first_name }}</div>
+      </div>
+
+      <div class="profile-field">
+        <div class="profile-label">Last name</div>
+        <div class="profile-value">{{ profile_user.last_name }}</div>
+      </div>
+
+      <div class="profile-field">
+        <div class="profile-label">Username</div>
+        <div class="profile-value">{{ profile_user.username }}</div>
+      </div>
+
+      <div class="profile-field">
+        <div class="profile-label">Email</div>
+        <div class="profile-value">{{ profile_user.email }}</div>
+      </div>
+
+      {% if profile_user.bio %}
+      <div class="profile-field profile-field-full">
+        <div class="profile-label">Bio</div>
+        <div class="profile-value">{{ profile_user.bio }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="profile-section-head">
+      <div>
+        <h2 class="profile-section-title">Activity snapshot</h2>
+        <p class="profile-section-copy">A quick look at work owned, assigned, and completed.</p>
+      </div>
+    </div>
+
+    <div class="profile-details profile-stats">
+      {% if profile_user.is_staff %}
+      <div class="profile-field profile-stat-card">
+        <div class="profile-label">Active tickets assigned</div>
+        <div class="profile-value profile-stat-value">{{ assigned_active_count }}</div>
+      </div>
+
+      <div class="profile-field profile-stat-card">
+        <div class="profile-label">Completed tickets (as assignee)</div>
+        <div class="profile-value profile-stat-value">{{ assigned_completed_count }}</div>
+      </div>
+      {% endif %}
+
+      <div class="profile-field profile-stat-card">
+        <div class="profile-label">Tickets created</div>
+        <div class="profile-value profile-stat-value">{{ created_total_count }}</div>
+      </div>
+
+      <div class="profile-field profile-stat-card">
+        <div class="profile-label">Tickets created &amp; closed</div>
+        <div class="profile-value profile-stat-value">{{ created_closed_count }}</div>
+      </div>
+
+      <div class="profile-field profile-field-full profile-department-card">
+        <div class="profile-label">Departments</div>
+        <div class="profile-value">
+          <div class="profile-department-count">{{ department_count }}</div>
+          {% if department_count %}
+            <details class="profile-dept-details">
+              <summary>View departments</summary>
+              <ul class="profile-dept-list">
+                {% for department in departments %}
+                  <li>
+                    <a class="content-link" href="{% url 'department' department.slug %}">
+                      {{ department.name }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </details>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

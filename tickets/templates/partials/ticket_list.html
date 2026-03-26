@@ -5,22 +5,27 @@
       id="ticket-{{ t.uuid }}"
       {% if request.GET.open|default:'' == t.uuid|stringformat:"s" %}open{% endif %}
     >
-      <summary class="ticket-bar {% if t.status == 'pending' %}ticket-bar-overdue{% endif %}">
+      <summary class="ticket-bar">
+        {% if t.unread_count > 0 %}
+          <span class="unread-badge">
+            {{ t.unread_count }}
+          </span>
+        {% endif %}
         <span class="chev" aria-hidden="true"></span>
 
         <div class="ticket-bar-main">
           <div class="ticket-bar-left">
             <div class="ticket-title-wrap">
               <span class="ticket-title">{{ t.title }}</span>
-              <span class="ticket-id">#{{ t.uuid }}</span>
+              <span class="ticket-id">Ticket #{{ t.display_reference }}</span>
             </div>
           </div>
 
           <div class="ticket-bar-right">
             {% if t.status == 'closed' %}
               <span class="pill status status-completed">Closed</span>
-            {% elif t.status == 'pending' %}
-              <span class="pill status status-overdue">Pending</span>
+            {% elif t.is_overdue %}
+              <span class="pill status status-overdue">Overdue</span>
             {% else %}
               <span class="pill status status-active">Open</span>
             {% endif %}
@@ -40,8 +45,10 @@
         <div class="ticket-expanded-top">
           <div class="meta-row">
             <span class="meta-item">
-              <span class="meta-ico">👤</span>
-              <span><strong>{{ t.created_by.first_name }} {{ t.created_by.last_name }}</strong></span>
+              <a class="content-link-flex" href="{% url 'profile' t.created_by.profile_slug %}">
+                {% include "partials/user_avatar.html" with avatar_user=t.created_by avatar_class="meta-avatar" avatar_placeholder_class="meta-avatar-placeholder" %}
+                <span><strong>{{ t.created_by.first_name }} {{ t.created_by.last_name }}</strong></span>
+              </a>
             </span>
 
             <span class="meta-dot">•</span>
@@ -66,20 +73,30 @@
 
         {% if t.last_message_at %}
           <div class="latest">
-            <div class="latest-head">
-              <div class="latest-from">
-                Latest from
-                <strong>
-                  {% if t.last_message_sender_id == request.user.id %}
-                    You
-                  {% else %}
-                    {{ t.last_sender_first }} {{ t.last_sender_last }}
-                  {% endif %}
-                </strong>
-                {% if t.last_sender_is_staff %}<span class="mini-tag">STAFF</span>{% endif %}
+            {% if t.last_message_sender_id %}
+              <div class="latest-head">
+                <div class="latest-from">
+                  Latest from
+                  <strong>
+                    {% if t.last_message_sender_id == request.user.id %}
+                      <a class="content-link" href="{% url 'profile' request.user.profile_slug %}">You</a>
+                    {% elif t.last_sender_slug %}
+                      <a class="content-link" href="{% url 'profile' t.last_sender_slug %}">
+                        {{ t.last_sender_first }} {{ t.last_sender_last }}
+                      </a>
+                    {% else %}
+                      {{ t.last_sender_first }} {{ t.last_sender_last }}
+                    {% endif %}
+                  </strong>
+                  {% if t.last_sender_is_staff %}<span class="mini-tag">STAFF</span>{% endif %}
+                </div>
+                <div class="latest-time">{{ t.last_message_at|date:"M j • H:i" }}</div>
               </div>
-              <div class="latest-time">{{ t.last_message_at|date:"M j • H:i" }}</div>
-            </div>
+            {% else %}
+              <div class="latest-head">
+                <div class="latest-time">{{ t.last_message_at|date:"M j • H:i" }}</div>
+              </div>
+            {% endif %}
             <div class="latest-body">{{ t.last_message_body }}</div>
           </div>
         {% else %}
@@ -87,7 +104,12 @@
         {% endif %}
 
         <div class="ticket-actions">
-          <a class="ticket-open-btn" href="{% url 'ticket_thread' t.uuid %}">Open full ticket</a>
+          <a
+            class="ticket-open-btn"
+            href="{% url 'ticket_thread' t.uuid %}?return_to={{ request.get_full_path|urlencode }}"
+          >
+            Open full ticket
+          </a>
         </div>
       </div>
     </details>

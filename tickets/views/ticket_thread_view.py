@@ -1,177 +1,107 @@
-from django.views.generic import DetailView
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from tickets.helpers.ticket_assignment import assign_staff_to_ticket
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
+from django.views import View
+
+from tickets.models import Ticket
+from tickets.views.ticket_thread_mixins import (
+    TicketThreadAssignmentMixin,
+    TicketThreadContextMixin,
+)
 
 
-from tickets.models.ticket_participant import TicketParticipant
-from ..models import Ticket, TicketMessage
+class TicketThreadView(TicketThreadContextMixin, TicketThreadAssignmentMixin, LoginRequiredMixin, View):
+    """Display and manage the thread of messages for a ticket."""
 
-User = get_user_model()
-
-class TicketThreadView(LoginRequiredMixin, DetailView):
-    """View to display the thread of messages of tickets."""
     model = Ticket
-    template_name = 'ticket_thread.html'
-    context_object_name = 'ticket'
-    slug_url_kwarg = 'uuid'
-    slug_field = 'uuid'
+    template_name = "ticket_thread.html"
 
-    def get_messages_queryset(self):
-        """Get the queryset for ticket messages."""
-        return TicketMessage.objects.filter(ticket=self.object).order_by("created_at")
+    def get(self, request, uuid):
+        """Render the ticket thread page."""
+        qs = Ticket._annotate_last_message_for_user(Ticket.objects.all(), request.user)
+        self.ticket = get_object_or_404(qs, uuid=uuid)
+        self.object = self.ticket
+        self.ticket.mark_read_for(request.user)
+        context = self.get_context_data()
+        context["permission"] = self.ticket.can_edit(request.user)
+        context["scope"] = request.GET.get("scope", "personal")
+        context["back_to_url"] = self._back_to_url(request)
+        context["back_to_label"] = self._back_to_label(context["back_to_url"])
+        return render(request, self.template_name, context)
 
-    def get_first_message(self, messages):
-        """Extract the first message."""
-        return messages.first()
-
-    def get_reply_messages(self, messages):
-        """Extract reply messages (excluding the first)."""
-        return messages[1:] if messages.count() > 1 else []
-
-    def get_last_user_message_id(self, messages):
-        """Get the ID of the last visible user message."""
-        last_user_message = messages.filter(sender=self.request.user, hidden=False).last()
-        return last_user_message.id if last_user_message else None
-    
-    def get_ticket_staff(self):
-        """Get the staff users assigned to the ticket."""
-        return [
-            p.user for p in self.object.participants.select_related("user")
-        ]
-
-    def get_available_staff(self, current_staff):
-        """Get staff users available to be added to the ticket."""
-        current_ids = [u.id for u in current_staff]
-        return User.objects.filter(is_staff=True).exclude(id__in=current_ids)
-
-
-    def get_context_data(self, **kwargs):
-        """Add ticket messages to the context."""
-        context = super().get_context_data(**kwargs)
-        messages = self.get_messages_queryset()
-        current_staff = self.get_ticket_staff()
-        context["staff"] = current_staff
-        context["available_staff"] = self.get_available_staff(current_staff)
-        context["first_message"] = self.get_first_message(messages)
-        context["messages"] = self.get_reply_messages(messages)
-        context["last_user_message_id"] = self.get_last_user_message_id(messages)
-        context["edit_message"] = self.get_edit_message()
-        return context
-    
-    def touch_ticket(self):
-        """Update the ticket's updated_at timestamp."""
-        Ticket.objects.filter(id=self.object.id).update(updated_at=timezone.now())
-
-    def get_edit_message(self):
-        """Return the message being edited, if any."""
-        message_id = self.request.POST.get("message_id")
-        if self.request.POST.get("action") == "edit" and message_id:
-            return get_object_or_404(
-                TicketMessage,
-                id=message_id,
-                ticket=self.object,
-                sender=self.request.user,
-                hidden=False,
-            )
-        return None
-
-    def handle_delete_action(self, request):
-        """Handle deleting a message by hiding it."""
-        message_id = request.POST.get("message_id")
-        message = get_object_or_404(
-            TicketMessage,
-            id=message_id,
-            ticket=self.object,
-            sender=request.user,  # security: only delete own messages
-        )
-        message.hidden = True
-        message.save()
-        self.touch_ticket()
-
-    def handle_update_action(self, request):
-        """Handle updating an existing message."""
-        message_id = request.POST.get("message_id")
-        message = get_object_or_404(
-            TicketMessage,
-            id=message_id,
-            ticket=self.object,
-            sender=request.user,
-            hidden=False,
-        )
-        body = request.POST.get("body")
-        if body:
-            message.body = body
-            message.edited = True
-            message.save()
-            self.touch_ticket()
-
-    def handle_add_action(self, request):
-        """Handle adding a new message."""
-        body = request.POST.get('body')
-        if body:
-            TicketMessage.objects.create(
-                ticket=self.object,
-                sender=request.user,
-                body=body
-            )
-            self.touch_ticket()
-
-    def _add_staff(self, user, added_by):
-        """Assign a staff member to the ticket."""
-        assign_staff_to_ticket(ticket=self.object, staff_user=user, added_by=added_by)
-
-    def _remove_staff(self, user):
-        """Remove a staff member from the ticket and log it."""
-        TicketParticipant.objects.filter(ticket=self.object, user=user).delete()
-        TicketMessage.objects.create(
-            ticket=self.object,
-            sender=None,
-            body=f"{user.get_full_name()} was removed from the ticket."
-        )
-
-    def handle_staff_change(self, request):
-        """Handle adding or removing a staff user from the ticket."""
-        user_id = request.POST.get("user_id")
-        action = request.POST.get("action")
-        if not user_id: return
-        user = get_object_or_404(User, id=user_id, is_staff=True)
-        handlers = {
-            "add": lambda: self._add_staff(user, request.user),
-            "remove": lambda: self._remove_staff(user),
-        }
-        handler = handlers.get(action)
-        if handler:
-            handler()
-
-    def dispatch_post_action(self, action, request):
-        """Dispatch POST action to the appropriate handler."""
-        handlers = {
-            "delete": lambda: self.handle_delete_action(request),
-            "update": lambda: self.handle_update_action(request),
-            "close_ticket": self.handle_close_ticket_action,
-            "edit": lambda: None,
-        }
-        handlers.get(action, lambda: self.handle_add_action(request))()
-
-    def post(self, request, *args, **kwargs):
+    def post(self, request, uuid):
         """Handle POST actions for the ticket thread."""
-        self.object = self.get_object()
+        qs = Ticket._annotate_last_message_for_user(Ticket.objects.all(), request.user)
+        self.ticket = get_object_or_404(qs, uuid=uuid)
+        self.object = self.ticket
+        self.request = request
+        if not self.ticket.can_edit(request.user):
+            return HttpResponseForbidden("You don't have permission to do this.")   
+         
         action = request.POST.get("action")
+        target_type = request.POST.get("target_type")
+        user_id = request.POST.get("user_id")
+        return self._handle_post_action(action, request, uuid, target_type, user_id)
+        
+    def _handle_post_action(self, action, request, uuid, target_type, user_id):
+        """Route POST actions to appropriate handlers."""
+        if action == "remind_staff":
+            self._handle_remind_staff(request)
+            return self.get(request, uuid)
 
-        if action in {"add", "remove"}:
-            self.handle_staff_change(request)
-            return self.get(request, *args, **kwargs)
+        is_assignment_action = target_type or user_id or action in {"add", "remove"}
+        
+        if is_assignment_action and not self.ticket.can_manage_assignments(request.user):
+            return HttpResponseForbidden("Assignment changes are not allowed for this ticket.")
 
+        if is_assignment_action:
+            return self._handle_add_remove(request, target_type)
+        
         self.dispatch_post_action(action, request)
-        return self.get(request, *args, **kwargs)
+        return self.get(request, uuid)
 
-    def handle_close_ticket_action(self):
-        """Close the ticket."""
-        if self.object.status != Ticket.Status.CLOSED:
-            self.object.status = Ticket.Status.CLOSED
-            self.object.closed_at = timezone.now()
-            self.object.save()
-            self.touch_ticket()
+    def _handle_remind_staff(self, request):
+        """Handle sending a reminder to staff for an overdue ticket."""
+        if not self.ticket.is_overdue:
+            messages.error(request, "This ticket is not currently overdue.")
+            return
+        
+        if self.ticket.send_reminder(actor=request.user):
+            messages.success(request, "A reminder has been sent to the assigned staff.")
+        else:
+            messages.error(request, "A reminder was already sent within the last 24 hours.")
+
+    def _handle_add_remove(self, request, target_type):
+        """Route add/remove actions to the correct assignment handler."""
+        if target_type:
+            self.handle_assignment_change(request)
+        else:
+            self.handle_staff_change(request)
+        return self.get(request, self.object.uuid)
+
+    def get_context_data(self):
+        """Build context for rendering the ticket thread template."""
+        messages = self.get_messages_queryset()
+        staff = self.get_ticket_staff()
+        departments = self.get_ticket_departments()
+
+        return {
+            "ticket": self.object, "staff": staff, "available_staff": self.get_available_staff(staff),
+            "ticket_departments": departments, "available_departments": self.get_available_departments(departments),
+            "first_message": self.get_first_message(messages), "messages": self.get_reply_messages(messages),
+            "last_user_message_id": self.get_last_user_message_id(messages), 
+            "user_has_removed": self.ticket.user_has_removed_themselves(self.request.user),
+            "can_manage_assignments": self.ticket.can_manage_assignments(self.request.user),
+            "can_send_reminder": self.ticket.can_send_reminder(),
+        }
+
+    def _back_to_url(self, request):
+        """Return the URL used by the thread page back link."""
+        return request.GET.get("return_to") or f'{reverse("home")}?scope={request.GET.get("scope", "personal")}'
+
+    @staticmethod
+    def _back_to_label(back_to_url):
+        """Return the back-link label for the current origin."""
+        return "Back to tickets"

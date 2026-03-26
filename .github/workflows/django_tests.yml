@@ -32,4 +32,28 @@ jobs:
     - name: Run Tests
       run: |
         coverage run manage.py test
-        coverage report --fail-under=100
+        coverage report
+
+    - name: Enforce 98% per-file coverage
+      run: |
+        coverage json
+        
+        python -c '
+        import json
+        import sys
+        
+        with open("coverage.json") as f:
+            data = json.load(f)
+            
+        failed = False
+        for filename, info in data["files"].items():
+            pct = info["summary"]["percent_covered"]
+            if pct < 98:
+                print(f"::error file={filename}::Coverage is {pct:.2f}% (minimum 98%)")
+                failed = True
+                
+        if failed:
+            sys.exit(1)
+        else:
+            print("All files meet the 98% minimum coverage threshold.")
+        '

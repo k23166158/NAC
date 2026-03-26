@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Staff Members – {{ department.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/ticket_layout.css' %}">
+<link rel="stylesheet" href="{% static 'css/ticket_layout_extra.css' %}">
+<link rel="stylesheet" href="{% static 'css/department_view.css' %}">
+<link rel="stylesheet" href="{% static 'css/pagination.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tickets-wrap tickets-centered dept-page">
+    <div class="back-link-container">
+        <a href="{% url 'department' department.slug %}" class="ticket-link">← Back to {{ department.name }}</a>
+    </div>
+
+    <div class="thread-section">
+        <h2 class="section-title">
+            Staff Members
+            <span class="pill badge-count badge-blue">{{ page.paginator.count }}</span>
+        </h2>
+
+        <div class="staff-list">
+            {% for pill_user in page %}
+                <div class="staff-row {% if pill_user in invited_users %}staff-row-invited{% endif %}">
+                    <a class="content-link-flex staff-info" href="{% url 'profile' pill_user.profile_slug %}">
+                        {% include "partials/user_avatar.html" with avatar_user=pill_user %}
+                        {% if pill_user in invited_users %}
+                            <div class="staff-copy">
+                                <i class="staff-name">{{ pill_user.full_name }}</i>
+                                <span class="staff-role staff-role-invited">Invited</span>
+                            </div>
+                        {% else %}
+                            <div class="staff-copy">
+                                <span class="staff-name">{{ pill_user.full_name }}</span>
+                                <span class="staff-role">Active member</span>
+                            </div>
+                        {% endif %}
+                    </a>
+                </div>
+            {% empty %}
+                <div class="empty empty-state">No staff assigned or invited yet.</div>
+            {% endfor %}
+        </div>
+
+        {% include "partials/pagination.html" with page=page page_param="page" %}
+    </div>
+</div>
+{% endblock %}
