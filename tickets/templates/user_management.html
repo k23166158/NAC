@@ -4,7 +4,11 @@
 {% block title %}User Management{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/user_management.css' %}">
+<link rel="stylesheet" href="{% static 'css/user_management_layout.css' %}">
+<link rel="stylesheet" href="{% static 'css/user_management_search.css' %}">
+<link rel="stylesheet" href="{% static 'css/user_management_table.css' %}">
+<link rel="stylesheet" href="{% static 'css/user_management_actions.css' %}">
+<link rel="stylesheet" href="{% static 'css/user_management_media.css' %}">
 <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
 {% endblock %}
 
@@ -19,6 +23,12 @@
                 <p class="header-subtitle">Review team access, check department coverage, and jump straight into individual profiles.</p>
             </div>
             <div class="header-actions">
+                <a href="{% url 'bulk_user_export' %}" class="btn-action btn-import" title="Export Users">
+                  <i class="bi bi-download"></i> Export Users
+                </a>
+                <a href="{% url 'bulk_user_import' %}" class="btn-action btn-import" title="Bulk Import Users">
+                  <i class="bi bi-upload"></i> Bulk Import
+                </a>
                 <form method="get" class="search-form">
                     <input type="text" name="q" placeholder="Search users..." value="{{ search_query }}" class="search-input">
                     <button type="submit" class="btn-search" aria-label="Search users"><i class="bi bi-search"></i></button>
