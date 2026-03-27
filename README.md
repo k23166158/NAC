@@ -31,7 +31,8 @@ This software was built using the following major frameworks, libraries, and ext
    * *Location:* [https://www.python.org/](https://www.python.org/)
 
 ## System Design
-A UML class diagram of the domain model is available at [`class_diagram.png`](class_diagram.png) in the root of this repository.
+A UML class diagram of ResolveMe is available at [`class-uml.png`](class-uml.png) in the root of this repository.
+The database diagram is available at [`database-diagram.png`](database-diagram.png) in the root of this repository.
 
 ## Deployment Location
 The live version of this software is currently deployed and accessible at:
