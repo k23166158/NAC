@@ -32,7 +32,7 @@ This software was built using the following major frameworks, libraries, and ext
 
 ## Deployment Location
 The live version of this software is currently deployed and accessible at:
-* **[Insert URL here]**
+* **[https://k23166158.pythonanywhere.com/](https://k23166158.pythonanywhere.com/)**
 
 ## Access Credentials
 The database has been seeded with predefined users to test the different permission levels of the application. 
