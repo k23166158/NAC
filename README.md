@@ -30,6 +30,8 @@ This software was built using the following major frameworks, libraries, and ext
 * **Python** The programming language used to develop the project.
    * *Location:* [https://www.python.org/](https://www.python.org/)
 
+* **Generative AI** Used to aid our developement and understanding in this project.
+
 ## System Design
 A UML class diagram of ResolveMe is available at [`class-uml.png`](class-uml.png) in the root of this repository.
 The database diagram is available at [`database-diagram.png`](database-diagram.png) in the root of this repository.
